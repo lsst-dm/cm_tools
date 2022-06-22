@@ -1,36 +1,48 @@
-"""Defintion of database tables used in campaign management"""
+# This file is part of cm_tools
+#
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import enum
-from sqlalchemy import create_engine, MetaData, Table, Column, Float, Integer, String, DateTime, Enum
+from sqlalchemy import MetaData, Table, Column, Float, Integer, String, DateTime, Enum
 
-
-class StatusEnum(enum.Enum):
-    waiting = 0,
-    ready = 1,
-    pending = 2,
-    running = 3,
-    failed = 4,
-    done = 5,
-    superseeded = 6
-    pass
+from lsst.cm.tools.core.utils import StatusEnum, LevelEnum
 
 
 production_meta = MetaData()
 production_table = Table(
     'production', production_meta,
-    Column('id', Integer, primary_key=True),
-    Column('p_id', Integer),
-    Column('name', String),
+    Column('p_id', Integer, primary_key=True),
+    Column('p_name', String),
+    Column('handler', String),
+    Column('config_yaml', String),
     Column('n_campaigns', Integer)
 )
 
 campaign_meta = MetaData()
 campaign_table = Table(
     'campaign', campaign_meta,
-    Column('id', Integer, primary_key=True),
+    Column('c_id', Integer, primary_key=True),
+    Column('fullname', String),
+    Column('c_name', String),
     Column('p_id', Integer),
-    Column('c_id', Integer),
-    Column('name', String),
+    Column('handler', String),
+    Column('config_yaml', String),
     Column('n_steps_all', Integer),
     Column('n_steps_done', Integer),
     Column('n_steps_failed', Integer),
@@ -42,11 +54,13 @@ campaign_table = Table(
 step_meta = MetaData()
 step_table = Table(
     'step', step_meta,
-    Column('id', Integer, primary_key=True),
+    Column('s_id', Integer, primary_key=True),
+    Column('fullname', String),
+    Column('s_name', String),
     Column('p_id', Integer),
     Column('c_id', Integer),
-    Column('s_id', Integer),
-    Column('name', String),
+    Column('handler', String),
+    Column('config_yaml', String),
     Column('n_groups_all', Integer),
     Column('n_groups_done', Integer),
     Column('n_groups_failed', Integer),
@@ -58,11 +72,14 @@ step_table = Table(
 group_meta = MetaData()
 group_table = Table(
     'group', group_meta,
-    Column('id', Integer, primary_key=True),
+    Column('g_id', Integer, primary_key=True),
+    Column('fullname', String),
+    Column('g_name', String),
     Column('p_id', Integer),
     Column('c_id', Integer),
     Column('s_id', Integer),
-    Column('g_id', Integer),
+    Column('handler', String),
+    Column('config_yaml', String),
     Column('n_workflows', Integer),
     Column('g_coll_in', String),
     Column('g_coll_out', String),
@@ -72,12 +89,15 @@ group_table = Table(
 workflow_meta = MetaData()
 workflow_table = Table(
     'workflow', workflow_meta,
-    Column('id', Integer, primary_key=True),
+    Column('w_id', Integer, primary_key=True),
+    Column('fullname', String),
     Column('p_id', Integer),
     Column('c_id', Integer),
     Column('s_id', Integer),
     Column('g_id', Integer),
-    Column('w_id', Integer),
+    Column('w_idx', Integer),
+    Column('handler', String),
+    Column('config_yaml', String),
     Column('n_tasks_all', Integer),
     Column('n_tasks_done', Integer),
     Column('n_tasks_failed', Integer),
@@ -101,30 +121,47 @@ workflow_table = Table(
 
 
 def create_db(engine):
-
     from sqlalchemy_utils import create_database
     create_database(engine.url)
     for meta in [production_meta, campaign_meta, step_meta, group_meta, workflow_meta]:
         meta.create_all(engine)
 
 
-if __name__ == '__main__':
+def get_table(level: LevelEnum):
+    all_tables = {
+        LevelEnum.production: production_table,
+        LevelEnum.campaign: campaign_table,
+        LevelEnum.step: step_table,
+        LevelEnum.group: group_table,
+        LevelEnum.workflow: workflow_table}
+    return all_tables[level]
 
-    import argparse
 
-    parser = argparse.ArgumentParser(prog='tables.py')
+def get_primary_key(level: LevelEnum):
+    all_keys = {
+        LevelEnum.production: production_table.c.p_id,
+        LevelEnum.campaign: campaign_table.c.c_id,
+        LevelEnum.step: step_table.c.s_id,
+        LevelEnum.group: group_table.c.g_id,
+        LevelEnum.workflow: workflow_table.c.w_id}
+    return all_keys[level]
 
-    parser.add_argument('--db', type=str, help='Database', default="sqlite:///cm.db")
-    parser.add_argument('--create', action='store_true', default=False, help="Create DB")
 
-    args = parser.parse_args()
+def get_name_field(level: LevelEnum):
+    all_keys = {
+        LevelEnum.production: production_table.c.p_name,
+        LevelEnum.campaign: campaign_table.c.c_name,
+        LevelEnum.step: step_table.c.s_name,
+        LevelEnum.group: group_table.c.g_name,
+        LevelEnum.workflow: workflow_table.c.w_idx}
+    return all_keys[level]
 
-    engine = create_engine(args.db, echo=True)
-    from sqlalchemy_utils import database_exists
 
-    if not database_exists(engine.url):
-        if args.create:
-            create_db(engine)
-
-    if not database_exists(engine.url):
-        raise RuntimeError(f'Failed to access or create database {args.db}')
+def get_parent_field(level: LevelEnum):
+    all_keys = {
+        LevelEnum.production: None,
+        LevelEnum.campaign: campaign_table.c.p_id,
+        LevelEnum.step: step_table.c.c_id,
+        LevelEnum.group: group_table.c.s_id,
+        LevelEnum.workflow: workflow_table.c.g_id}
+    return all_keys[level]
