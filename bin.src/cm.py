@@ -43,7 +43,8 @@ if __name__ == '__main__':
         'queue',
         'launch',
         'accept',
-        'reject']
+        'reject',
+        'fake_run']
     parser = argparse.ArgumentParser(prog=sys.argv[0])
 
     parser.add_argument('--db', type=str, help='Database', default="sqlite:///cm.db")
@@ -109,7 +110,13 @@ if __name__ == '__main__':
     elif args.action == 'queue':
         iface.queue_workflows(the_level, the_db_id)
     elif args.action == 'launch':
-        iface.launch_workflows(the_level, the_db_id, 50)
+        iface.launch_workflows(the_level, the_db_id, 60)
+    elif args.action == 'fake_run':
+        status_value = all_args.pop('status', 'completed')
+        if status_value is None:
+            status_value = 'completed'
+        the_status = StatusEnum[status_value]
+        iface.fake_run(the_db_id, the_status)
     elif args.action == 'accept':
         iface.accept(the_level, the_db_id)
     elif args.action == 'reject':
@@ -119,7 +126,7 @@ if __name__ == '__main__':
         for arg_ in id_args:
             all_args.pop(arg_)
         if status_value is not None:
-            the_status = StatusEnum(all_args.pop('status'))
+            the_status = StatusEnum(status_value)
             iface.update(the_level, the_db_id, status=the_status, **all_args)
         else:
             iface.update(the_level, the_db_id, **all_args)

@@ -32,11 +32,26 @@ def test_sql_interface():
         production_name='example',
         campaign_name='test')
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
-    iface.prepare(LevelEnum.step, db_c_id, recurse=True)
+    for step_name in ['step1', 'step2', 'step3']:
+        db_s_id = iface.get_db_id(
+            LevelEnum.step,
+            production_name='example',
+            campaign_name='test',
+            step_name=step_name)
+        iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        iface.queue_workflows(LevelEnum.step, db_s_id)
+        iface.launch_workflows(LevelEnum.step, db_s_id, 100)
+        iface.fake_run(db_s_id)
+        iface.check(LevelEnum.workflow, db_s_id, recurse=True)
+        iface.accept(LevelEnum.workflow, db_s_id)
+        iface.check(LevelEnum.group, db_s_id, recurse=True)
+        iface.accept(LevelEnum.group, db_s_id)
+        iface.check(LevelEnum.step, db_s_id, recurse=True)
+        iface.accept(LevelEnum.step, db_s_id)
 
-    iface.queue_workflows(LevelEnum.campaign, db_c_id)
-    iface.launch_workflows(LevelEnum.campaign, db_c_id, 50)
+    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
+    iface.check(LevelEnum.campaign, db_c_id, recurse=True)
+    iface.accept(LevelEnum.campaign, db_c_id)
 
     iface.print_table(sys.stdout, LevelEnum.production)
     iface.print_table(sys.stdout, LevelEnum.campaign)

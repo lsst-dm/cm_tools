@@ -95,7 +95,7 @@ class DbId:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=row_id)
         if level == LevelEnum.workflow:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id)
-        raise RuntimeError("Bad level {level}")
+        raise RuntimeError("Bad level {level}")  # pragma: no cover
 
 
 class DbInterface:
@@ -135,7 +135,7 @@ class DbInterface:
         fullname : str
             Unique string desribing this database entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_db_id(
             self,
@@ -158,7 +158,7 @@ class DbInterface:
         db_id : DbId
             The request database ID
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_row_id(
             self,
@@ -205,7 +205,7 @@ class DbInterface:
         status : StatusEnum
             Status of the selected entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def print_(
             self,
@@ -226,7 +226,7 @@ class DbInterface:
             Database ID specifying which entries to print.
             See class notes above.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def print_table(
             self,
@@ -242,7 +242,7 @@ class DbInterface:
         level: LevelEnum
             Selects which database table to print
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def count(
             self,
@@ -264,7 +264,7 @@ class DbInterface:
         count : int
             The number of selected rows
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def update(
             self,
@@ -287,7 +287,7 @@ class DbInterface:
         These are passed to the handler which can use
         them to derive the values for the fields to update.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def check(
             self,
@@ -307,7 +307,7 @@ class DbInterface:
         recurse : bool
             If true, will recursively check childern
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_data(
             self,
@@ -328,7 +328,7 @@ class DbInterface:
         data : ???
             The matching data
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_iterable(
             self,
@@ -349,7 +349,7 @@ class DbInterface:
         itr : iterator
             Iterator over the matching rows
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def insert(
             self,
@@ -383,7 +383,7 @@ class DbInterface:
         insert_fields : dict[str, Any]:
             The keys and values being inserted into the new entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def prepare(
             self,
@@ -408,7 +408,7 @@ class DbInterface:
         --------
         Keywords can be used in recursion
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def queue_workflows(
             self,
@@ -424,7 +424,7 @@ class DbInterface:
         db_id : DbId
             Specifies the entries we are queuing
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def launch_workflows(
             self,
@@ -441,7 +441,7 @@ class DbInterface:
         db_id : DbId
             Specifies the entries we are queuing
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def accept(
             self,
@@ -458,4 +458,37 @@ class DbInterface:
         db_id : DbId
             Specifies the entries we are accepting
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
+
+    def reject(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        """Reject all of the completed or part_fail
+        entries at a particular level
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are accepting
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    def fake_run(
+            self,
+            db_id: DbId,
+            status: StatusEnum = StatusEnum.completed) -> None:
+        """Pretend to run workflows, this is for testing
+
+        Parameters
+        ----------
+        db_id : DbId
+            Specifies the entries we are running
+
+        status: StatusEnum
+            Status value to set
+        """
+        raise NotImplementedError()  # pragma: no cover

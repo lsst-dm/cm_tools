@@ -236,6 +236,9 @@ class SQLAlchemyInterface(DbInterface):
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
             handler.launch_workflow(self, one_id, row_)
             self.update(LevelEnum.workflow, one_id, status=StatusEnum.running)
+            n_running += 1
+            if n_running >= max_running:
+                break
 
     def accept(
             self,
@@ -267,6 +270,20 @@ class SQLAlchemyInterface(DbInterface):
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
             handler.reject(level, self, one_id, row_)
             self.update(level, one_id, status=StatusEnum.rejected)
+
+    def fake_run(
+            self,
+            db_id: DbId,
+            status: StatusEnum = StatusEnum.completed) -> None:
+        itr = self.get_iterable(LevelEnum.workflow, db_id)
+        status_key = get_status_key(LevelEnum.workflow)
+        for row_ in itr:
+            status = row_[status_key.name]
+            if status not in [StatusEnum.running]:
+                continue
+            one_id = DbId.create_from_row(row_)
+            handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
+            handler.fake_run(self, one_id, row_)
 
     def _check_result(
             self,
@@ -301,6 +318,16 @@ class SQLAlchemyInterface(DbInterface):
         self._check_result(sel_result)
         return sel_result
 
+    def _return_select_count(
+            self,
+            sel) -> int:
+        """Returns an iterable matching a selection"""
+        itr = self._return_iterable(sel)
+        n_sel = 0
+        for _ in itr:
+            n_sel += 1
+        return n_sel
+
     def _return_count(
             self,
             count) -> int:
@@ -312,9 +339,10 @@ class SQLAlchemyInterface(DbInterface):
     def _count_workflows_at_status(
             self,
             status: StatusEnum) -> int:
+        prim_key = get_primary_key(LevelEnum.workflow)
         status_key = get_status_key(LevelEnum.workflow)
-        counter = func.count(status_key == status)
-        return self._return_count(counter)
+        sel = select([prim_key]).where(status_key == status)
+        return self._return_select_count(sel)
 
     def _print_select(
             self,
@@ -543,16 +571,17 @@ class SQLAlchemyInterface(DbInterface):
             LevelEnum.group: 'g_status',
             LevelEnum.workflow: 'w_status'}
         child_status_name = status_names[level.child()]
-        my_status_name = status_names[level]
         child_status = self._extract_child_status(itr, child_status_name)
         new_status = current_status
         if (child_status <= StatusEnum.rejected.value).any():
             new_status = StatusEnum.part_fail
+        elif not child_status.size:
+            pass
         elif (child_status >= StatusEnum.accepted.value).all():
             new_status = StatusEnum.completed
         elif (child_status >= StatusEnum.running.value).any():
             new_status = StatusEnum.running
-        update_fields: dict[str, Optional[StatusEnum]] = {my_status_name: new_status}
+        update_fields: dict[str, Optional[StatusEnum]] = dict(status=new_status)
         return update_fields
 
     def _check_workflows(self, db_id: DbId):
@@ -565,13 +594,16 @@ class SQLAlchemyInterface(DbInterface):
                 s_id=wf_['s_id'],
                 g_id=wf_['g_id'],
                 w_id=wf_['w_id'])
-            update_fields = self._check_workflow_status(wf_db_id, wf_)
+            if wf_['w_status'] == StatusEnum.running:
+                update_fields = self._check_workflow_status(wf_db_id, wf_)
+            else:
+                update_fields = dict(status=wf_['w_status'])
             self.update(LevelEnum.workflow, wf_db_id, **update_fields)
 
     def _check_workflow_status(
             self,
             db_id: DbId,  # pylint: disable=unused-argument
-            data) -> dict[str, StatusEnum]:
+            data) -> dict[str, Any]:
         """Check the status of a single workflow matching a given db_id"""
-        new_status = data['w_status']
-        return {'w_status': new_status}
+        handler = Handler.get_handler(data['handler'], data['config_yaml'])
+        return handler.check_workflow_status(self, db_id, data)

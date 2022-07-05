@@ -52,7 +52,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=useless-suppression,suppressed-message,abstract-method,broad-except,invalid-name,line-too-long,wrong-import-order,wrong-import-position,too-many-statements,super-with-arguments,consider-using-f-string,missing-module-docstring,missing-class-docstring,missing-function-docstring,too-many-arguments,too-few-public-methods
+disable=useless-suppression,suppressed-message,abstract-method,broad-except,invalid-name,line-too-long,wrong-import-order,wrong-import-position,too-many-statements,super-with-arguments,consider-using-f-string,missing-module-docstring,missing-class-docstring,missing-function-docstring,too-many-arguments,too-few-public-methods,duplicate-code
 
 
 [REPORTS]

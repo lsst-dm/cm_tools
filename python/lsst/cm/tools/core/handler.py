@@ -28,7 +28,7 @@ from typing import Any, Iterable, TYPE_CHECKING
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.utils import LevelEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbId, DbInterface
 
@@ -294,13 +294,38 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
+    def check_workflow_status(
+            self,
+            dbi: DbInterface,
+            db_id: DbId,
+            data) -> dict[str, Any]:
+        """Check the status of a particular workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Database ID for this entry
+
+        data : ???
+            The data associated to this entry
+
+        Returns
+        -------
+        update_fields : dict[str, Any]
+            Used to update the status of the workflow in question.
+        """
+        raise NotImplementedError()  # pragma: no cover
+
     def accept(
             self,
             level: LevelEnum,
             dbi: DbInterface,
             db_id: DbId,
             itr: Iterable,
-            data):
+            data) -> None:
         """Called when a particular entry is accepted
 
         Parameters
@@ -324,7 +349,7 @@ class Handler:
             level: LevelEnum,
             dbi: DbInterface,
             db_id: DbId,
-            data):
+            data) -> None:
         """Called when a particular entry is rejected
 
         Parameters
@@ -340,6 +365,30 @@ class Handler:
 
         data : ???
             The data associated to this entry
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    def fake_run(
+            self,
+            dbi: DbInterface,
+            db_id: DbId,
+            data,
+            status: StatusEnum = StatusEnum.completed) -> None:
+        """Pretend to run workflows, this is for testing
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        data :  ???
+            The data associated to this entry
+
+        status: StatusEnum
+            Status value to set
         """
         raise NotImplementedError()  # pragma: no cover
 

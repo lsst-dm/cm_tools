@@ -290,11 +290,16 @@ class SQLAlchemyHandler(Handler):  # noqa
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
             g_id=parent_db_id.g_id)
+        panda_log_url = os.path.join(
+            self._get_config_var('prod_base_url', 'archive', **kwargs),
+            fullname,
+            'panda_log.yaml')
         extra_fields = dict(
             w_data_query_tmpl=self._get_data_query(dbi, insert_fields, **kwargs),
             w_coll_source=self._get_config_var('w_coll_source', '', **kwargs),
             w_coll_in=self._resolve_templated_string('w_coll_in_template', insert_fields, **kwargs),
-            w_coll_out=self._resolve_templated_string('w_coll_out_template', insert_fields, **kwargs))
+            w_coll_out=self._resolve_templated_string('w_coll_out_template', insert_fields, **kwargs),
+            panda_log_url=panda_log_url)
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -345,12 +350,19 @@ class SQLAlchemyHandler(Handler):  # noqa
         workflow_tmpl_url = data['workflow_tmpl_url']
         submit_command = f"{command_tmpl} {workflow_tmpl_url}"
         # workflow_start = datetime.now()
-        print(submit_command)
+        print(f"Submitting workflow {str(db_id)} with {submit_command}")
         update_fields = dict(
             workflow_subm_url=workflow_tmpl_url,
             command_subm=command_tmpl,
             status=StatusEnum.running)
         dbi.update(LevelEnum.workflow, db_id, **update_fields)
+
+    def check_workflow_status(
+            self,
+            dbi: DbInterface,
+            db_id: DbId,
+            data) -> dict[str, Any]:
+        return dict(status=data['w_status'])
 
     def accept(
             self,
@@ -358,16 +370,16 @@ class SQLAlchemyHandler(Handler):  # noqa
             dbi: DbInterface,
             db_id: DbId,
             itr: Iterable,
-            data):
-        print(f"accept called at {level.name} for {str(db_id)} with {str(data)}")
+            data) -> None:
+        return
 
     def reject(
             self,
             level: LevelEnum,
             dbi: DbInterface,
             db_id: DbId,
-            data):
-        print(f"reject called at {level.name} for {str(db_id)} with {str(data)}")
+            data) -> None:
+        return
 
     def _group_iterator(
             self,
