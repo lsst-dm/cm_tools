@@ -1,0 +1,19 @@
+includeConfigs:
+- ${{CTRL_BPS_DIR}}/config/bps_idf.yaml
+- requestMemory.yaml
+- clustering_alt.yaml
+
+project: zoe
+campaign: zoe/fox
+pipelineYaml: {pipeline_yaml}
+
+payload:
+  payloadName: zoe/fox
+  output: "{w_coll_out}"
+  butlerConfig: {butler_config}
+  inCollection: "{w_coll_in}"
+  dataQuery: "{data_query}"
+  sw_image: "{sw_image}
+
+saveClusteredQgraph: True
+saveGenericWorkflow: True

@@ -29,7 +29,7 @@ from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 from lsst.cm.tools.core.utils import LevelEnum
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbId, DbInterface
 
 
@@ -99,8 +99,7 @@ class Handler:
         config_url : str
             The URL of the configuration file
         """
-        if config_url is None:
-            self._config = {}
+        assert config_url is not None
         if config_url == self._config_url:
             return
         self._read_config(config_url)
@@ -137,7 +136,7 @@ class Handler:
         insert_fields : dict[str, Any]
             The fields and value to insert
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def post_insert_hook(
             self,
@@ -168,7 +167,7 @@ class Handler:
         --------
         Keywords can be used by sub-classes
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_update_fields(
             self,
@@ -202,7 +201,7 @@ class Handler:
         update_fields : dict[str, Any]
             The fields and value to update
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def post_update_hook(
             self,
@@ -237,7 +236,7 @@ class Handler:
         --------
         Keywords can be used by sub-classes
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def prepare_hook(
             self,
@@ -273,7 +272,7 @@ class Handler:
         --------
         Keywords can be used by sub-classes
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def launch_workflow(
             self,
@@ -293,7 +292,7 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def accept(
             self,
@@ -318,7 +317,7 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def reject(
             self,
@@ -342,16 +341,13 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _read_config(
             self,
             config_url: str) -> None:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
-        if self._config_url is None:
-            self._config = {}
-            return
         with open(self._config_url, 'rt', encoding='utf-8') as config_file:
             self._config = yaml.safe_load(config_file)
 
@@ -413,7 +409,7 @@ class Handler:
             The requested keyword is not present
         """
         value = kwargs.get(key, '__FAIL__')
-        if value == '__FAIL__':
+        if value == '__FAIL__':  # pragma: no cover
             raise KeyError(f'Keyword {key} was not specified in {str(kwargs)}')
         return value
 
@@ -452,5 +448,5 @@ class Handler:
         format_vars.update(**insert_fields)
         try:
             return template_string.format(**format_vars)
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg

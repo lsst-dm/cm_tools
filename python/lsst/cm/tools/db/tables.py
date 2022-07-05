@@ -136,7 +136,7 @@ def create_db(engine) -> None:
 
     Populates the database with empty tables
     """
-    from sqlalchemy_utils import create_database
+    from sqlalchemy_utils import create_database  # pylint: disable=import-outside-toplevel
     create_database(engine.url)
     for meta in [production_meta, campaign_meta, step_meta, group_meta, workflow_meta]:
         meta.create_all(engine)

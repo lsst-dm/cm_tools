@@ -378,7 +378,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         step_name = kwargs.get('step_name')
         try:
             grouper = self.step_dict[step_name]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise KeyError(f"No Grouper object associated to step {step_name}") from msg
         return grouper()(self.config, dbi, parent_data_id, data, **kwargs)
 

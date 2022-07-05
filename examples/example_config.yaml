@@ -1,0 +1,23 @@
+prod_base_url: 'archive'
+butler_repo: 'repo'
+workflow_template_yaml: examples/example_template.yaml
+bulter_config: 'butler_config.yaml'
+sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
+c_coll_source: '/prod/raw/all'
+c_data_query_tmpl: ''
+c_coll_in_template: '/prod/{fullname}_input'
+c_coll_out_template: '/prod/{fullname}_output'
+s_coll_in_template: '/prod/{fullname}_input'
+s_coll_out_template: '/prod/{fullname}_output'
+g_coll_in_template: '/prod/{fullname}_input'
+g_coll_out_template: '/prod/{fullname}_output'
+w_coll_in_template: '/prod/{fullname}_input'
+w_coll_out_template: '/prod/{fullname}_output'
+pipeline_yaml:
+    step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
+    step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
+    step3: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step3"
+    step4: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step4"
+    step5: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step5"
+    step6: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step6"
+    step7: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step7"
