@@ -23,28 +23,34 @@ import enum
 
 
 class StatusEnum(enum.Enum):
-    waiting = 0
-    ready = 1
-    pending = 2
-    running = 3
-    failed = 4
-    done = 5
-    superseeded = 6
+    failed = -3       # Processing failed
+    rejected = -2     # Marked as rejected
+    superseeded = -1  # Marked as superseeded
+    waiting = 0       # Inputs are not ready
+    ready = 1         # Inputs are ready
+    pending = 2       # Jobs are queued for submission
+    running = 3       # Jobs are running
+    part_fail = 4     # Partially failed, could be accepted
+    completed = 5     # Completed, awaiting review
+    accepted = 6      # Completed, reviewed and accepted
+
+    def ignore(self):
+        return self.value < 0
 
 
 class LevelEnum(enum.Enum):
-    production = 0
-    campaign = 1
-    step = 2
-    group = 3
-    workflow = 4
+    production = 0    # A family of related campaigns
+    campaign = 1      # A full data processing campaign
+    step = 2          # Part of a campaign that is finished before moving on
+    group = 3         # A subset of data that can be processed in paralllel as part of a step
+    workflow = 4      # A single Panda workflow
 
+    def parent(self):
+        if self.value == 0:
+            return None
+        return LevelEnum(self.value-1)
 
-def level_name(level: LevelEnum):
-    all_levels = {
-        LevelEnum.production: 'production',
-        LevelEnum.campaign: 'campaign',
-        LevelEnum.step: 'step',
-        LevelEnum.group: 'group',
-        LevelEnum.workflow: 'workflow'}
-    return all_levels[level]
+    def child(self):
+        if self.value == 4:
+            return None
+        return LevelEnum(self.value+1)

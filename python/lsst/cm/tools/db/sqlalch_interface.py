@@ -20,19 +20,37 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
-
+from typing import TextIO, Any
 from collections.abc import Iterable
+
+import numpy as np
 
 from sqlalchemy import create_engine, select, and_, func
 
-from lsst.cm.tools.core.db_interface import DbInterface
+from lsst.cm.tools.core.db_interface import DbId, DbInterface
+from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import StatusEnum, LevelEnum
 from lsst.cm.tools.db.tables import (
-    create_db, get_table,
-    get_primary_key, get_name_field, get_parent_field)
+    create_db, get_table, get_primary_key, get_status_key,
+    get_name_field, get_parent_field, get_matching_key)
 
 
 class SQLAlchemyInterface(DbInterface):
+
+    full_name_templates = [
+        "{production_name}",
+        "{production_name}/{campaign_name}",
+        "{production_name}/{campaign_name}/{step_name}",
+        "{production_name}/{campaign_name}/{step_name}/{group_name}",
+        "{production_name}/{campaign_name}/{step_name}/{group_name}/{workflow_idx:06}"]
+
+    @classmethod
+    def full_name(cls, level: LevelEnum, **kwargs) -> str:
+        """Utility function to return a full name
+        associated to a database entry"""
+        if level is None:
+            return None
+        return cls.full_name_templates[level.value].format(**kwargs)
 
     def __init__(self, db: str, **kwargs):
         from sqlalchemy_utils import database_exists
@@ -45,37 +63,275 @@ class SQLAlchemyInterface(DbInterface):
         if not database_exists(self._engine.url):
             raise RuntimeError(f'Failed to access or create database {db}')
         self._conn = self._engine.connect()
+        DbInterface.__init__(self)
 
-    def _check_result(self, result):
+    def get_db_id(
+            self,
+            level: LevelEnum,
+            **kwargs) -> DbId:
+        if level is None:
+            return DbId()
+        p_id = self._get_id(LevelEnum.production, None, kwargs.get('production_name'))
+        if level == LevelEnum.production:
+            return DbId(p_id=p_id)
+        c_id = self._get_id(LevelEnum.campaign, p_id, kwargs.get('campaign_name'))
+        if level == LevelEnum.campaign:
+            return DbId(p_id=p_id, c_id=c_id)
+        s_id = self._get_id(LevelEnum.step, c_id, kwargs.get('step_name'))
+        if level == LevelEnum.step:
+            return DbId(p_id=p_id, c_id=c_id, s_id=s_id)
+        g_id = self._get_id(LevelEnum.group, s_id, kwargs.get('group_name'))
+        if level == LevelEnum.group:
+            return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
+        w_id = self._get_id(LevelEnum.workflow, g_id, kwargs.get('workflow_idx'))
+        if level == LevelEnum.workflow:
+            return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
+        raise RuntimeError(f"Unknown Level value {level}")
+
+    def get_status(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> StatusEnum:
+        table = get_table(level)
+        prim_key = get_primary_key(level)
+        status_key = get_status_key(level)
+        sel = table.select().where(prim_key == db_id[level])
+        return self._return_single_row(sel)[status_key.name]
+
+    def print_(
+            self,
+            stream,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        sel = self._get_select(level, db_id)
+        self._print_select(stream, sel)
+
+    def print_table(
+            self,
+            stream: TextIO,
+            level: LevelEnum) -> None:
+        table = get_table(level)
+        sel = table.select()
+        self._print_select(stream, sel)
+
+    def count(self, level: LevelEnum, db_id: DbId):
+        count_key = get_parent_field(level)
+        if count_key is None:
+            count_key = get_primary_key(level)
+            counter = func.count(count_key)
+        else:
+            if db_id is not None:
+                counter = func.count(count_key == db_id[level])
+            else:
+                counter = func.count(count_key)
+        return self._return_count(counter)
+
+    def update(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            **kwargs) -> None:
+        data = self.get_data(level, db_id)
+        itr = self.get_iterable(level.child(), db_id)
+        handler = Handler.get_handler(data['handler'], data['config_yaml'])
+        assert handler is not None
+        update_args = handler.get_update_fields(level, self, data, itr, **kwargs)
+        if update_args:
+            self._update_values(level, db_id, **update_args)
+
+    def check(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            recurse: bool = False) -> None:
+        if recurse:
+            child_level = level.child()
+            if child_level is not None:
+                self.check(child_level, db_id, recurse)
+        if level == LevelEnum.workflow:
+            return self._check_workflows(db_id)
+        return self._check_multi_children(level, db_id)
+
+    def get_data(
+            self,
+            level: LevelEnum,
+            db_id: DbId):
+        table = get_table(level)
+        prim_key = get_primary_key(level)
+        sel = table.select().where(prim_key == db_id[level])
+        return self._return_single_row(sel)
+
+    def get_iterable(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> Iterable:
+        if level is None:
+            return None
+        sel = self._get_select(level, db_id)
+        return self._return_iterable(sel)
+
+    def insert(
+            self,
+            level: LevelEnum,
+            parent_db_id: DbId,
+            handler: Handler,
+            recurse: bool = True,
+            **kwargs) -> dict[str, Any]:
+        func_dict = {
+            LevelEnum.production: self._insert_production,
+            LevelEnum.campaign: self._insert_campaign,
+            LevelEnum.step: self._insert_step,
+            LevelEnum.group: self._insert_group,
+            LevelEnum.workflow: self._insert_workflow}
+        the_func = func_dict[level]
+        insert_fields = handler.get_insert_fields(level, self, parent_db_id, **kwargs)
+        insert_fields = the_func(parent_db_id, **insert_fields)
+        if recurse:
+            handler.post_insert_hook(level, self, insert_fields, recurse, **kwargs)
+        return insert_fields
+
+    def prepare(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            recurse: bool = True,
+            **kwargs) -> None:
+        itr = self.get_iterable(level, db_id)
+        prim_key = get_primary_key(level)
+        kwcopy = kwargs.copy()
+        for row_ in itr:
+            one_id = db_id.extend(level, row_[prim_key.name])
+            handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
+            kwcopy.update(config_yaml=row_['config_yaml'])
+            handler.prepare_hook(level, self, one_id, row_, recurse, **kwcopy)
+
+    def queue_workflows(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        itr = self.get_iterable(LevelEnum.workflow, db_id)
+        for row_ in itr:
+            status = row_['w_status']
+            if status != StatusEnum.ready:
+                continue
+            one_id = DbId.create_from_row(row_)
+            self.update(LevelEnum.workflow, one_id, status=StatusEnum.pending)
+
+    def launch_workflows(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            max_running: int) -> None:
+        n_running = self._count_workflows_at_status(StatusEnum.running)
+        if n_running >= max_running:
+            return
+        itr = self.get_iterable(LevelEnum.workflow, db_id)
+        for row_ in itr:
+            status = row_['w_status']
+            if status != StatusEnum.pending:
+                continue
+            one_id = DbId.create_from_row(row_)
+            handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
+            handler.launch_workflow(self, one_id, row_)
+            self.update(LevelEnum.workflow, one_id, status=StatusEnum.running)
+
+    def accept(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        itr = self.get_iterable(level, db_id)
+        status_key = get_status_key(level)
+        for row_ in itr:
+            status = row_[status_key.name]
+            if status not in [StatusEnum.completed, StatusEnum.part_fail]:
+                continue
+            one_id = DbId.create_from_row(row_)
+            handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
+            itr = self.get_iterable(level.child(), db_id)
+            handler.accept(level, self, one_id, itr, row_)
+            self.update(level, one_id, status=StatusEnum.accepted)
+
+    def reject(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        itr = self.get_iterable(level, db_id)
+        status_key = get_status_key(level)
+        for row_ in itr:
+            status = row_[status_key.name]
+            if status not in [StatusEnum.completed, StatusEnum.part_fail]:
+                continue
+            one_id = DbId.create_from_row(row_)
+            handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
+            handler.reject(self, one_id, row_)
+            self.update(level, one_id, status=StatusEnum.rejected)
+
+    def _check_result(
+            self,
+            result) -> None:
+        """Placeholder function to check on SQL query results"""
         assert result
 
-    def _return_id(self, sel):
+    def _return_id(
+            self,
+            sel) -> int:
+        """Returns the first column in the first row matching a selection"""
         sel_result = self._conn.execute(sel)
         self._check_result(sel_result)
-        return sel_result.all()[0][0]
+        try:
+            return sel_result.all()[0][0]
+        except IndexError:
+            return None
 
-    def _return_single_row(self, sel):
+    def _return_single_row(
+            self,
+            sel):
+        """Returns the first row matching a selection"""
         sel_result = self._conn.execute(sel)
         self._check_result(sel_result)
         return sel_result.all()[0]
 
-    def _return_iterable(self, sel):
+    def _return_iterable(
+            self,
+            sel) -> Iterable:
+        """Returns an iterable matching a selection"""
         sel_result = self._conn.execute(sel)
         self._check_result(sel_result)
         return sel_result
 
-    def _return_count(self, count):
+    def _return_count(
+            self,
+            count) -> int:
+        """Returns the number of rows mathcing a selection"""
         count_result = self._conn.execute(count)
         self._check_result(count_result)
         return count_result.scalar()
 
-    def _print_select(self, sel):
+    def _count_workflows_at_status(
+            self,
+            status: StatusEnum) -> int:
+        status_key = get_status_key(LevelEnum.workflow)
+        counter = func.count(status_key == status)
+        return self._return_count(counter)
+
+    def _print_select(
+            self,
+            stream: TextIO,
+            sel):
+        """Prints all the rows matching a selection"""
         sel_result = self._conn.execute(sel)
         self._check_result(sel_result)
         for row in sel_result:
-            print(row)
+            stream.write(f"{str(row)}\n")
 
-    def _get_id(self, level: LevelEnum, parent_id: int, match_name):
+    def _get_id(
+            self,
+            level: LevelEnum,
+            parent_id: int,
+            match_name: Any) -> int:
+        """Returns the primary key matching the parent_id and the match_name"""
+        if match_name is None:
+            return None
         prim_key = get_primary_key(level)
         name_field = get_name_field(level)
         parent_field = get_parent_field(level)
@@ -86,184 +342,135 @@ class SQLAlchemyInterface(DbInterface):
                                                 name_field == match_name))
         return self._return_id(sel)
 
-    def _get_data(self, level: LevelEnum, row_id: int):
+    def _get_select(
+            self,
+            level: LevelEnum,
+            db_id: DbId):
+        """Returns the selection for a given db_id at a given level"""
         table = get_table(level)
-        prim_key = get_primary_key(level)
-        sel = table.select().where(prim_key == row_id)
-        return self._return_single_row(sel)
-
-    def _get_iterable(self, level: LevelEnum, row_id: int):
-        table = get_table(level)
-        parent_key = get_parent_field(level)
+        id_tuple = db_id.to_tuple()[0:level.value+1]
+        parent_key = None
+        row_id = None
+        for i, row_id_ in enumerate(id_tuple):
+            if row_id_ is not None:
+                parent_key = get_matching_key(level, LevelEnum(i))
+                row_id = row_id_
         if parent_key is None:
             sel = table.select()
         else:
             sel = table.select().where(parent_key == row_id)
-        return self._return_iterable(sel)
+        return sel
 
-    def _insert_values(self, level: LevelEnum, **kwargs):
+    def _insert_values(
+            self,
+            level: LevelEnum,
+            **kwargs):
+        """Inserts a new row at a given level with values given in kwargs"""
         table = get_table(level)
         ins = table.insert().values(**kwargs)
         ins_result = self._conn.execute(ins)
         self._check_result(ins_result)
 
-    def _update_values(self, level: LevelEnum, row_id: int, **kwargs):
+    def _update_values(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            **kwargs):
+        """Updates a given row with values given in kwargs"""
         table = get_table(level)
         prim_key = get_primary_key(level)
-        stmt = table.update().where(prim_key == row_id).values(**kwargs)
+        stmt = table.update().where(prim_key == db_id[level]).values(**kwargs)
         upd_result = self._conn.execute(stmt)
         self._check_result(upd_result)
 
-    def _update(self, level: LevelEnum, row_id: int, **kwargs):
-        data = self._get_data(level, row_id)
-        itr = self._get_iterable(level, row_id)
-        handler = self.get_handler(data['handler'])
-        if handler is not None:
-            update_args = handler.update(level, self, data, itr, **kwargs)
-        else:
-            update_args = kwargs
-        self._update_values(level, row_id, **update_args)
+    def _current_id(
+            self,
+            level: LevelEnum) -> int:
+        return self.count(level, None)
 
-    def _count(self, level: LevelEnum, row_id: int):
-        count_key = get_parent_field(level)
-        if count_key is None:
-            count_key = get_table(level)
-            count = func.count(count_key)
-        else:
-            count = func.count(count_key == row_id)
-        return self._return_count(count)
-
-    def _print(self, level: LevelEnum, row_id: int):
-        table = get_table(level)
-        parent_key = get_parent_field(level)
-        if parent_key is None:
-            sel = table.select()
-        else:
-            sel = table.select().where(parent_key == row_id)
-        self._print_select(sel)
-
-    def get_production_id(self, production_name: str) -> int:
-        return self._get_id(LevelEnum.production, None, production_name)
-
-    def get_campaign_id(self, production_id: int, campaign_name: str) -> int:
-        return self._get_id(LevelEnum.campaign, production_id, campaign_name)
-
-    def get_step_id(self, campaign_id: int, step_name: str) -> int:
-        return self._get_id(LevelEnum.step, campaign_id, step_name)
-
-    def get_group_id(self, step_id: int, group_name: str) -> int:
-        return self._get_id(LevelEnum.group, step_id, group_name)
-
-    def get_workflow_id(self, group_id: int, workflow_idx: int) -> int:
-        return self._get_id(LevelEnum.workflow, group_id, workflow_idx)
-
-    def get_production_data(self, production_id: int):
-        return self._get_data(LevelEnum.production, production_id)
-
-    def get_campaign_data(self, campaign_id: int):
-        return self._get_data(LevelEnum.campaign, campaign_id)
-
-    def get_step_data(self, step_id: int):
-        return self._get_data(LevelEnum.step, step_id)
-
-    def get_group_data(self, group_id: int):
-        return self._get_data(LevelEnum.group, group_id)
-
-    def get_workflow_data(self, workflow_id: int):
-        return self._get_data(LevelEnum.workflow, workflow_id)
-
-    def get_production_iterable(self) -> Iterable:
-        return self._get_iterable(LevelEnum.production, None)
-
-    def get_campaign_iterable(self, production_id: int) -> Iterable:
-        return self._get_iterable(LevelEnum.campaign, production_id)
-
-    def get_step_iterable(self, campaign_id: int) -> Iterable:
-        return self._get_iterable(LevelEnum.step, campaign_id)
-
-    def get_group_iterable(self, step_id: int) -> Iterable:
-        return self._get_iterable(LevelEnum.group, step_id)
-
-    def get_workflow_iterable(self, group_id: int) -> Iterable:
-        return self._get_iterable(LevelEnum.workflow, group_id)
-
-    def count_productions(self) -> int:
-        return self._count(LevelEnum.production, None)
-
-    def count_campaigns(self, production_id: int) -> int:
-        return self._count(LevelEnum.campaign, production_id)
-
-    def count_steps(self, campaign_id: int) -> int:
-        return self._count(LevelEnum.step, campaign_id)
-
-    def count_groups(self, step_id: int) -> int:
-        return self._count(LevelEnum.group, step_id)
-
-    def count_workflows(self, group_id: int) -> int:
-        return self._count(LevelEnum.workflow, group_id)
-
-    def print_productions(self):
-        self._print(LevelEnum.production, None)
-
-    def print_campaigns(self, production_id: int):
-        self._print(LevelEnum.campaign, production_id)
-
-    def print_steps(self, campaign_id: int):
-        self._print(LevelEnum.step, campaign_id)
-
-    def print_groups(self, step_id: int):
-        self._print(LevelEnum.group, step_id)
-
-    def print_workflows(self, group_id: int):
-        self._print(LevelEnum.workflow, group_id)
-
-    def _insert_production(self, **kwargs):
+    def _insert_production(
+            self,
+            parent_db_id: DbId,
+            **kwargs) -> None:
+        """Production specific insert function"""
+        assert parent_db_id[LevelEnum.production] is None
         ins_values = dict(
             n_campaigns=0)
         ins_values.update(**kwargs)
         self._insert_values(LevelEnum.production, **ins_values)
+        ins_values.update(p_id=self._current_id(LevelEnum.production))
+        return ins_values
 
-    def _insert_campaign(self, **kwargs):
+    def _insert_campaign(
+            self,
+            parent_db_id: DbId,
+            **kwargs) -> None:
+        """Campaign specific insert function"""
         ins_values = dict(
             n_steps_all=0,
             n_steps_done=0,
             n_steps_failed=0,
+            c_data_query_tmpl="",
+            c_data_query_subm="",
+            c_coll_source="",
             c_coll_in="",
             c_coll_out="",
             c_status=StatusEnum.waiting)
         ins_values.update(**kwargs)
-        p_id = ins_values['p_id']
-        n_campaigns = self.count_campaigns(p_id)
+        n_campaigns = self.count(LevelEnum.campaign, parent_db_id)
         self._insert_values(LevelEnum.campaign, **ins_values)
-        self._update_values(LevelEnum.production, p_id, n_campaigns=n_campaigns+1)
+        self._update_values(LevelEnum.production, parent_db_id, n_campaigns=n_campaigns+1)
+        ins_values.update(c_id=self._current_id(LevelEnum.campaign))
+        return ins_values
 
-    def _insert_step(self, **kwargs):
+    def _insert_step(
+            self,
+            parent_db_id: DbId,
+            **kwargs) -> None:
+        """Step specific insert function"""
         ins_values = dict(
+            previous_step_id=None,
             n_groups_all=0,
             n_groups_done=0,
             n_groups_failed=0,
+            s_data_query_tmpl="",
+            s_data_query_subm="",
+            s_coll_source="",
             s_coll_in="",
             s_coll_out="",
             s_status=StatusEnum.waiting)
         ins_values.update(**kwargs)
-        c_id = ins_values['c_id']
-        n_steps = self.count_steps(c_id)
+        n_steps = self.count(LevelEnum.step, parent_db_id)
         self._insert_values(LevelEnum.step, **ins_values)
-        self._update_values(LevelEnum.campaign, c_id, n_steps_all=n_steps+1)
+        self._update_values(LevelEnum.campaign, parent_db_id, n_steps_all=n_steps+1)
+        ins_values.update(s_id=self._current_id(LevelEnum.step))
+        return ins_values
 
-    def _insert_group(self, **kwargs):
+    def _insert_group(
+            self,
+            parent_db_id: DbId,
+            **kwargs):
+        """Group specific insert function"""
         ins_values = dict(
             n_workflows=0,
+            g_data_query_tmpl="",
+            g_data_query_subm="",
+            g_coll_source="",
             g_coll_in="",
             g_coll_out="",
             g_status=StatusEnum.waiting)
         ins_values.update(**kwargs)
-        s_id = ins_values['s_id']
-        n_groups = self.count_groups(s_id)
+        n_groups = self.count(LevelEnum.group, parent_db_id)
         self._insert_values(LevelEnum.group, **ins_values)
-        self._update_values(LevelEnum.step, s_id, n_groups_all=n_groups+1)
+        self._update_values(LevelEnum.step, parent_db_id, n_groups_all=n_groups+1)
+        ins_values.update(g_id=self._current_id(LevelEnum.group))
+        return ins_values
 
-    def _insert_workflow(self, **kwargs):
+    def _insert_workflow(
+            self,
+            parent_db_id: DbId,
+            **kwargs):
+        """Workflow specific insert function"""
         ins_values = dict(
             n_tasks_all=0,
             n_tasks_done=0,
@@ -272,42 +479,123 @@ class SQLAlchemyInterface(DbInterface):
             n_clusters_done=0,
             n_clusters_failed=0,
             workflow_tmpl_url="",
-            workflow_submitted_url="",
-            data_query_tmpl="",
-            data_query_submitted="",
+            workflow_subm_url="",
             command_tmpl="",
-            command_submitted="",
+            command_subm="",
             panda_log_url="",
+            w_data_query_tmpl="",
+            w_data_query_subm="",
+            w_coll_source="",
             w_coll_in="",
             w_coll_out="",
             w_status=StatusEnum.waiting)
         ins_values.update(**kwargs)
-        g_id = ins_values['g_id']
-        n_workflows = self.count_workflows(g_id)
+        n_workflows = self.count(LevelEnum.workflow, parent_db_id)
         self._insert_values(LevelEnum.workflow, **ins_values)
-        self._update_values(LevelEnum.group, g_id, n_workflows=n_workflows+1)
+        self._update_values(LevelEnum.group, parent_db_id, n_workflows=n_workflows+1)
+        ins_values.update(w_idx=self._current_id(LevelEnum.workflow))
+        return ins_values
 
-    def _update_production(self, production_id: int, **kwargs):
-        self._update(LevelEnum.production, production_id, **kwargs)
+    def _check_multi_children(
+            self,
+            level: LevelEnum,
+            db_id: DbId) -> None:
+        """Check the status of children of a given row"""
+        itr = self.get_iterable(level, db_id)
+        prim_key = get_primary_key(level)
+        status_names = {
+            LevelEnum.production: None,
+            LevelEnum.campaign: 'c_status',
+            LevelEnum.step: 's_status',
+            LevelEnum.group: 'g_status',
+            LevelEnum.workflow: 'w_status'}
+        status_name = status_names[level]
+        for row_ in itr:
+            one_id = db_id.extend(level, row_[prim_key.name])
+            if status_name is None:
+                current_status = None
+            else:
+                current_status = row_[status_name]
+            update_fields = self._check_children(level, one_id, current_status)
+            if status_name is not None:
+                self.update(level, one_id, **update_fields)
 
-    def _update_campaign(self, campaign_id: int, **kwargs):
-        self._update(LevelEnum.campaign, campaign_id, **kwargs)
+    @staticmethod
+    def _extract_child_status(
+            itr: Iterable,
+            status_name: str) -> np.array(int):
+        """Return the status of all children in an array"""
+        return np.array([x[status_name].value for x in itr])
 
-    def _update_step(self, step_id: int, **kwargs):
-        self._update(LevelEnum.step, step_id, **kwargs)
+    def _check_children(
+            self,
+            level: LevelEnum,
+            db_id: DbId,
+            current_status: StatusEnum) -> dict[str, StatusEnum]:
+        """Check the status of childern of a given row
+        and return a status accordingly"""
+        itr = self.get_iterable(level.child(), db_id)
+        status_names = {
+            LevelEnum.production: None,
+            LevelEnum.campaign: 'c_status',
+            LevelEnum.step: 's_status',
+            LevelEnum.group: 'g_status',
+            LevelEnum.workflow: 'w_status'}
+        child_status_name = status_names[level.child()]
+        my_status_name = status_names[level]
+        child_status = self._extract_child_status(itr, child_status_name)
+        if (child_status <= StatusEnum.rejected.value).any():
+            new_status = StatusEnum.part_fail
+        elif (child_status >= StatusEnum.accepted.value).all():
+            new_status = StatusEnum.completed
+        elif (child_status >= StatusEnum.running.value).any():
+            new_status = StatusEnum.running
+        else:
+            new_status = current_status
+        print(f"New status {str(db_id)} == {new_status}")
+        update_fields = {my_status_name: new_status}
+        return update_fields
 
-    def _update_group(self, group_id: int, **kwargs):
-        self._update(LevelEnum.group, group_id, **kwargs)
+    def _check_workflows(self, db_id: DbId):
+        """Check the status of all workflows matching a given db_id"""
+        itr = self.get_iterable(LevelEnum.workflow, db_id)
+        for wf_ in itr:
+            wf_db_id = DbId(
+                p_id=wf_['p_id'],
+                c_id=wf_['c_id'],
+                s_id=wf_['s_id'],
+                g_id=wf_['g_id'],
+                w_id=wf_['w_id'])
+            update_fields = self._check_workflow_status(wf_db_id, wf_)
+            self.update(LevelEnum.workflow, wf_db_id, **update_fields)
 
-    def _update_workflow(self, workflow_id: int, **kwargs):
-        self._update(LevelEnum.workflow, workflow_id, **kwargs)
+    def _check_workflow_status(
+            self,
+            db_id: DbId,
+            data) -> dict[str, StatusEnum]:
+        """Check the status of a single workflow matching a given db_id"""
+        new_status = data['w_status']
+        print(f"New status {str(db_id)} == {new_status}")
+        return {'w_status': new_status}
 
 
 if __name__ == '__main__':
 
     import argparse
 
-    actions = ['create', 'insert', 'update', 'print', 'count']
+    actions = [
+        'create',
+        'insert',
+        'update',
+        'print',
+        'count',
+        'print_table',
+        'check',
+        'prepare',
+        'queue',
+        'launch',
+        'accept',
+        'reject']
     parser = argparse.ArgumentParser(prog=sys.argv[0])
 
     parser.add_argument('--db', type=str, help='Database', default="sqlite:///cm.db")
@@ -316,11 +604,13 @@ if __name__ == '__main__':
     parser.add_argument('--campaign_name', type=str, help="Campaign Name", default=None)
     parser.add_argument('--step_name', type=str, help="Step Name", default=None)
     parser.add_argument('--group_name', type=str, help="Group Name", default=None)
-    parser.add_argument('--workflow', action='store_true',
-                        help="Add a workflow to this group", default=False)
+    parser.add_argument('--workflow_idx', type=int, help="Workflow Index", default=None)
+    parser.add_argument('--level', type=int, help="Which table to use", default=None)
     parser.add_argument('--echo', action='store_true', default=False, help="Echo DB commands")
+    parser.add_argument('--recurse', action='store_true', default=False, help="Turn on recursion on insert")
+    parser.add_argument('--status', type=int, help="Status flag to set", default=None)
     parser.add_argument('--handler', type=str, help="Callback handler",
-                        default='lsst.cm.tools.core.production.ProductionHandler')
+                        default='lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler')
     parser.add_argument('--config_yaml', type=str, help="Configuration Yaml", default=None)
 
     args = parser.parse_args()
@@ -329,26 +619,61 @@ if __name__ == '__main__':
         raise ValueError(f"action must be one of {str(actions)}")
 
     iface = SQLAlchemyInterface(args.db, echo=args.echo, create=args.action == 'create')
-    kw_args = dict(handler=args.handler, config_yaml=args.config_yaml)
 
-    if args.production_name is None:
-        sys.exit(0)
     if args.action == 'create':
         sys.exit(0)
 
+    if args.level is None:
+        raise ValueError("You must specify a level")
+
+    all_args = args.__dict__.copy()
+    the_level = LevelEnum(all_args.pop('level'))
+
+    id_args = [
+        'production_name',
+        'campaign_name',
+        'step_name',
+        'group_name',
+        'workflow_idx']
+
+    the_db_id = iface.get_db_id(the_level, **all_args)
+
     if args.action == 'insert':
-        level, id_args = iface.get_lower_level_and_args(**args.__dict__)
-        kw_args.update(**id_args)
-        iface.create(level, **kw_args)
+        config_yaml = all_args.pop('config_yaml')
+        assert config_yaml is not None
+        handler_class = all_args.pop('handler')
+        recurse_value = all_args.pop('recurse')
+        the_handler = Handler.get_handler(handler_class, config_yaml)
+        iface.insert(the_level, the_db_id, the_handler, recurse_value, **all_args)
     elif args.action == 'count':
-        level, id_args = iface.get_upper_level_and_args(**args.__dict__)
-        row_id = iface.get_id(**id_args)
-        iface.count(level, row_id)
+        print(iface.count(the_level, the_db_id))
     elif args.action == 'print':
-        level, id_args = iface.get_upper_level_and_args(**args.__dict__)
-        row_id = iface.get_id(**id_args)
-        iface.print_(level, row_id)
+        iface.print_(sys.stdout, the_level, the_db_id)
+    elif args.action == 'check':
+        recurse_value = all_args.pop('recurse')
+        iface.check(the_level, the_db_id, recurse_value)
+    elif args.action == 'prepare':
+        recurse_value = all_args.pop('recurse')
+        all_args.pop('handler')
+        for arg_ in id_args:
+            all_args.pop(arg_)
+        iface.prepare(the_level, the_db_id, recurse_value, **all_args)
+    elif args.action == 'queue':
+        iface.queue_workflows(the_level, the_db_id)
+    elif args.action == 'launch':
+        iface.launch_workflows(the_level, the_db_id, 50)
+    elif args.action == 'accept':
+        iface.accept(the_level, the_db_id)
+    elif args.action == 'reject':
+        iface.reject(the_level, the_db_id)
     elif args.action == 'update':
-        level, id_args = iface.get_lower_level_and_args(**args.__dict__)
-        kw_args.update(**id_args)
-        iface.update(level, **kw_args)
+        status_value = all_args.pop('status')
+        for arg_ in id_args:
+            all_args.pop(arg_)
+        if status_value is not None:
+            the_status = StatusEnum(all_args.pop('status'))
+            iface.update(the_level, the_db_id, status=the_status, **all_args)
+        else:
+            iface.update(the_level, the_db_id, **all_args)
+    elif args.action == 'print_table':
+        iface.print_table(sys.stdout, the_level)
