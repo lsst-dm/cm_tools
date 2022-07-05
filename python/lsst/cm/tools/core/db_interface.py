@@ -21,7 +21,7 @@
 
 from __future__ import annotations  # Needed for class member returning class
 
-from typing import TextIO, Any
+from typing import TextIO, Any, Optional
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -36,11 +36,11 @@ class DbId:
     This consist of primary keys into each of the tables
     """
 
-    p_id: int = None
-    c_id: int = None
-    s_id: int = None
-    g_id: int = None
-    w_id: int = None
+    p_id: Optional[int] = None
+    c_id: Optional[int] = None
+    s_id: Optional[int] = None
+    g_id: Optional[int] = None
+    w_id: Optional[int] = None
 
     @classmethod
     def create_from_row(
@@ -247,7 +247,7 @@ class DbInterface:
     def count(
             self,
             level: LevelEnum,
-            db_id: DbId) -> int:
+            db_id: Optional[DbId]) -> int:
         """Count the number of database entries matching conditions
 
         Parameters

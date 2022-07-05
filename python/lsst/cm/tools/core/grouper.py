@@ -38,7 +38,7 @@ class Grouper:
 
     def __call__(
             self,
-            config: dict[str: Any],
+            config: dict[str, Any],
             dbi: DbInterface,
             parent_db_id: DbId,
             data,

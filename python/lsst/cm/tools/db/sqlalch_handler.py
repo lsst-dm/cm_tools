@@ -36,7 +36,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         w_coll_out_template='/prod/{fullname}_output'
     )
 
-    step_dict = OrderedDict([])
+    step_dict: OrderedDict[str, type] = OrderedDict([])
 
     @staticmethod
     def _check_unused(
@@ -101,7 +101,7 @@ class SQLAlchemyHandler(Handler):  # noqa
             **kwargs) -> dict[str, Any]:
         kwcopy = kwargs.copy()
         field_list = ['handler', 'config_yaml']
-        extra_fields = {
+        extra_fields: dict[LevelEnum, list[str]] = {
             LevelEnum.production: [],
             LevelEnum.campaign: [
                 'n_steps_done',
@@ -375,12 +375,13 @@ class SQLAlchemyHandler(Handler):  # noqa
             parent_data_id: DbId,
             data,
             **kwargs) -> Iterable:
-        step_name = kwargs.get('step_name')
+        step_name = str(kwargs.get('step_name'))
         try:
-            grouper = self.step_dict[step_name]
+            grouper_class = self.step_dict[step_name]
+            grouper = grouper_class()
         except KeyError as msg:  # pragma: no cover
             raise KeyError(f"No Grouper object associated to step {step_name}") from msg
-        return grouper()(self.config, dbi, parent_data_id, data, **kwargs)
+        return grouper(self.config, dbi, parent_data_id, data, **kwargs)
 
     def _make_groups(
             self,
@@ -412,7 +413,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         coll_source = data[f'{prefix}_coll_source']
         data_query = data[f'{prefix}_data_query_tmpl']
         if not coll_source:
-            return None
+            return ''
         s = f'butler associate {butler_repo} {coll_in} --collections {coll_source} --where \"{data_query}\"'
         return s
 

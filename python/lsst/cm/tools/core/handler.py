@@ -42,9 +42,9 @@ class Handler:
     where particular database actions are taken.
     """
 
-    default_config = {}
+    default_config: dict[str, Any] = {}
 
-    handler_cache = {}
+    handler_cache: dict[str, Handler] = {}
 
     def __init__(self):
         self._config_url = None
@@ -79,7 +79,7 @@ class Handler:
         cached_handler = Handler.handler_cache.get(class_name)
         if cached_handler is None:
             handler_class = doImport(class_name)
-            cached_handler = handler_class()
+            cached_handler = handler_class()  # type: ignore
             Handler.handler_cache[class_name] = cached_handler
         cached_handler.update_config(config_url)
         return cached_handler

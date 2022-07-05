@@ -19,12 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import TextIO, Any
+from typing import TextIO, Any, Optional
 from collections.abc import Iterable
 
 import numpy as np
 
-from sqlalchemy import create_engine, select, and_, func
+from sqlalchemy import create_engine, select, and_, func  # type: ignore
 
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.handler import Handler
@@ -52,7 +52,7 @@ class SQLAlchemyInterface(DbInterface):
         return cls.full_name_templates[level.value].format(**kwargs)
 
     def __init__(self, db: str, **kwargs):
-        from sqlalchemy_utils import database_exists  # pylint: disable=import-outside-toplevel
+        from sqlalchemy_utils import database_exists  # type: ignore
         kwcopy = kwargs.copy()
         create = kwcopy.pop('create', False)
         self._engine = create_engine(db, **kwcopy)
@@ -113,7 +113,10 @@ class SQLAlchemyInterface(DbInterface):
         sel = table.select()
         self._print_select(stream, sel)
 
-    def count(self, level: LevelEnum, db_id: DbId):
+    def count(
+            self,
+            level: LevelEnum,
+            db_id: Optional[DbId]):
         count_key = get_parent_field(level)
         if count_key is None:
             count_key = get_primary_key(level)
@@ -262,7 +265,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             one_id = DbId.create_from_row(row_)
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
-            handler.reject(self, one_id, row_)
+            handler.reject(level, self, one_id, row_)
             self.update(level, one_id, status=StatusEnum.rejected)
 
     def _check_result(
@@ -273,7 +276,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def _return_id(
             self,
-            sel) -> int:
+            sel) -> Optional[int]:
         """Returns the first column in the first row matching a selection"""
         sel_result = self._conn.execute(sel)
         self._check_result(sel_result)
@@ -326,8 +329,8 @@ class SQLAlchemyInterface(DbInterface):
     def _get_id(
             self,
             level: LevelEnum,
-            parent_id: int,
-            match_name: Any) -> int:
+            parent_id: Optional[int],
+            match_name: Any) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""
         if match_name is None:
             return None
@@ -390,7 +393,7 @@ class SQLAlchemyInterface(DbInterface):
     def _insert_production(
             self,
             parent_db_id: DbId,
-            **kwargs) -> None:
+            **kwargs) -> dict[str, Any]:
         """Production specific insert function"""
         assert parent_db_id[LevelEnum.production] is None
         ins_values = dict(
@@ -403,7 +406,7 @@ class SQLAlchemyInterface(DbInterface):
     def _insert_campaign(
             self,
             parent_db_id: DbId,
-            **kwargs) -> None:
+            **kwargs) -> dict[str, Any]:
         """Campaign specific insert function"""
         ins_values = dict(
             n_steps_all=0,
@@ -425,7 +428,7 @@ class SQLAlchemyInterface(DbInterface):
     def _insert_step(
             self,
             parent_db_id: DbId,
-            **kwargs) -> None:
+            **kwargs) -> dict[str, Any]:
         """Step specific insert function"""
         ins_values = dict(
             previous_step_id=None,
@@ -448,7 +451,7 @@ class SQLAlchemyInterface(DbInterface):
     def _insert_group(
             self,
             parent_db_id: DbId,
-            **kwargs):
+            **kwargs) -> dict[str, Any]:
         """Group specific insert function"""
         ins_values = dict(
             n_workflows=0,
@@ -468,7 +471,7 @@ class SQLAlchemyInterface(DbInterface):
     def _insert_workflow(
             self,
             parent_db_id: DbId,
-            **kwargs):
+            **kwargs) -> dict[str, Any]:
         """Workflow specific insert function"""
         ins_values = dict(
             n_tasks_all=0,
@@ -522,7 +525,7 @@ class SQLAlchemyInterface(DbInterface):
     @staticmethod
     def _extract_child_status(
             itr: Iterable,
-            status_name: str) -> np.array(int):
+            status_name: str) -> np.ndarray:
         """Return the status of all children in an array"""
         return np.array([x[status_name].value for x in itr])
 
@@ -530,12 +533,11 @@ class SQLAlchemyInterface(DbInterface):
             self,
             level: LevelEnum,
             db_id: DbId,
-            current_status: StatusEnum) -> dict[str, StatusEnum]:
+            current_status: Optional[StatusEnum]) -> dict[str, Optional[StatusEnum]]:
         """Check the status of childern of a given row
         and return a status accordingly"""
         itr = self.get_iterable(level.child(), db_id)
         status_names = {
-            LevelEnum.production: None,
             LevelEnum.campaign: 'c_status',
             LevelEnum.step: 's_status',
             LevelEnum.group: 'g_status',
@@ -543,15 +545,14 @@ class SQLAlchemyInterface(DbInterface):
         child_status_name = status_names[level.child()]
         my_status_name = status_names[level]
         child_status = self._extract_child_status(itr, child_status_name)
+        new_status = current_status
         if (child_status <= StatusEnum.rejected.value).any():
             new_status = StatusEnum.part_fail
         elif (child_status >= StatusEnum.accepted.value).all():
             new_status = StatusEnum.completed
         elif (child_status >= StatusEnum.running.value).any():
             new_status = StatusEnum.running
-        else:
-            new_status = current_status
-        update_fields = {my_status_name: new_status}
+        update_fields: dict[str, Optional[StatusEnum]] = {my_status_name: new_status}
         return update_fields
 
     def _check_workflows(self, db_id: DbId):

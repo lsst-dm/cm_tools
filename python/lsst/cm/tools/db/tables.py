@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import MetaData, Table, Column, Float, Integer, String, DateTime, Enum
+from sqlalchemy import MetaData, Table, Column, Float, Integer, String, DateTime, Enum  # type: ignore
 
 from lsst.cm.tools.core.utils import StatusEnum, LevelEnum
 
