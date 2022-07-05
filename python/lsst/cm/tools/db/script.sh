@@ -1,15 +1,11 @@
 \rm cm.db
 python sqlalch_interface.py --action create 
-python sqlalch_interface.py --action insert --production_name zoe
-python sqlalch_interface.py --action insert --production_name bob
-python sqlalch_interface.py --action insert --production_name jane
-python sqlalch_interface.py --action insert --production_name jane --campaign_name red
-python sqlalch_interface.py --action insert --production_name jane --campaign_name blue
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name green
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal --step_name step_0
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal --step_name step_1
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal --step_name step_1 --group_name 00000 
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal --step_name step_1 --group_name 00001
-python sqlalch_interface.py --action insert --production_name zoe --campaign_name teal --step_name step_1 --group_name 00001 --workflow
+python sqlalch_interface.py --action insert --level 0 --production_name zoe --handler lsst.cm.prod.dp0p2.production.DP0p2_Handler --config_yaml dp_02_production.yaml
+python sqlalch_interface.py --action insert --recurse --level 1 --production_name zoe --campaign_name fox --handler lsst.cm.prod.dp0p2.production.DP0p2_Handler --config_yaml dp_02_production.yaml
+python sqlalch_interface.py --action prepare --recurse --level 2 --production_name zoe --campaign_name fox
 
+python sqlalch_interface.py --action print_table --level 0
+python sqlalch_interface.py --action print_table --level 1
+python sqlalch_interface.py --action print_table --level 2
+python sqlalch_interface.py --action print_table --level 3
+python sqlalch_interface.py --action print_table --level 4
