@@ -189,7 +189,7 @@ class DbInterface:
             self,
             level: LevelEnum,
             db_id: DbId) -> StatusEnum:
-        """Print a database entry or entries
+        """Return the status of a selected entry
 
         Parameters
         ----------
@@ -414,7 +414,7 @@ class DbInterface:
             self,
             level: LevelEnum,
             db_id: DbId) -> None:
-        """Queue all of the ready workflows matching the selection
+        """Queue all the ready workflows matching the selection
 
         Parameters
         ----------
@@ -431,7 +431,7 @@ class DbInterface:
             level: LevelEnum,
             db_id: DbId,
             max_running: int) -> None:
-        """Queue all of the ready workflows matching the selection
+        """Launch all the pending workflows matching the selection
 
         Parameters
         ----------
@@ -440,6 +440,9 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are queuing
+
+        max_running: int
+            Maximum number of running workflows
         """
         raise NotImplementedError()  # pragma: no cover
 
@@ -447,7 +450,7 @@ class DbInterface:
             self,
             level: LevelEnum,
             db_id: DbId) -> None:
-        """Accept all of the completed or part_fail
+        """Accept all the completed or part_fail
         entries at a particular level
 
         Parameters
@@ -464,7 +467,7 @@ class DbInterface:
             self,
             level: LevelEnum,
             db_id: DbId) -> None:
-        """Reject all of the completed or part_fail
+        """Reject all the completed or part_fail
         entries at a particular level
 
         Parameters

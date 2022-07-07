@@ -88,27 +88,11 @@ class Handler:
     def config(self) -> dict[str, Any]:
         return self._config
 
-    def update_config(
-            self,
-            config_url: str) -> None:
-        """Update this handler's configuration by reading a
-        yaml configuration file
-
-        Parameters
-        ----------
-        config_url : str
-            The URL of the configuration file
-        """
-        assert config_url is not None
-        if config_url == self._config_url:
-            return
-        self._read_config(config_url)
-
     def get_handler_class_name(self) -> str:
         """Return this classes full name"""
         return get_full_type_name(self)
 
-    def get_insert_fields(
+    def get_insert_fields_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -169,7 +153,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def get_update_fields(
+    def get_update_fields_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -239,7 +223,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def launch_workflow(
+    def launch_workflow_hook(
             self,
             dbi: DbInterface,
             db_id: DbId,
@@ -364,6 +348,22 @@ class Handler:
         self._config_url = config_url
         with open(self._config_url, 'rt', encoding='utf-8') as config_file:
             self._config = yaml.safe_load(config_file)
+
+    def update_config(
+            self,
+            config_url: str) -> None:
+        """Update this handler's configuration by reading a
+        yaml configuration file
+
+        Parameters
+        ----------
+        config_url : str
+            The URL of the configuration file
+        """
+        assert config_url is not None
+        if config_url == self._config_url:
+            return
+        self._read_config(config_url)
 
     def _get_config_var(
             self,

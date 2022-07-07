@@ -76,7 +76,7 @@ class SQLAlchemyHandler(Handler):  # noqa
                 ret_dict[field_] = kwargs.get(field_)
         return ret_dict
 
-    def get_insert_fields(
+    def get_insert_fields_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -114,7 +114,7 @@ class SQLAlchemyHandler(Handler):  # noqa
             return
         the_func(dbi, insert_fields, recurse, **kwargs)
 
-    def get_update_fields(
+    def get_update_fields_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -321,7 +321,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         if recurse:
             dbi.prepare(LevelEnum.workflow, parent_db_id, recurse)
 
-    def launch_workflow(
+    def launch_workflow_hook(
             self,
             dbi: DbInterface,
             db_id: DbId,
@@ -389,7 +389,7 @@ class SQLAlchemyHandler(Handler):  # noqa
             data,
             **kwargs) -> str:
         """Internal function to write the bps.yaml file for a given workflow"""
-        workflow_template_yaml = self.config['workflow_template_yaml']
+        workflow_template_yaml = os.path.expandvars(self.config['workflow_template_yaml'])
         with open(workflow_template_yaml, 'rt', encoding='utf-8') as fin:
             lines = fin.readlines()
         outpath = os.path.join(

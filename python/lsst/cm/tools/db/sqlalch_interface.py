@@ -136,7 +136,7 @@ class SQLAlchemyInterface(DbInterface):
         itr = self.get_iterable(level.child(), db_id)
         handler = Handler.get_handler(data['handler'], data['config_yaml'])
         assert handler is not None
-        update_args = handler.get_update_fields(level, self, data, itr, **kwargs)
+        update_args = handler.get_update_fields_hook(level, self, data, itr, **kwargs)
         if update_args:
             self._update_values(level, db_id, **update_args)
 
@@ -179,7 +179,7 @@ class SQLAlchemyInterface(DbInterface):
             recurse: bool = True,
             **kwargs) -> dict[str, Any]:
         prim_key = get_primary_key(level)
-        insert_fields = handler.get_insert_fields(level, self, parent_db_id, **kwargs)
+        insert_fields = handler.get_insert_fields_hook(level, self, parent_db_id, **kwargs)
         self._insert_values(level, **insert_fields)
         insert_fields[prim_key.name] = self._current_id(level)
         parent_level = level.parent()
@@ -234,7 +234,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             one_id = DbId.create_from_row(row_)
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
-            handler.launch_workflow(self, one_id, row_)
+            handler.launch_workflow_hook(self, one_id, row_)
             self.update(LevelEnum.workflow, one_id, status=StatusEnum.running)
             n_running += 1
             if n_running >= max_running:

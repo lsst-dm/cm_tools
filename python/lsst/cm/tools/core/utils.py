@@ -25,7 +25,7 @@ import enum
 class StatusEnum(enum.Enum):
     failed = -3       # Processing failed
     rejected = -2     # Marked as rejected
-    superseeded = -1  # Marked as superseeded
+    superseded = -1   # Marked as superseded
     waiting = 0       # Inputs are not ready
     ready = 1         # Inputs are ready
     pending = 2       # Jobs are queued for submission
