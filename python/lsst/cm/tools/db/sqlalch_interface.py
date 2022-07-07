@@ -31,7 +31,8 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import StatusEnum, LevelEnum
 from lsst.cm.tools.db.tables import (
     create_db, get_table, get_primary_key, get_status_key,
-    get_name_field, get_parent_field, get_matching_key)
+    get_name_field, get_parent_field, get_matching_key,
+    get_n_child_field)
 
 
 class SQLAlchemyInterface(DbInterface):
@@ -179,15 +180,16 @@ class SQLAlchemyInterface(DbInterface):
             handler: Handler,
             recurse: bool = True,
             **kwargs) -> dict[str, Any]:
-        func_dict = {
-            LevelEnum.production: self._insert_production,
-            LevelEnum.campaign: self._insert_campaign,
-            LevelEnum.step: self._insert_step,
-            LevelEnum.group: self._insert_group,
-            LevelEnum.workflow: self._insert_workflow}
-        the_func = func_dict[level]
+        prim_key = get_primary_key(level)
         insert_fields = handler.get_insert_fields(level, self, parent_db_id, **kwargs)
-        insert_fields = the_func(parent_db_id, **insert_fields)
+        self._insert_values(level, **insert_fields)
+        insert_fields[prim_key.name] = self._current_id(level)
+        parent_level = level.parent()
+        if parent_level is not None:
+            n_siblings_fields = get_n_child_field(parent_level)
+            n_siblings = self.count(level, parent_db_id)
+            update_fields = {n_siblings_fields.name: n_siblings}
+            self._update_values(parent_level, parent_db_id, **update_fields)
         if recurse:
             handler.post_insert_hook(level, self, insert_fields, recurse, **kwargs)
         return insert_fields
@@ -253,7 +255,7 @@ class SQLAlchemyInterface(DbInterface):
             one_id = DbId.create_from_row(row_)
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
             itr = self.get_iterable(level.child(), db_id)
-            handler.accept(level, self, one_id, itr, row_)
+            handler.accept_hook(level, self, one_id, itr, row_)
             self.update(level, one_id, status=StatusEnum.accepted)
 
     def reject(
@@ -268,7 +270,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             one_id = DbId.create_from_row(row_)
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
-            handler.reject(level, self, one_id, row_)
+            handler.reject_hook(level, self, one_id, row_)
             self.update(level, one_id, status=StatusEnum.rejected)
 
     def fake_run(
@@ -283,7 +285,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             one_id = DbId.create_from_row(row_)
             handler = Handler.get_handler(row_['handler'], row_['config_yaml'])
-            handler.fake_run(self, one_id, row_)
+            handler.fake_run_hook(self, one_id, row_)
 
     def _check_result(
             self,
@@ -418,114 +420,6 @@ class SQLAlchemyInterface(DbInterface):
             level: LevelEnum) -> int:
         return self.count(level, None)
 
-    def _insert_production(
-            self,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
-        """Production specific insert function"""
-        assert parent_db_id[LevelEnum.production] is None
-        ins_values = dict(
-            n_campaigns=0)
-        ins_values.update(**kwargs)
-        self._insert_values(LevelEnum.production, **ins_values)
-        ins_values.update(p_id=self._current_id(LevelEnum.production))
-        return ins_values
-
-    def _insert_campaign(
-            self,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
-        """Campaign specific insert function"""
-        ins_values = dict(
-            n_steps_all=0,
-            n_steps_done=0,
-            n_steps_failed=0,
-            c_data_query_tmpl="",
-            c_data_query_subm="",
-            c_coll_source="",
-            c_coll_in="",
-            c_coll_out="",
-            c_status=StatusEnum.waiting)
-        ins_values.update(**kwargs)
-        n_campaigns = self.count(LevelEnum.campaign, parent_db_id)
-        self._insert_values(LevelEnum.campaign, **ins_values)
-        self._update_values(LevelEnum.production, parent_db_id, n_campaigns=n_campaigns+1)
-        ins_values.update(c_id=self._current_id(LevelEnum.campaign))
-        return ins_values
-
-    def _insert_step(
-            self,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
-        """Step specific insert function"""
-        ins_values = dict(
-            previous_step_id=None,
-            n_groups_all=0,
-            n_groups_done=0,
-            n_groups_failed=0,
-            s_data_query_tmpl="",
-            s_data_query_subm="",
-            s_coll_source="",
-            s_coll_in="",
-            s_coll_out="",
-            s_status=StatusEnum.waiting)
-        ins_values.update(**kwargs)
-        n_steps = self.count(LevelEnum.step, parent_db_id)
-        self._insert_values(LevelEnum.step, **ins_values)
-        self._update_values(LevelEnum.campaign, parent_db_id, n_steps_all=n_steps+1)
-        ins_values.update(s_id=self._current_id(LevelEnum.step))
-        return ins_values
-
-    def _insert_group(
-            self,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
-        """Group specific insert function"""
-        ins_values = dict(
-            n_workflows=0,
-            g_data_query_tmpl="",
-            g_data_query_subm="",
-            g_coll_source="",
-            g_coll_in="",
-            g_coll_out="",
-            g_status=StatusEnum.waiting)
-        ins_values.update(**kwargs)
-        n_groups = self.count(LevelEnum.group, parent_db_id)
-        self._insert_values(LevelEnum.group, **ins_values)
-        self._update_values(LevelEnum.step, parent_db_id, n_groups_all=n_groups+1)
-        ins_values.update(g_id=self._current_id(LevelEnum.group))
-        return ins_values
-
-    def _insert_workflow(
-            self,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
-        """Workflow specific insert function"""
-        ins_values = dict(
-            n_tasks_all=0,
-            n_tasks_done=0,
-            n_tasks_failed=0,
-            n_clusters_all=0,
-            n_clusters_done=0,
-            n_clusters_failed=0,
-            workflow_tmpl_url="",
-            workflow_subm_url="",
-            command_tmpl="",
-            command_subm="",
-            panda_log_url="",
-            w_data_query_tmpl="",
-            w_data_query_subm="",
-            w_coll_source="",
-            w_coll_in="",
-            w_coll_out="",
-            w_status=StatusEnum.waiting)
-        ins_values.update(**kwargs)
-        n_workflows = self.count(LevelEnum.workflow, parent_db_id)
-        self._insert_values(LevelEnum.workflow, **ins_values)
-        self._update_values(LevelEnum.group, parent_db_id, n_workflows=n_workflows+1)
-        ins_values.update(w_idx=self._current_id(LevelEnum.workflow))
-        return ins_values
-
     def _check_multi_children(
             self,
             level: LevelEnum,
@@ -595,15 +489,8 @@ class SQLAlchemyInterface(DbInterface):
                 g_id=wf_['g_id'],
                 w_id=wf_['w_id'])
             if wf_['w_status'] == StatusEnum.running:
-                update_fields = self._check_workflow_status(wf_db_id, wf_)
+                handler = Handler.get_handler(wf_['handler'], wf_['config_yaml'])
+                update_fields = handler.check_workflow_status_hook(self, wf_db_id, wf_)
             else:
                 update_fields = dict(status=wf_['w_status'])
             self.update(LevelEnum.workflow, wf_db_id, **update_fields)
-
-    def _check_workflow_status(
-            self,
-            db_id: DbId,  # pylint: disable=unused-argument
-            data) -> dict[str, Any]:
-        """Check the status of a single workflow matching a given db_id"""
-        handler = Handler.get_handler(data['handler'], data['config_yaml'])
-        return handler.check_workflow_status(self, db_id, data)

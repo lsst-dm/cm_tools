@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Optional
 from sqlalchemy import MetaData, Table, Column, Float, Integer, String, DateTime, Enum  # type: ignore
 
 from lsst.cm.tools.core.utils import StatusEnum, LevelEnum
@@ -31,7 +32,7 @@ production_table = Table(
     Column('p_name', String),                   # Production Name
     Column('handler', String),                  # Handler class
     Column('config_yaml', String),              # Configuration file
-    Column('n_campaigns', Integer)              # Number of associated campaigns
+    Column('n_campaigns', Integer, default=0)   # Number of associated campaigns
 )
 
 campaign_meta = MetaData()
@@ -43,9 +44,9 @@ campaign_table = Table(
     Column('p_id', Integer),                    # Parent production ID
     Column('handler', String),                  # Handler class
     Column('config_yaml', String),              # Configuration file
-    Column('n_steps_all', Integer),             # Nummber of associated steps
-    Column('n_steps_done', Integer),            # Nummber of finished steps
-    Column('n_steps_failed', Integer),          # Nummber of failed steps
+    Column('n_steps', Integer, default=0),      # Number of associated steps
+    Column('n_steps_done', Integer, default=0),     # Number of finished steps
+    Column('n_steps_failed', Integer, default=0),   # Number of failed steps
     Column('c_data_query_tmpl', String),        # Template for data query
     Column('c_data_query_subm', String),        # As submitted data query
     Column('c_coll_source', String),            # Source data collection
@@ -65,9 +66,9 @@ step_table = Table(
     Column('c_id', Integer),                    # Parent campaign ID
     Column('handler', String),                  # Handler class
     Column('config_yaml', String),              # Configuration file
-    Column('n_groups_all', Integer),            # Nummber of associated groups
-    Column('n_groups_done', Integer),           # Nummber of finished groups
-    Column('n_groups_failed', Integer),         # Nummber of failed groups
+    Column('n_groups', Integer, default=0),         # Number of associated groups
+    Column('n_groups_done', Integer, default=0),    # Number of finished groups
+    Column('n_groups_failed', Integer, default=0),  # Number of failed groups
     Column('s_data_query_tmpl', String),        # Template for data query
     Column('s_data_query_subm', String),        # As submitted data query
     Column('s_coll_source', String),            # Source data collection
@@ -87,7 +88,7 @@ group_table = Table(
     Column('s_id', Integer),                    # Parent step ID
     Column('handler', String),                  # Handler class
     Column('config_yaml', String),              # Configuration file
-    Column('n_workflows', Integer),             # Nummber of associated workflows
+    Column('n_workflows', Integer, default=0),  # Number of associated workflows
     Column('g_data_query_tmpl', String),        # Template for data query
     Column('g_data_query_subm', String),        # As submitted data query
     Column('g_coll_source', String),            # Source data collection
@@ -108,12 +109,12 @@ workflow_table = Table(
     Column('g_id', Integer),                    # Parent group ID
     Column('handler', String),                  # Handler class
     Column('config_yaml', String),              # Configuration file
-    Column('n_tasks_all', Integer),             # Nummber of associated tasks
-    Column('n_tasks_done', Integer),            # Nummber of finished tasks
-    Column('n_tasks_failed', Integer),          # Nummber of failed tasks
-    Column('n_clusters_all', Integer),          # Nummber of associated clusters
-    Column('n_clusters_done', Integer),         # Nummber of finished clusters
-    Column('n_clusters_failed', Integer),       # Nummber of failed clusters
+    Column('n_tasks_all', Integer, default=0),  # Number of associated tasks
+    Column('n_tasks_done', Integer, default=0),     # Number of finished tasks
+    Column('n_tasks_failed', Integer, default=0),   # Number of failed tasks
+    Column('n_clusters_all', Integer, default=0),   # Number of associated clusters
+    Column('n_clusters_done', Integer, default=0),  # Number of finished clusters
+    Column('n_clusters_failed', Integer, default=0),    # Number of failed clusters
     Column('workflow_start', DateTime),         # Workflow start time
     Column('workflow_end', DateTime),           # Workflow end time
     Column('workflow_cputime', Float),
@@ -164,7 +165,7 @@ def get_primary_key(level: LevelEnum) -> Column:
     return all_keys[level]
 
 
-def get_status_key(level: LevelEnum) -> Column:
+def get_status_key(level: LevelEnum) -> Optional[Column]:
     """Return the primary key in the table corresponding to a `level`"""
     all_keys = {
         LevelEnum.production: None,
@@ -186,16 +187,30 @@ def get_name_field(level: LevelEnum) -> Column:
     return all_keys[level]
 
 
-def get_parent_field(level: LevelEnum) -> Column:
+def get_parent_field(level: LevelEnum) -> Optional[Column]:
     """Return the id field of the parent entry in a table
     corresponding to a `level`
     """
+
     all_keys = {
         LevelEnum.production: None,
         LevelEnum.campaign: campaign_table.c.p_id,
         LevelEnum.step: step_table.c.c_id,
         LevelEnum.group: group_table.c.s_id,
         LevelEnum.workflow: workflow_table.c.g_id}
+    return all_keys[level]
+
+
+def get_n_child_field(level: Optional[LevelEnum]) -> Optional[Column]:
+    """Return the id field for the number of childern
+    corresponding to an entry at `level`
+    """
+    all_keys = {
+        LevelEnum.production: production_table.c.n_campaigns,
+        LevelEnum.campaign: campaign_table.c.n_steps,
+        LevelEnum.step: step_table.c.n_groups,
+        LevelEnum.group: group_table.c.n_workflows,
+        LevelEnum.workflow: None}
     return all_keys[level]
 
 
@@ -227,3 +242,48 @@ def get_matching_key(
             workflow_table.c.g_id,
             workflow_table.c.w_id]}
     return all_keys[table_level][match_level.value]
+
+
+def get_update_field_list(level: LevelEnum) -> list[str]:
+    """Return the list of fields that we can update
+    in a particular table
+    """
+    field_list = ['handler', 'config_yaml']
+    extra_fields: dict[LevelEnum, list[str]] = {
+        LevelEnum.production: [],
+        LevelEnum.campaign: [
+            'n_steps_done',
+            'n_steps_failed',
+            'c_data_query_tmpl',
+            'c_data_query_subm',
+            'c_coll_source'],
+        LevelEnum.step: [
+            'n_groups_done',
+            'n_groups_failed',
+            's_data_query_tmpl',
+            's_data_query_subm',
+            's_coll_source'],
+        LevelEnum.group: [
+            'n_groups_done',
+            'n_groups_failed',
+            's_data_query_tmpl',
+            's_data_query_subm',
+            's_coll_source'],
+        LevelEnum.workflow: [
+            'n_tasks_done',
+            'n_tasks_failed',
+            'n_clusters_done',
+            'n_clusters_failed',
+            'workflow_start',
+            'workflow_end',
+            'workflow_cputime',
+            'workflow_tmpl_url',
+            'workflow_subm_url',
+            'command_tmpl',
+            'command_sumb',
+            'panda_log_url'
+            'w_data_query_tmpl',
+            'w_data_query_subm',
+            'w_coll_source']}
+    field_list += extra_fields[level]
+    return field_list

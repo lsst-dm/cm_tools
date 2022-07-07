@@ -203,41 +203,6 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def post_update_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            data,
-            itr: Iterable,
-            **kwargs) -> None:
-        """Called after updating an entry in the database
-
-        Can be used to update additional entries, for example,
-        the parent of this entry.
-
-        Can also be used to do any actions associated to updating this entry,
-        e.g., making CHAINED Butler collections
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        data : ???
-            Current data for the entry we are updating
-
-        itr : iterator
-            Iterator over childer of the entry we are updating
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        raise NotImplementedError()  # pragma: no cover
-
     def prepare_hook(
             self,
             level: LevelEnum,
@@ -294,7 +259,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def check_workflow_status(
+    def check_workflow_status_hook(
             self,
             dbi: DbInterface,
             db_id: DbId,
@@ -319,7 +284,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def accept(
+    def accept_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -344,7 +309,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def reject(
+    def reject_hook(
             self,
             level: LevelEnum,
             dbi: DbInterface,
@@ -368,7 +333,7 @@ class Handler:
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def fake_run(
+    def fake_run_hook(
             self,
             dbi: DbInterface,
             db_id: DbId,

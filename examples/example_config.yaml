@@ -13,6 +13,7 @@ g_coll_in_template: '/prod/{fullname}_input'
 g_coll_out_template: '/prod/{fullname}_output'
 w_coll_in_template: '/prod/{fullname}_input'
 w_coll_out_template: '/prod/{fullname}_output'
+command_tmpl: 'bps'
 pipeline_yaml:
     step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
     step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
