@@ -84,9 +84,7 @@ class SQLAlchemyInterface(DbInterface):
         if level == LevelEnum.group:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
         w_id = self._get_id(LevelEnum.workflow, g_id, kwargs.get('workflow_idx'))
-        if level == LevelEnum.workflow:
-            return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
-        raise RuntimeError(f"Unknown Level value {level}")
+        return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_status(
             self,
@@ -469,9 +467,7 @@ class SQLAlchemyInterface(DbInterface):
         new_status = current_status
         if (child_status <= StatusEnum.rejected.value).any():
             new_status = StatusEnum.part_fail
-        elif not child_status.size:
-            pass
-        elif (child_status >= StatusEnum.accepted.value).all():
+        elif child_status.size and (child_status >= StatusEnum.accepted.value).all():
             new_status = StatusEnum.completed
         elif (child_status >= StatusEnum.running.value).any():
             new_status = StatusEnum.running

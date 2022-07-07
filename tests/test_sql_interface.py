@@ -93,6 +93,7 @@ def test_full_example():
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
     iface.check(LevelEnum.campaign, db_c_id, recurse=True)
     iface.accept(LevelEnum.campaign, db_c_id)
+    iface.check(LevelEnum.production, db_p_id)
 
     iface.print_table(sys.stdout, LevelEnum.production)
     iface.print_table(sys.stdout, LevelEnum.campaign)
@@ -108,12 +109,25 @@ def test_full_example():
         production_name='example')
     assert check_p_id.to_tuple() == (1, None, None, None, None)
     iface.print_(sys.stdout, LevelEnum.production, check_p_id)
+    iface.print_(sys.stdout, LevelEnum.production, check_top_id)
 
     check_c_id = iface.get_db_id(
         LevelEnum.campaign,
         production_name='example',
         campaign_name='test')
     assert check_c_id.to_tuple() == (1, 1, None, None, None)
+
+    check_c_bad_id = iface.get_db_id(
+        LevelEnum.campaign,
+        production_name='example',
+        campaign_name='bad')
+    assert check_c_bad_id.to_tuple() == (1, None, None, None, None)
+
+    check_c_none_id = iface.get_db_id(
+        LevelEnum.campaign,
+        production_name='example',
+        campaign_name=None)
+    assert check_c_none_id.to_tuple() == (1, None, None, None, None)
 
     check_s_id = iface.get_db_id(
         LevelEnum.step,
@@ -190,6 +204,7 @@ def test_failed_workflows():
         iface.check(LevelEnum.workflow, db_s_id)
         iface.reject(LevelEnum.workflow, db_s_id)
         iface.reject(LevelEnum.workflow, db_s_id)
+        iface.check(LevelEnum.group, db_w_id)
         iface.fake_run(db_s_id)
 
 
