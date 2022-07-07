@@ -3,12 +3,12 @@ includeConfigs:
 - requestMemory.yaml
 - clustering_alt.yaml
 
-project: zoe
-campaign: zoe/fox
+project: example
+campaign: example/test
 pipelineYaml: {pipeline_yaml}
 
 payload:
-  payloadName: zoe/fox
+  payloadName: example/test
   output: "{w_coll_out}"
   butlerConfig: {butler_config}
   inCollection: "{w_coll_in}"
