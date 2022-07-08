@@ -21,9 +21,9 @@
 
 from __future__ import annotations  # Needed for class member returning class
 
-from typing import TextIO, Any, Optional
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any, Optional, TextIO
 
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
@@ -43,11 +43,9 @@ class DbId:
     w_id: Optional[int] = None
 
     @classmethod
-    def create_from_row(
-            cls,
-            row) -> DbId:
+    def create_from_row(cls, row) -> DbId:
         ids = {}
-        for key in ['p_id', 'c_id', 's_id', 'g_id', 'w_id']:
+        for key in ["p_id", "c_id", "s_id", "g_id", "w_id"]:
             try:
                 ids[key] = row[key]
             except KeyError:
@@ -58,16 +56,11 @@ class DbId:
         """Return data as tuple"""
         return (self.p_id, self.c_id, self.s_id, self.g_id, self.w_id)
 
-    def __getitem__(
-            self,
-            level: LevelEnum) -> int:
+    def __getitem__(self, level: LevelEnum) -> int:
         """Return primary key at a particular level"""
         return self.to_tuple()[level.value]
 
-    def extend(
-            self,
-            level: LevelEnum,
-            row_id: int) -> DbId:
+    def extend(self, level: LevelEnum, row_id: int) -> DbId:
         """Return an extension of this DbId
 
         This adds a primary key at a particular level
@@ -93,7 +86,9 @@ class DbId:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=row_id)
         if level == LevelEnum.group:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=row_id)
-        return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id)
+        return DbId(
+            p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id
+        )
 
 
 class DbInterface:
@@ -112,10 +107,7 @@ class DbInterface:
     """
 
     @classmethod
-    def full_name(
-            cls,
-            level: LevelEnum,
-            **kwargs) -> str:
+    def full_name(cls, level: LevelEnum, **kwargs) -> str:
         """Utility function to return a full name
         associated to a database entry
 
@@ -135,10 +127,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_db_id(
-            self,
-            level: LevelEnum,
-            **kwargs) -> DbId:
+    def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
         """Return an id that identifies one or more database entries
 
         Parameters
@@ -158,10 +147,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_row_id(
-            self,
-            level: LevelEnum,
-            **kwargs) -> int:
+    def get_row_id(self, level: LevelEnum, **kwargs) -> int:
         """Return the primary key of a particular row in the database
 
          Parameters
@@ -183,10 +169,7 @@ class DbInterface:
         db_id = self.get_db_id(level, **kwargs)
         return db_id[level]
 
-    def get_status(
-            self,
-            level: LevelEnum,
-            db_id: DbId) -> StatusEnum:
+    def get_status(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         """Return the status of a selected entry
 
         Parameters
@@ -205,11 +188,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_(
-            self,
-            stream: TextIO,
-            level: LevelEnum,
-            db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         """Print a database entry or entries
 
         Parameters
@@ -226,10 +205,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_table(
-            self,
-            stream: TextIO,
-            level: LevelEnum) -> None:
+    def print_table(self, stream: TextIO, level: LevelEnum) -> None:
         """Print a database table
 
         Parameters
@@ -242,10 +218,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def count(
-            self,
-            level: LevelEnum,
-            db_id: Optional[DbId]) -> int:
+    def count(self, level: LevelEnum, db_id: Optional[DbId]) -> int:
         """Count the number of database entries matching conditions
 
         Parameters
@@ -264,11 +237,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def update(
-            self,
-            level: LevelEnum,
-            db_id: DbId,
-            **kwargs) -> None:
+    def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
         """Update a particular database entry
 
         Parameters
@@ -287,11 +256,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def check(
-            self,
-            level: LevelEnum,
-            db_id: DbId,
-            recurse: bool = False) -> None:
+    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False) -> None:
         """Check all database entries at a particular level
 
         Parameters
@@ -307,10 +272,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_data(
-            self,
-            level: LevelEnum,
-            db_id: DbId):
+    def get_data(self, level: LevelEnum, db_id: DbId):
         """Return data in matching database entries
 
         Parameters
@@ -328,10 +290,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_iterable(
-            self,
-            level: LevelEnum,
-            db_id: DbId) -> Iterable:
+    def get_iterable(self, level: LevelEnum, db_id: DbId) -> Iterable:
         """Return an iterator over the matching database entries
 
         Parameters
@@ -350,12 +309,13 @@ class DbInterface:
         raise NotImplementedError()
 
     def insert(
-            self,
-            level: LevelEnum,
-            parent_db_id: DbId,
-            handler: Handler,
-            recurse: bool = True,
-            **kwargs) -> dict[str, Any]:
+        self,
+        level: LevelEnum,
+        parent_db_id: DbId,
+        handler: Handler,
+        recurse: bool = True,
+        **kwargs
+    ) -> dict[str, Any]:
         """Insert a new database entry at a particular level
 
         Parameters
@@ -384,11 +344,8 @@ class DbInterface:
         raise NotImplementedError()
 
     def prepare(
-            self,
-            level: LevelEnum,
-            db_id: DbId,
-            recurse: bool = True,
-            **kwargs) -> None:
+        self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs
+    ) -> None:
         """Preparing a database entry for execution
 
         Parameters
@@ -408,10 +365,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def queue_workflows(
-            self,
-            level: LevelEnum,
-            db_id: DbId) -> None:
+    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> None:
         """Queue all the ready workflows matching the selection
 
         Parameters
@@ -424,11 +378,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def launch_workflows(
-            self,
-            level: LevelEnum,
-            db_id: DbId,
-            max_running: int) -> None:
+    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> None:
         """Launch all the pending workflows matching the selection
 
         Parameters
@@ -444,10 +394,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def accept(
-            self,
-            level: LevelEnum,
-            db_id: DbId) -> None:
+    def accept(self, level: LevelEnum, db_id: DbId) -> None:
         """Accept all the completed or part_fail
         entries at a particular level
 
@@ -461,10 +408,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def reject(
-            self,
-            level: LevelEnum,
-            db_id: DbId) -> None:
+    def reject(self, level: LevelEnum, db_id: DbId) -> None:
         """Reject all the completed or part_fail
         entries at a particular level
 
@@ -478,10 +422,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def fake_run(
-            self,
-            db_id: DbId,
-            status: StatusEnum = StatusEnum.completed) -> None:
+    def fake_run(self, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
         """Pretend to run workflows, this is for testing
 
         Parameters

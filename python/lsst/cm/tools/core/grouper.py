@@ -21,7 +21,7 @@
 
 from __future__ import annotations  # Needed for class member returning class
 
-from typing import Any, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Iterable
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbId, DbInterface
@@ -37,12 +37,13 @@ class Grouper:
         self.data = None
 
     def __call__(
-            self,
-            config: dict[str, Any],
-            dbi: DbInterface,
-            parent_db_id: DbId,
-            data,
-            **kwargs) -> Iterable:
+        self,
+        config: dict[str, Any],
+        dbi: DbInterface,
+        parent_db_id: DbId,
+        data,
+        **kwargs
+    ) -> Iterable:
         self.config = config.copy()
         self.config.update(**kwargs)
         self.dbi = dbi

@@ -21,14 +21,13 @@
 
 from __future__ import annotations  # Needed for class member returning class
 
+from typing import TYPE_CHECKING, Any, Iterable
+
 import yaml
-
-from typing import Any, Iterable, TYPE_CHECKING
-
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbId, DbInterface
 
@@ -51,9 +50,7 @@ class Handler:
         self._config = {}
 
     @staticmethod
-    def get_handler(
-            class_name: str,
-            config_url: str) -> Handler:
+    def get_handler(class_name: str, config_url: str) -> Handler:
         """Create and return a handler
 
         Parameters
@@ -93,11 +90,8 @@ class Handler:
         return get_full_type_name(self)
 
     def get_insert_fields_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            parent_db_id: DbId,
-            **kwargs) -> dict[str, Any]:
+        self, level: LevelEnum, dbi: DbInterface, parent_db_id: DbId, **kwargs
+    ) -> dict[str, Any]:
         """Get the fields needed to insert an entry into the database
 
         Parameters
@@ -123,12 +117,13 @@ class Handler:
         raise NotImplementedError()
 
     def post_insert_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            insert_fields: dict[str, Any],
-            recurse: bool = False,
-            **kwargs) -> None:
+        self,
+        level: LevelEnum,
+        dbi: DbInterface,
+        insert_fields: dict[str, Any],
+        recurse: bool = False,
+        **kwargs,
+    ) -> None:
         """Called after inserting an entry into the database
 
         Can be used to insert additional entries, i.e., children of this entry
@@ -154,12 +149,8 @@ class Handler:
         raise NotImplementedError()
 
     def get_update_fields_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            data,
-            itr: Iterable,
-            **kwargs) -> dict[str, Any]:
+        self, level: LevelEnum, dbi: DbInterface, data, itr: Iterable, **kwargs
+    ) -> dict[str, Any]:
         """Get the fields needed to update an entry into the database
 
         Parameters
@@ -188,13 +179,14 @@ class Handler:
         raise NotImplementedError()
 
     def prepare_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            db_id: DbId,
-            data,
-            recurse: bool = True,
-            **kwargs) -> None:
+        self,
+        level: LevelEnum,
+        dbi: DbInterface,
+        db_id: DbId,
+        data,
+        recurse: bool = True,
+        **kwargs,
+    ) -> None:
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -223,11 +215,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def launch_workflow_hook(
-            self,
-            dbi: DbInterface,
-            db_id: DbId,
-            data):
+    def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
         """Launch a particular workflow
 
         Parameters
@@ -244,10 +232,8 @@ class Handler:
         raise NotImplementedError()
 
     def check_workflow_status_hook(
-            self,
-            dbi: DbInterface,
-            db_id: DbId,
-            data) -> dict[str, Any]:
+        self, dbi: DbInterface, db_id: DbId, data
+    ) -> dict[str, Any]:
         """Check the status of a particular workflow
 
         Parameters
@@ -269,12 +255,8 @@ class Handler:
         raise NotImplementedError()
 
     def accept_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            db_id: DbId,
-            itr: Iterable,
-            data) -> None:
+        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
+    ) -> None:
         """Called when a particular entry is accepted
 
         Parameters
@@ -294,11 +276,8 @@ class Handler:
         raise NotImplementedError()
 
     def reject_hook(
-            self,
-            level: LevelEnum,
-            dbi: DbInterface,
-            db_id: DbId,
-            data) -> None:
+        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data
+    ) -> None:
         """Called when a particular entry is rejected
 
         Parameters
@@ -318,11 +297,12 @@ class Handler:
         raise NotImplementedError()
 
     def fake_run_hook(
-            self,
-            dbi: DbInterface,
-            db_id: DbId,
-            data,
-            status: StatusEnum = StatusEnum.completed) -> None:
+        self,
+        dbi: DbInterface,
+        db_id: DbId,
+        data,
+        status: StatusEnum = StatusEnum.completed,
+    ) -> None:
         """Pretend to run workflows, this is for testing
 
         Parameters
@@ -341,17 +321,13 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def _read_config(
-            self,
-            config_url: str) -> None:
+    def _read_config(self, config_url: str) -> None:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
-        with open(self._config_url, 'rt', encoding='utf-8') as config_file:
+        with open(self._config_url, "rt", encoding="utf-8") as config_file:
             self._config = yaml.safe_load(config_file)
 
-    def update_config(
-            self,
-            config_url: str) -> None:
+    def update_config(self, config_url: str) -> None:
         """Update this handler's configuration by reading a
         yaml configuration file
 
@@ -365,11 +341,7 @@ class Handler:
             return
         self._read_config(config_url)
 
-    def _get_config_var(
-            self,
-            varname: str,
-            default: Any,
-            **kwargs) -> Any:
+    def _get_config_var(self, varname: str, default: Any, **kwargs) -> Any:
         """Utility function to get a configuration parameter value
 
         Parameters
@@ -399,10 +371,7 @@ class Handler:
         return kwargs.get(varname, self.config.get(varname, default))
 
     @classmethod
-    def _get_kwarg_value(
-            cls,
-            key: str,
-            **kwargs) -> Any:
+    def _get_kwarg_value(cls, key: str, **kwargs) -> Any:
         """Utility function to get a keyword value
 
         Provides a more usefull error message if the keyword is not present
@@ -422,16 +391,14 @@ class Handler:
         KeyError :
             The requested keyword is not present
         """
-        value = kwargs.get(key, '__FAIL__')
-        if value == '__FAIL__':
-            raise KeyError(f'Keyword {key} was not specified in {str(kwargs)}')
+        value = kwargs.get(key, "__FAIL__")
+        if value == "__FAIL__":
+            raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
     def _resolve_templated_string(
-            self,
-            template_name: str,
-            insert_fields: dict,
-            **kwargs) -> str:
+        self, template_name: str, insert_fields: dict, **kwargs
+    ) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
@@ -457,10 +424,14 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        template_string = self.config.get(template_name, self.default_config.get(template_name))
+        template_string = self.config.get(
+            template_name, self.default_config.get(template_name)
+        )
         format_vars = kwargs.copy()
         format_vars.update(**insert_fields)
         try:
             return template_string.format(**format_vars)
         except KeyError as msg:
-            raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg
+            raise KeyError(
+                f"Failed to format {template_string} with {str(kwargs)}"
+            ) from msg

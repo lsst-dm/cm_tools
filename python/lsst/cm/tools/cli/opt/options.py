@@ -22,7 +22,6 @@
 from functools import partial
 
 import click  # type: ignore
-
 from lsst.cm.tools.core.utils import LevelEnum
 
 
@@ -32,7 +31,9 @@ class MWOptionDecorator:
     """
 
     def __init__(self, *param_decls, **kwargs):
-        self.partialOpt = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
+        self.partialOpt = partial(
+            click.option, *param_decls, cls=partial(click.Option), **kwargs
+        )
         opt = click.Option(param_decls, **kwargs)
         self._name = opt.name
         self._opts = opt.opts
@@ -67,65 +68,46 @@ class OptionGroup:
         return f
 
 
-echo_option = MWOptionDecorator(
-    "--echo",
-    help="Echo DB commands",
-    is_flag=True)
+echo_option = MWOptionDecorator("--echo", help="Echo DB commands", is_flag=True)
 
 recurse_option = MWOptionDecorator(
-    "--recurse",
-    help="Recurvisely execute command",
-    is_flag=True)
+    "--recurse", help="Recurvisely execute command", is_flag=True
+)
 
 level_option = MWOptionDecorator(
     "--level",
     default="workflow",
-    type=click.Choice(
-        choices=list(LevelEnum.__members__.keys()),
-        case_sensitive=True,
-    ),
-    help="Which database table to manipulate.")
+    type=click.Choice(choices=list(LevelEnum.__members__.keys()), case_sensitive=True,),
+    help="Which database table to manipulate.",
+)
 
 max_running_option = MWOptionDecorator(
-    "--max_running",
-    default=50,
-    help="Maximum number of running workflows.")
+    "--max_running", default=50, help="Maximum number of running workflows."
+)
 
 db_option = MWOptionDecorator(
-    '--db',
-    default='sqlite:///cm.db',
-    help="URL for campaign management database.")
+    "--db", default="sqlite:///cm.db", help="URL for campaign management database."
+)
 
 handler_option = MWOptionDecorator(
-    '--handler',
-    default='lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler',
-    help="Full import path to callback handler.")
+    "--handler",
+    default="lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler",
+    help="Full import path to callback handler.",
+)
 
 config_option = MWOptionDecorator(
-    '--config_yaml',
-    type=click.Path(exists=True),
-    help="Configuration Yaml.")
+    "--config_yaml", type=click.Path(exists=True), help="Configuration Yaml."
+)
 
-production_option = MWOptionDecorator(
-    '--production_name',
-    help="Production name.")
+production_option = MWOptionDecorator("--production_name", help="Production name.")
 
-campaign_option = MWOptionDecorator(
-    '--campaign_name',
-    help="Campaign name.")
+campaign_option = MWOptionDecorator("--campaign_name", help="Campaign name.")
 
-step_option = MWOptionDecorator(
-    '--step_name',
-    help="Step name.")
+step_option = MWOptionDecorator("--step_name", help="Step name.")
 
-group_option = MWOptionDecorator(
-    '--group_name',
-    help="Group name.")
+group_option = MWOptionDecorator("--group_name", help="Group name.")
 
-workflow_option = MWOptionDecorator(
-    '--workflow_name',
-    type=int,
-    help="Workflow name.")
+workflow_option = MWOptionDecorator("--workflow_name", type=int, help="Workflow name.")
 
 
 class IdOptions(OptionGroup):
