@@ -120,7 +120,7 @@ class Handler:
         insert_fields : dict[str, Any]
             The fields and value to insert
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def post_insert_hook(
             self,
@@ -151,7 +151,7 @@ class Handler:
         --------
         Keywords can be used by sub-classes
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def get_update_fields_hook(
             self,
@@ -185,7 +185,7 @@ class Handler:
         update_fields : dict[str, Any]
             The fields and value to update
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def prepare_hook(
             self,
@@ -221,7 +221,7 @@ class Handler:
         --------
         Keywords can be used by sub-classes
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def launch_workflow_hook(
             self,
@@ -241,7 +241,7 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def check_workflow_status_hook(
             self,
@@ -266,7 +266,7 @@ class Handler:
         update_fields : dict[str, Any]
             Used to update the status of the workflow in question.
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def accept_hook(
             self,
@@ -291,7 +291,7 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def reject_hook(
             self,
@@ -315,7 +315,7 @@ class Handler:
         data : ???
             The data associated to this entry
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def fake_run_hook(
             self,
@@ -339,7 +339,7 @@ class Handler:
         status: StatusEnum
             Status value to set
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def _read_config(
             self,
@@ -423,7 +423,7 @@ class Handler:
             The requested keyword is not present
         """
         value = kwargs.get(key, '__FAIL__')
-        if value == '__FAIL__':  # pragma: no cover
+        if value == '__FAIL__':
             raise KeyError(f'Keyword {key} was not specified in {str(kwargs)}')
         return value
 
@@ -462,5 +462,5 @@ class Handler:
         format_vars.update(**insert_fields)
         try:
             return template_string.format(**format_vars)
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg

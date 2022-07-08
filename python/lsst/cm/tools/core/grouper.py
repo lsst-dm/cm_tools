@@ -51,4 +51,4 @@ class Grouper:
         return self._do_call()
 
     def _do_call(self):
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
