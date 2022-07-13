@@ -22,16 +22,8 @@
 from typing import Optional
 
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Enum,
-    Float,
-    Integer,  # type: ignore
-    MetaData,
-    String,
-    Table,
-)
+from sqlalchemy import Integer  # type: ignore
+from sqlalchemy import Column, DateTime, Enum, Float, MetaData, String, Table
 
 production_meta = MetaData()
 production_table = Table(
@@ -54,11 +46,15 @@ campaign_table = Table(
     Column("p_id", Integer),  # Parent production ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
+    Column("basecoll", String),  # Base for collection names
     Column("n_steps", Integer, default=0),  # Number of associated steps
     Column("n_steps_done", Integer, default=0),  # Number of finished steps
     Column("n_steps_failed", Integer, default=0),  # Number of failed steps
-    Column("c_data_query_tmpl", String),  # Template for data query
-    Column("c_data_query_subm", String),  # As submitted data query
+    Column("c_prepare_script_url", String),  # Script run to prepare data
+    Column("c_prepare_log_url", String),  # Url for log from prepare script
+    Column("c_collect_script_url", String),  # Script run to prepare data
+    Column("c_collect_log_url", String),  # Url for log from prepare script
+    Column("c_data_query", String),  # Data query
     Column("c_coll_source", String),  # Source data collection
     Column("c_coll_in", String),  # Input data collection (post-query)
     Column("c_coll_out", String),  # Output data collection
@@ -77,11 +73,15 @@ step_table = Table(
     Column("c_id", Integer),  # Parent campaign ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
+    Column("basecoll", String),  # Base for collection names
     Column("n_groups", Integer, default=0),  # Number of associated groups
     Column("n_groups_done", Integer, default=0),  # Number of finished groups
     Column("n_groups_failed", Integer, default=0),  # Number of failed groups
-    Column("s_data_query_tmpl", String),  # Template for data query
-    Column("s_data_query_subm", String),  # As submitted data query
+    Column("s_prepare_script_url", String),  # Script run to prepare data
+    Column("s_prepare_log_url", String),  # Url for log from prepare script
+    Column("s_collect_script_url", String),  # Script run to prepare data
+    Column("s_collect_log_url", String),  # Url for log from prepare script
+    Column("s_data_query", String),  # Data query
     Column("s_coll_source", String),  # Source data collection
     Column("s_coll_in", String),  # Input data collection (post-query)
     Column("s_coll_out", String),  # Output data collection
@@ -100,9 +100,13 @@ group_table = Table(
     Column("s_id", Integer),  # Parent step ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
+    Column("basecoll", String),  # Base for collection names
     Column("n_workflows", Integer, default=0),  # Number of associated workflows
-    Column("g_data_query_tmpl", String),  # Template for data query
-    Column("g_data_query_subm", String),  # As submitted data query
+    Column("g_prepare_script_url", String),  # Script run to prepare data
+    Column("g_prepare_log_url", String),  # Url for log from prepare script
+    Column("g_collect_script_url", String),  # Script run to prepare data
+    Column("g_collect_log_url", String),  # Url for log from prepare script
+    Column("g_data_query", String),  # Data query
     Column("g_coll_source", String),  # Source data collection
     Column("g_coll_in", String),  # Input data collection (post-query)
     Column("g_coll_out", String),  # Output data collection
@@ -122,6 +126,7 @@ workflow_table = Table(
     Column("g_id", Integer),  # Parent group ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
+    Column("basecoll", String),  # Base for collection names
     Column("n_tasks_all", Integer, default=0),  # Number of associated tasks
     Column("n_tasks_done", Integer, default=0),  # Number of finished tasks
     Column("n_tasks_failed", Integer, default=0),  # Number of failed tasks
@@ -133,11 +138,13 @@ workflow_table = Table(
     Column("workflow_cputime", Float),
     Column("workflow_tmpl_url", String),  # URL template for workflow yaml
     Column("workflow_subm_url", String),  # URL for as submitted workflow yaml
-    Column("command_tmpl", String),  # Template for workflow sumbmission command
-    Column("command_subm", String),  # As submitted workflow sumbmission command
-    Column("panda_log_url", String),
-    Column("w_data_query_tmpl", String),
-    Column("w_data_query_subm", String),
+    Column("w_prepare_script_url", String),  # Script run to prepare data
+    Column("w_prepare_log_url", String),  # Url for log from prepare script
+    Column("w_run_script_url", String),  # Script to run workflow
+    Column("w_run_log_url", String),  # Url for log from workflow
+    Column("w_collect_script_url", String),  # Script run to prepare data
+    Column("w_collect_log_url", String),  # Url for log from prepare script
+    Column("w_data_query", String),  # Data query
     Column("w_coll_source", String),  # Source data collection
     Column("w_coll_in", String),  # Input data collection (post-query)
     Column("w_coll_out", String),  # Output data collection
@@ -150,9 +157,7 @@ def create_db(engine) -> None:
 
     Populates the database with empty tables
     """
-    from sqlalchemy_utils import (
-        create_database,
-    )  # pylint: disable=import-outside-toplevel
+    from sqlalchemy_utils import create_database  # pylint: disable=import-outside-toplevel
 
     create_database(engine.url)
     for meta in [production_meta, campaign_meta, step_meta, group_meta, workflow_meta]:
@@ -244,12 +249,7 @@ def get_matching_key(table_level: LevelEnum, match_level: LevelEnum) -> Column:
         LevelEnum.production: [production_table.c.p_id],
         LevelEnum.campaign: [campaign_table.c.p_id, campaign_table.c.c_id],
         LevelEnum.step: [step_table.c.p_id, step_table.c.c_id, step_table.c.s_id],
-        LevelEnum.group: [
-            group_table.c.p_id,
-            group_table.c.c_id,
-            group_table.c.s_id,
-            group_table.c.g_id,
-        ],
+        LevelEnum.group: [group_table.c.p_id, group_table.c.c_id, group_table.c.s_id, group_table.c.g_id],
         LevelEnum.workflow: [
             workflow_table.c.p_id,
             workflow_table.c.c_id,
@@ -271,23 +271,38 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
         LevelEnum.campaign: [
             "n_steps_done",
             "n_steps_failed",
-            "c_data_query_tmpl",
-            "c_data_query_subm",
+            "c_prepare_script_url",
+            "c_prepare_log_url",
+            "c_collect_script_url",
+            "c_collect_log_url",
+            "c_data_query",
             "c_coll_source",
+            "c_coll_in",
+            "c_coll_out",
         ],
         LevelEnum.step: [
             "n_groups_done",
             "n_groups_failed",
-            "s_data_query_tmpl",
-            "s_data_query_subm",
+            "s_prepare_script_url",
+            "s_prepare_log_url",
+            "s_collect_script_url",
+            "s_collect_log_url",
+            "s_data_query",
             "s_coll_source",
+            "s_coll_in",
+            "s_coll_out",
         ],
         LevelEnum.group: [
             "n_groups_done",
             "n_groups_failed",
-            "s_data_query_tmpl",
-            "s_data_query_subm",
-            "s_coll_source",
+            "g_prepare_script_url",
+            "g_prepare_log_url",
+            "g_collect_script_url",
+            "g_collect_log_url",
+            "g_data_query",
+            "g_coll_source",
+            "g_coll_in",
+            "g_coll_out",
         ],
         LevelEnum.workflow: [
             "n_tasks_done",
@@ -299,12 +314,28 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
             "workflow_cputime",
             "workflow_tmpl_url",
             "workflow_subm_url",
-            "command_tmpl",
-            "command_sumb",
-            "panda_log_url" "w_data_query_tmpl",
-            "w_data_query_subm",
+            "w_prepare_script_url",
+            "w_prepare_log_url",
+            "w_run_script_url",
+            "w_run_log_url",
+            "w_collect_script_url",
+            "w_collect_log_url",
+            "w_data_query",
             "w_coll_source",
+            "w_coll_in",
+            "w_coll_out",
         ],
     }
     field_list += extra_fields[level]
     return field_list
+
+
+def get_prefix(level: LevelEnum) -> str:
+    all_prefixes = {
+        LevelEnum.production: "p",
+        LevelEnum.campaign: "c",
+        LevelEnum.step: "s",
+        LevelEnum.group: "g",
+        LevelEnum.workflow: "w",
+    }
+    return all_prefixes[level]

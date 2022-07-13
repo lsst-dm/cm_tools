@@ -22,11 +22,10 @@
 import sys
 
 import pytest
-
-from lsst.cm.tools.core.utils import LevelEnum
-from lsst.cm.tools.core.db_interface import DbInterface, DbId
-from lsst.cm.tools.core.handler import Handler
+from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
+from lsst.cm.tools.core.handler import Handler
+from lsst.cm.tools.core.utils import LevelEnum
 
 
 def test_bad_db_interface():
@@ -146,10 +145,16 @@ def test_bad_handler():
         bad_handler.prepare_hook(LevelEnum.production, bad_db, null_db_id, None)
 
     with pytest.raises(NotImplementedError):
+        bad_handler.prepare_script_hook(LevelEnum.production, bad_db, null_db_id, None)
+
+    with pytest.raises(NotImplementedError):
         bad_handler.launch_workflow_hook(bad_db, null_db_id, None)
 
     with pytest.raises(NotImplementedError):
         bad_handler.check_workflow_status_hook(bad_db, null_db_id, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_handler.collection_hook(LevelEnum.production, bad_db, null_db_id, [], None)
 
     with pytest.raises(NotImplementedError):
         bad_handler.accept_hook(LevelEnum.production, bad_db, null_db_id, [], None)
@@ -159,3 +164,6 @@ def test_bad_handler():
 
     with pytest.raises(NotImplementedError):
         bad_handler.fake_run_hook(bad_db, null_db_id, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_handler.check_script_status_hook("")

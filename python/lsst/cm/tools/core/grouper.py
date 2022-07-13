@@ -37,12 +37,7 @@ class Grouper:
         self.data = None
 
     def __call__(
-        self,
-        config: dict[str, Any],
-        dbi: DbInterface,
-        parent_db_id: DbId,
-        data,
-        **kwargs
+        self, config: dict[str, Any], dbi: DbInterface, parent_db_id: DbId, data, **kwargs
     ) -> Iterable:
         self.config = config.copy()
         self.config.update(**kwargs)

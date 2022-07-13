@@ -31,9 +31,7 @@ class MWOptionDecorator:
     """
 
     def __init__(self, *param_decls, **kwargs):
-        self.partialOpt = partial(
-            click.option, *param_decls, cls=partial(click.Option), **kwargs
-        )
+        self.partialOpt = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
         opt = click.Option(param_decls, **kwargs)
         self._name = opt.name
         self._opts = opt.opts
@@ -70,9 +68,7 @@ class OptionGroup:
 
 echo_option = MWOptionDecorator("--echo", help="Echo DB commands", is_flag=True)
 
-recurse_option = MWOptionDecorator(
-    "--recurse", help="Recurvisely execute command", is_flag=True
-)
+recurse_option = MWOptionDecorator("--recurse", help="Recurvisely execute command", is_flag=True)
 
 level_option = MWOptionDecorator(
     "--level",
@@ -85,9 +81,7 @@ max_running_option = MWOptionDecorator(
     "--max_running", default=50, help="Maximum number of running workflows."
 )
 
-db_option = MWOptionDecorator(
-    "--db", default="sqlite:///cm.db", help="URL for campaign management database."
-)
+db_option = MWOptionDecorator("--db", default="sqlite:///cm.db", help="URL for campaign management database.")
 
 handler_option = MWOptionDecorator(
     "--handler",
@@ -95,9 +89,7 @@ handler_option = MWOptionDecorator(
     help="Full import path to callback handler.",
 )
 
-config_option = MWOptionDecorator(
-    "--config_yaml", type=click.Path(exists=True), help="Configuration Yaml."
-)
+config_option = MWOptionDecorator("--config_yaml", type=click.Path(exists=True), help="Configuration Yaml.")
 
 production_option = MWOptionDecorator("--production_name", help="Production name.")
 

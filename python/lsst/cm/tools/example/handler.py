@@ -28,6 +28,7 @@ from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_handler import SQLAlchemyHandler
+from lsst.cm.tools.db.tables import get_prefix
 
 
 class ExampleStep1Grouper(Grouper):
@@ -39,7 +40,7 @@ class ExampleStep1Grouper(Grouper):
         )
 
         for i in range(10):
-            out_dict.update(group_name=f"group_{i}", g_data_query_tmpl=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
             yield out_dict
 
 
@@ -52,7 +53,7 @@ class ExampleStep2Grouper(Grouper):
         )
 
         for i in range(20):
-            out_dict.update(group_name=f"group_{i}", g_data_query_tmpl=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
             yield out_dict
 
 
@@ -65,48 +66,66 @@ class ExampleStep3Grouper(Grouper):
         )
 
         for i in range(20):
-            out_dict.update(group_name=f"group_{i}", g_data_query_tmpl=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
             yield out_dict
 
 
 class ExampleHandler(SQLAlchemyHandler):
 
     step_dict = OrderedDict(
-        [
-            ("step1", ExampleStep1Grouper),
-            ("step2", ExampleStep2Grouper),
-            ("step3", ExampleStep3Grouper),
-        ]
+        [("step1", ExampleStep1Grouper), ("step2", ExampleStep2Grouper), ("step3", ExampleStep3Grouper)]
     )
 
-    def check_workflow_status_hook(
-        self, dbi: DbInterface, db_id: DbId, data
-    ) -> dict[str, Any]:
-        panda_log_url = data["panda_log_url"]
-        if not os.path.exists(panda_log_url):
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
+        prefix = get_prefix(level)
+        butler_repo = self.config["butler_repo"]
+        coll_in = data[f"{prefix}_coll_in"]
+        coll_source = data[f"{prefix}_coll_source"]
+        data_query = data[f"{prefix}_data_query"]
+        prepare_script_url = data[f"{prefix}_prepare_script_url"]
+        prepare_log_url = data[f"{prefix}_prepare_log_url"]
+        with open(prepare_script_url, "wt", encoding="utf-8") as fout:
+            fout.write(
+                f'butler associate {butler_repo} {coll_in} --collections {coll_source} --where "{data_query}"'
+            )
+        with open(prepare_log_url, "wt", encoding="utf-8") as fout:
+            fout.write("status: completed\n")
+
+    def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
+        w_run_log_url = data["w_run_log_url"]
+        if not os.path.exists(w_run_log_url):
             return dict(status=data["w_status"])
-        with open(panda_log_url, "rt", encoding="utf-8") as fin:
+        with open(w_run_log_url, "rt", encoding="utf-8") as fin:
             update_fields = yaml.safe_load(fin)
         update_fields["status"] = StatusEnum[update_fields["status"]]
         return update_fields
 
     def fake_run_hook(
-        self,
-        dbi: DbInterface,
-        db_id: DbId,
-        data,
-        status: StatusEnum = StatusEnum.completed,
+        self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
-        panda_log_url = data["panda_log_url"]
-        with open(panda_log_url, "wt", encoding="utf-8") as fout:
+        w_run_log_url = data["w_run_log_url"]
+        with open(w_run_log_url, "wt", encoding="utf-8") as fout:
             fout.write(f"status: {status.name}\n")
 
-    def accept_hook(
+    def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> None:
+    ) -> StatusEnum:
+        prefix = get_prefix(level)
+        collect_script_url = data[f"{prefix}_collect_script_url"]
+        collect_log_url = data[f"{prefix}_collect_log_url"]
+        with open(collect_script_url, "wt", encoding="utf-8") as fout:
+            fout.write("butler chain stuff")
+        with open(collect_log_url, "wt", encoding="utf-8") as fout:
+            fout.write("status: completed\n")
+        return StatusEnum.collecting
+
+    def check_script_status_hook(self, log_url) -> StatusEnum:
+        with open(log_url, "rt", encoding="utf-8") as fin:
+            fields = yaml.safe_load(fin)
+        return StatusEnum[fields["status"]]
+
+    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
         return
 
-    def reject_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data
-    ) -> None:
+    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
         return

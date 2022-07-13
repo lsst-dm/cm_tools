@@ -86,9 +86,7 @@ class DbId:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=row_id)
         if level == LevelEnum.group:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=row_id)
-        return DbId(
-            p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id
-        )
+        return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id)
 
 
 class DbInterface:
@@ -256,7 +254,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False) -> None:
+    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
         """Check all database entries at a particular level
 
         Parameters
@@ -269,6 +267,9 @@ class DbInterface:
 
         recurse : bool
             If true, will recursively check childern
+
+        counter : int
+            Number of times to run check
         """
         raise NotImplementedError()
 
@@ -309,12 +310,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def insert(
-        self,
-        level: LevelEnum,
-        parent_db_id: DbId,
-        handler: Handler,
-        recurse: bool = True,
-        **kwargs
+        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, recurse: bool = True, **kwargs
     ) -> dict[str, Any]:
         """Insert a new database entry at a particular level
 
@@ -343,9 +339,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def prepare(
-        self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs
-    ) -> None:
+    def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> None:
         """Preparing a database entry for execution
 
         Parameters

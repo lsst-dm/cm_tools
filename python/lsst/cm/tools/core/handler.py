@@ -179,14 +179,37 @@ class Handler:
         raise NotImplementedError()
 
     def prepare_hook(
-        self,
-        level: LevelEnum,
-        dbi: DbInterface,
-        db_id: DbId,
-        data,
-        recurse: bool = True,
-        **kwargs,
+        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, recurse: bool = True, **kwargs,
     ) -> None:
+        """Called when preparing a database entry for execution
+
+        Can be used to prepare additional entries, for example,
+        the children of this entry.
+
+        Can also be used to do any actions associated to preparing this entry,
+        e.g., making TAGGED Butler collections
+
+        Parameters
+        ----------
+        level : LevelEnum
+            Specify which table we updated
+
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Database ID for this entry
+
+        data : ???
+            Current data for the entry we are preparing
+
+        Keywords
+        --------
+        Keywords can be used by sub-classes
+        """
+        raise NotImplementedError()
+
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -231,9 +254,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def check_workflow_status_hook(
-        self, dbi: DbInterface, db_id: DbId, data
-    ) -> dict[str, Any]:
+    def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
         """Check the status of a particular workflow
 
         Parameters
@@ -254,9 +275,46 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def accept_hook(
+    def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> None:
+    ) -> StatusEnum:
+        """Called when all the childern of a particular entry are finished
+
+        Parameters
+        ----------
+        level : LevelEnum
+            Specify which table we updated
+
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Database ID for this entry
+
+        itr : Iterable
+            Iterator over children of the entry we are updating
+
+        data : ???
+            The data associated to this entry
+        """
+        raise NotImplementedError()
+
+    def check_script_status_hook(self, log_url) -> StatusEnum:
+        """Called to check the status of a preparation or collection script
+
+        Parameters
+        ----------
+        log_url : str
+            URL to the resources needed to check the status
+
+        Returns
+        -------
+        status : StatusEnum
+            The status of the script
+        """
+        raise NotImplementedError()
+
+    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
         """Called when a particular entry is accepted
 
         Parameters
@@ -275,9 +333,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def reject_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data
-    ) -> None:
+    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
         """Called when a particular entry is rejected
 
         Parameters
@@ -297,11 +353,7 @@ class Handler:
         raise NotImplementedError()
 
     def fake_run_hook(
-        self,
-        dbi: DbInterface,
-        db_id: DbId,
-        data,
-        status: StatusEnum = StatusEnum.completed,
+        self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
         """Pretend to run workflows, this is for testing
 
@@ -396,9 +448,7 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def _resolve_templated_string(
-        self, template_name: str, insert_fields: dict, **kwargs
-    ) -> str:
+    def _resolve_templated_string(self, template_name: str, insert_fields: dict, **kwargs) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
@@ -424,14 +474,45 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        template_string = self.config.get(
-            template_name, self.default_config.get(template_name)
-        )
+        template_string = self.config.get(template_name, self.default_config.get(template_name))
         format_vars = kwargs.copy()
         format_vars.update(**insert_fields)
+        format_vars.update(**self.config)
         try:
             return template_string.format(**format_vars)
         except KeyError as msg:
-            raise KeyError(
-                f"Failed to format {template_string} with {str(kwargs)}"
-            ) from msg
+            raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg
+
+    def _resolve_templated_strings(
+        self, template_names: dict[str, str], insert_fields: dict, **kwargs
+    ) -> dict[str, Any]:
+        """Utility function resolve a list of templated names
+
+        Parameters
+        ----------
+        template_names : dict[str, str]
+            Keys are the output keys, values are he names
+            of the template requested, which must be in self.config
+
+        insert_fields : dict
+            Fields used for most recent database insertion,
+            can be used in formatting
+
+        Keywords
+        --------
+        Keywords are also used in formating
+
+        Returns
+        -------
+        values : dict[str, Any]
+            The formatted strings
+
+        Raises
+        ------
+        KeyError :
+            The formatting failed
+        """
+        return {
+            key_: self._resolve_templated_string(val_, insert_fields, **kwargs)
+            for key_, val_ in template_names.items()
+        }

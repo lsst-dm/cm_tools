@@ -23,10 +23,9 @@ import os
 import sys
 
 import pytest
-
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.db_interface import DbId
+from lsst.cm.tools.core.handler import Handler
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
@@ -34,8 +33,9 @@ def test_full_example():
 
     try:
         os.unlink('test.db')
-    except OSError:
+    except OSError:  # pragma: no cover
         pass
+    os.system('\\rm -rf archive_test')
 
     iface = SQLAlchemyInterface('sqlite:///test.db', echo=False, create=True)
 
@@ -72,28 +72,20 @@ def test_full_example():
             step_name=step_name)
         iface.prepare(LevelEnum.step, db_s_id, recurse=True)
         iface.queue_workflows(LevelEnum.step, db_s_id)
-        iface.launch_workflows(LevelEnum.step, db_s_id, 10)
+        iface.launch_workflows(LevelEnum.step, db_s_id, 5)
         iface.launch_workflows(LevelEnum.step, db_s_id, 100)
         # These should fail
-        iface.queue_workflows(LevelEnum.step, db_s_id)
-        iface.launch_workflows(LevelEnum.step, db_s_id, 100)
+        with pytest.raises(RuntimeError):
+            iface.queue_workflows(LevelEnum.step, db_s_id)
+        with pytest.raises(RuntimeError):
+            iface.launch_workflows(LevelEnum.step, db_s_id, 100)
+        # Ok, this is ok
         iface.launch_workflows(LevelEnum.step, db_s_id, 0)
-        iface.check(LevelEnum.workflow, db_s_id)
-        # Ok, now this should work
         iface.fake_run(db_s_id)
-        # But this should fail
-        iface.fake_run(db_s_id)
-        iface.check(LevelEnum.workflow, db_s_id)
-        iface.accept(LevelEnum.workflow, db_s_id)
-        iface.check(LevelEnum.group, db_s_id)
-        iface.accept(LevelEnum.group, db_s_id)
-        iface.check(LevelEnum.step, db_s_id)
-        iface.accept(LevelEnum.step, db_s_id)
+        iface.accept(LevelEnum.step, db_s_id, recurse=True)
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
-    iface.check(LevelEnum.campaign, db_c_id, recurse=True)
     iface.accept(LevelEnum.campaign, db_c_id)
-    iface.check(LevelEnum.production, db_p_id)
 
     iface.print_table(sys.stdout, LevelEnum.production)
     iface.print_table(sys.stdout, LevelEnum.campaign)
@@ -154,18 +146,19 @@ def test_full_example():
     assert check_w_id.to_tuple() == (1, 1, 1, 1, 1)
 
     assert iface.full_name(None) is None
-    os.system('\rm -rf archive')
+    os.system('\\rm -rf archive_test')
     os.unlink('test.db')
 
 
 def test_failed_workflows():
 
     try:
-        os.unlink('test.db')
-    except OSError:
+        os.unlink('fail.db')
+    except OSError:  # pragma: no cover
         pass
+    os.system('\\rm -rf archive_test')
 
-    iface = SQLAlchemyInterface('sqlite:///test.db', echo=False, create=True)
+    iface = SQLAlchemyInterface('sqlite:///fail.db', echo=False, create=True)
 
     config_yaml = "examples/example_config.yaml"
     handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
@@ -190,6 +183,7 @@ def test_failed_workflows():
             campaign_name='test',
             step_name=step_name)
         iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        iface.check(LevelEnum.workflow, db_s_id)
         iface.queue_workflows(LevelEnum.step, db_s_id)
         iface.launch_workflows(LevelEnum.step, db_s_id, 100)
         db_w_id = iface.get_db_id(
@@ -199,13 +193,13 @@ def test_failed_workflows():
             step_name=step_name,
             group_name='group_4',
             workflow_idx=0)
-        iface.fake_run(db_w_id, StatusEnum.failed)
         iface.fake_run(db_s_id)
+        iface.fake_run(db_w_id, StatusEnum.failed)
         iface.check(LevelEnum.workflow, db_s_id)
         iface.reject(LevelEnum.workflow, db_s_id)
-        iface.reject(LevelEnum.workflow, db_s_id)
         iface.check(LevelEnum.group, db_w_id)
-        iface.fake_run(db_s_id)
+        os.system('\\rm -rf archive_test')
+        os.unlink('fail.db')
 
 
 def test_bad_db():

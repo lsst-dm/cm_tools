@@ -23,16 +23,17 @@ import enum
 
 
 class StatusEnum(enum.Enum):
-    failed = -3  # Processing failed
-    rejected = -2  # Marked as rejected
-    superseded = -1  # Marked as superseded
+    failed = -2  # Processing failed
+    rejected = -1  # Marked as rejected
     waiting = 0  # Inputs are not ready
-    ready = 1  # Inputs are ready
-    pending = 2  # Jobs are queued for submission
-    running = 3  # Jobs are running
-    part_fail = 4  # Partially failed, could be accepted
-    completed = 5  # Completed, awaiting review
-    accepted = 6  # Completed, reviewed and accepted
+    preparing = 1  # Inputs are being prepared
+    ready = 2  # Inputs are ready
+    pending = 3  # Jobs are queued for submission
+    running = 4  # Jobs are running
+    collecting = 5  # Jobs have finshed running, collecting results
+    completed = 6  # Completed, awaiting review
+    accepted = 7  # Completed, reviewed and accepted
+    superseded = 8  # Marked as superseded
 
     def ignore(self):
         return self.value < 0
