@@ -419,6 +419,7 @@ class SQLAlchemyInterface(DbInterface):
         new_status = current_status
         if child_status.size and (child_status >= StatusEnum.accepted.value).all():
             handler = Handler.get_handler(data["handler"], data["config_yaml"])
+            itr = self.get_iterable(level.child(), db_id)
             new_status = handler.collection_hook(level, self, db_id, itr, data)
         elif (child_status >= StatusEnum.running.value).any():
             new_status = StatusEnum.running

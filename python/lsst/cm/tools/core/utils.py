@@ -20,6 +20,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import enum
+import os
+
+import yaml
 
 
 class StatusEnum(enum.Enum):
@@ -55,3 +58,18 @@ class LevelEnum(enum.Enum):
         if self.value == 4:
             return None
         return LevelEnum(self.value + 1)
+
+
+def write_status_to_yaml(log_url, status: StatusEnum) -> None:
+    """Write a one line file with just a status flag"""
+    with open(log_url, "wt", encoding="utf-8") as fout:
+        fout.write(f"status: {status.name}\n")
+
+
+def check_status_from_yaml(log_url, current_status: StatusEnum) -> StatusEnum:
+    """Read the status from a yaml file"""
+    if not os.path.exists(log_url):
+        return current_status
+    with open(log_url, "rt", encoding="utf-8") as fin:
+        fields = yaml.safe_load(fin)
+    return StatusEnum[fields["status"]]

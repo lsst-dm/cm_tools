@@ -19,14 +19,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 from collections import OrderedDict
 from typing import Any, Iterable
 
-import yaml
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.core.script_utils import make_butler_associate_command, make_butler_chain_command
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, check_status_from_yaml, write_status_to_yaml
 from lsst.cm.tools.db.sqlalch_handler import SQLAlchemyHandler
 
 
@@ -77,49 +76,33 @@ class ExampleHandler(SQLAlchemyHandler):
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
         butler_repo = self.config["butler_repo"]
-        coll_in = data["coll_in"]
-        coll_source = data["coll_source"]
-        data_query = data["data_query"]
         prepare_script_url = data["prepare_script_url"]
-        prepare_log_url = data["prepare_log_url"]
         with open(prepare_script_url, "wt", encoding="utf-8") as fout:
-            fout.write(
-                f'butler associate {butler_repo} {coll_in} --collections {coll_source} --where "{data_query}"'
-            )
-        with open(prepare_log_url, "wt", encoding="utf-8") as fout:
-            fout.write("status: completed\n")
+            fout.write(make_butler_associate_command(butler_repo, data))
+            fout.write('\n')
+        write_status_to_yaml(data["prepare_log_url"], StatusEnum.completed)
 
     def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
-        run_log_url = data["run_log_url"]
-        if not os.path.exists(run_log_url):
-            return dict(status=data["status"])
-        with open(run_log_url, "rt", encoding="utf-8") as fin:
-            update_fields = yaml.safe_load(fin)
-        update_fields["status"] = StatusEnum[update_fields["status"]]
-        return update_fields
+        return dict(status=check_status_from_yaml(data["run_log_url"], data["status"]))
 
     def fake_run_hook(
         self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
-        run_log_url = data["run_log_url"]
-        with open(run_log_url, "wt", encoding="utf-8") as fout:
-            fout.write(f"status: {status.name}\n")
+        write_status_to_yaml(data["run_log_url"], status)
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
     ) -> StatusEnum:
+        butler_repo = self.config["butler_repo"]
         collect_script_url = data["collect_script_url"]
-        collect_log_url = data["collect_log_url"]
         with open(collect_script_url, "wt", encoding="utf-8") as fout:
-            fout.write("butler chain stuff")
-        with open(collect_log_url, "wt", encoding="utf-8") as fout:
-            fout.write("status: completed\n")
+            fout.write(make_butler_chain_command(butler_repo, data, itr))
+            fout.write('\n')
+        write_status_to_yaml(data["collect_log_url"], StatusEnum.completed)
         return StatusEnum.collecting
 
     def check_script_status_hook(self, log_url) -> StatusEnum:
-        with open(log_url, "rt", encoding="utf-8") as fin:
-            fields = yaml.safe_load(fin)
-        return StatusEnum[fields["status"]]
+        return check_status_from_yaml(log_url, StatusEnum.running)
 
     def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
         return
