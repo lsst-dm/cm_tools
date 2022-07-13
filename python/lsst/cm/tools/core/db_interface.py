@@ -339,7 +339,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> None:
+    def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> list[DbId]:
         """Preparing a database entry for execution
 
         Parameters
@@ -353,13 +353,18 @@ class DbInterface:
         recurse : bool=True
             If true, allows prepared entries to insert new entries
 
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were prepared
+
         Keywords
         --------
-        Keywords can be used in recursion
+,         Keywords can be used in recursion
         """
         raise NotImplementedError()
 
-    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> None:
+    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Queue all the ready workflows matching the selection
 
         Parameters
@@ -369,10 +374,15 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are queuing
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were queued
         """
         raise NotImplementedError()
 
-    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> None:
+    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
         """Launch all the pending workflows matching the selection
 
         Parameters
@@ -385,10 +395,15 @@ class DbInterface:
 
         max_running: int
             Maximum number of running workflows
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were launched
         """
         raise NotImplementedError()
 
-    def accept(self, level: LevelEnum, db_id: DbId) -> None:
+    def accept(self, level: LevelEnum, db_id: DbId, recurse: bool = True) -> list[DbId]:
         """Accept all the completed or part_fail
         entries at a particular level
 
@@ -399,10 +414,15 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are accepting
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were accepted
         """
         raise NotImplementedError()
 
-    def reject(self, level: LevelEnum, db_id: DbId) -> None:
+    def reject(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Reject all the completed or part_fail
         entries at a particular level
 
@@ -413,6 +433,11 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are accepting
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were rejected
         """
         raise NotImplementedError()
 
@@ -426,5 +451,24 @@ class DbInterface:
 
         status: StatusEnum
             Status value to set
+        """
+        raise NotImplementedError()
+
+    def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
+        """Run a loop
+
+        Parameters
+        ----------
+        db_id : DbId
+            Specifies the campaign we are running against
+
+        max_running : int
+            Maximum number of running workflows
+
+        sleep_time : int
+            Time between cycles (in seconds)
+
+        n_iter : int
+            number of interations to run, -1 for no limit
         """
         raise NotImplementedError()

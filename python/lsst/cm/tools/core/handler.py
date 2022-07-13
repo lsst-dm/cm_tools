@@ -180,7 +180,7 @@ class Handler:
 
     def prepare_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, recurse: bool = True, **kwargs,
-    ) -> None:
+    ) -> list[DbId]:
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -202,6 +202,11 @@ class Handler:
 
         data : ???
             Current data for the entry we are preparing
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were prepared
 
         Keywords
         --------

@@ -45,6 +45,7 @@ def test_full_example():
 
     top_db_id = DbId()
     iface.insert(LevelEnum.production, top_db_id, the_handler, production_name='example')
+    iface.check(LevelEnum.production, top_db_id)
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name='example')
     iface.insert(
@@ -62,7 +63,8 @@ def test_full_example():
         step_name='step3')
 
     # These should all fail
-    iface.prepare(LevelEnum.step, db_s3_id, recurse=True)
+    result = iface.prepare(LevelEnum.step, db_s3_id, recurse=True)
+    assert not result
 
     for step_name in ['step1', 'step2', 'step3']:
         db_s_id = iface.get_db_id(
@@ -71,21 +73,28 @@ def test_full_example():
             campaign_name='test',
             step_name=step_name)
         iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        # This should fail
+        result = iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        assert not result
         iface.queue_workflows(LevelEnum.step, db_s_id)
         iface.launch_workflows(LevelEnum.step, db_s_id, 5)
         iface.launch_workflows(LevelEnum.step, db_s_id, 100)
         # These should fail
-        with pytest.raises(RuntimeError):
-            iface.queue_workflows(LevelEnum.step, db_s_id)
-        with pytest.raises(RuntimeError):
-            iface.launch_workflows(LevelEnum.step, db_s_id, 100)
+        result = iface.queue_workflows(LevelEnum.step, db_s_id)
+        assert not result
+        result = iface.launch_workflows(LevelEnum.step, db_s_id, 100)
+        assert not result
         # Ok, this is ok
         iface.launch_workflows(LevelEnum.step, db_s_id, 0)
         iface.fake_run(db_s_id)
         iface.accept(LevelEnum.step, db_s_id, recurse=True)
+        result = iface.fake_run(db_s_id)
+        assert not result
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
     iface.accept(LevelEnum.campaign, db_c_id)
+
+    iface.daemon(db_c_id, sleep_time=1, n_iter=3)
 
     iface.print_table(sys.stdout, LevelEnum.production)
     iface.print_table(sys.stdout, LevelEnum.campaign)

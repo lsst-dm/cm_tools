@@ -33,7 +33,7 @@ production_table = Table(
     Column("p_name", String),  # Production Name
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("n_campaigns", Integer, default=0),  # Number of associated campaigns
+    Column("n_child", Integer, default=0),  # Number of associated children
 )
 
 campaign_meta = MetaData()
@@ -46,19 +46,17 @@ campaign_table = Table(
     Column("p_id", Integer),  # Parent production ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("basecoll", String),  # Base for collection names
-    Column("n_steps", Integer, default=0),  # Number of associated steps
-    Column("n_steps_done", Integer, default=0),  # Number of finished steps
-    Column("n_steps_failed", Integer, default=0),  # Number of failed steps
-    Column("c_prepare_script_url", String),  # Script run to prepare data
-    Column("c_prepare_log_url", String),  # Url for log from prepare script
-    Column("c_collect_script_url", String),  # Script run to prepare data
-    Column("c_collect_log_url", String),  # Url for log from prepare script
-    Column("c_data_query", String),  # Data query
-    Column("c_coll_source", String),  # Source data collection
-    Column("c_coll_in", String),  # Input data collection (post-query)
-    Column("c_coll_out", String),  # Output data collection
-    Column("c_status", Enum(StatusEnum)),  # Campaign status flag
+    Column("butler_repo", String),  # URL for butler repository
+    Column("n_child", Integer, default=0),  # Number of associated children
+    Column("prepare_script_url", String),  # Script run to prepare data
+    Column("prepare_log_url", String),  # Url for log from prepare script
+    Column("collect_script_url", String),  # Script run to prepare data
+    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("data_query", String),  # Data query
+    Column("coll_source", String),  # Source data collection
+    Column("coll_in", String),  # Input data collection (post-query)
+    Column("coll_out", String),  # Output data collection
+    Column("status", Enum(StatusEnum)),  # Status flag
 )
 
 step_meta = MetaData()
@@ -73,19 +71,16 @@ step_table = Table(
     Column("c_id", Integer),  # Parent campaign ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("basecoll", String),  # Base for collection names
-    Column("n_groups", Integer, default=0),  # Number of associated groups
-    Column("n_groups_done", Integer, default=0),  # Number of finished groups
-    Column("n_groups_failed", Integer, default=0),  # Number of failed groups
-    Column("s_prepare_script_url", String),  # Script run to prepare data
-    Column("s_prepare_log_url", String),  # Url for log from prepare script
-    Column("s_collect_script_url", String),  # Script run to prepare data
-    Column("s_collect_log_url", String),  # Url for log from prepare script
-    Column("s_data_query", String),  # Data query
-    Column("s_coll_source", String),  # Source data collection
-    Column("s_coll_in", String),  # Input data collection (post-query)
-    Column("s_coll_out", String),  # Output data collection
-    Column("s_status", Enum(StatusEnum)),  # Step status flag
+    Column("n_child", Integer, default=0),  # Number of associated children
+    Column("prepare_script_url", String),  # Script run to prepare data
+    Column("prepare_log_url", String),  # Url for log from prepare script
+    Column("collect_script_url", String),  # Script run to prepare data
+    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("data_query", String),  # Data query
+    Column("coll_source", String),  # Source data collection
+    Column("coll_in", String),  # Input data collection (post-query)
+    Column("coll_out", String),  # Output data collection
+    Column("status", Enum(StatusEnum)),  # Status flag
 )
 
 group_meta = MetaData()
@@ -100,17 +95,17 @@ group_table = Table(
     Column("s_id", Integer),  # Parent step ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("basecoll", String),  # Base for collection names
     Column("n_workflows", Integer, default=0),  # Number of associated workflows
-    Column("g_prepare_script_url", String),  # Script run to prepare data
-    Column("g_prepare_log_url", String),  # Url for log from prepare script
-    Column("g_collect_script_url", String),  # Script run to prepare data
-    Column("g_collect_log_url", String),  # Url for log from prepare script
-    Column("g_data_query", String),  # Data query
-    Column("g_coll_source", String),  # Source data collection
-    Column("g_coll_in", String),  # Input data collection (post-query)
-    Column("g_coll_out", String),  # Output data collection
-    Column("g_status", Enum(StatusEnum)),  # Group status flag
+    Column("n_child", Integer, default=0),  # Number of associated children
+    Column("prepare_script_url", String),  # Script run to prepare data
+    Column("prepare_log_url", String),  # Url for log from prepare script
+    Column("collect_script_url", String),  # Script run to prepare data
+    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("data_query", String),  # Data query
+    Column("coll_source", String),  # Source data collection
+    Column("coll_in", String),  # Input data collection (post-query)
+    Column("coll_out", String),  # Output data collection
+    Column("status", Enum(StatusEnum)),  # Status flag
 )
 
 workflow_meta = MetaData()
@@ -126,7 +121,6 @@ workflow_table = Table(
     Column("g_id", Integer),  # Parent group ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("basecoll", String),  # Base for collection names
     Column("n_tasks_all", Integer, default=0),  # Number of associated tasks
     Column("n_tasks_done", Integer, default=0),  # Number of finished tasks
     Column("n_tasks_failed", Integer, default=0),  # Number of failed tasks
@@ -138,17 +132,17 @@ workflow_table = Table(
     Column("workflow_cputime", Float),
     Column("workflow_tmpl_url", String),  # URL template for workflow yaml
     Column("workflow_subm_url", String),  # URL for as submitted workflow yaml
-    Column("w_prepare_script_url", String),  # Script run to prepare data
-    Column("w_prepare_log_url", String),  # Url for log from prepare script
-    Column("w_run_script_url", String),  # Script to run workflow
-    Column("w_run_log_url", String),  # Url for log from workflow
-    Column("w_collect_script_url", String),  # Script run to prepare data
-    Column("w_collect_log_url", String),  # Url for log from prepare script
-    Column("w_data_query", String),  # Data query
-    Column("w_coll_source", String),  # Source data collection
-    Column("w_coll_in", String),  # Input data collection (post-query)
-    Column("w_coll_out", String),  # Output data collection
-    Column("w_status", Enum(StatusEnum)),  # Workflow status flag
+    Column("prepare_script_url", String),  # Script run to prepare data
+    Column("prepare_log_url", String),  # Url for log from prepare script
+    Column("run_script_url", String),  # Script to run workflow
+    Column("run_log_url", String),  # Url for log from workflow
+    Column("collect_script_url", String),  # Script run to prepare data
+    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("data_query", String),  # Data query
+    Column("coll_source", String),  # Source data collection
+    Column("coll_in", String),  # Input data collection (post-query)
+    Column("coll_out", String),  # Output data collection
+    Column("status", Enum(StatusEnum)),  # Status flag
 )
 
 
@@ -192,10 +186,10 @@ def get_status_key(level: LevelEnum) -> Optional[Column]:
     """Return the primary key in the table corresponding to a `level`"""
     all_keys = {
         LevelEnum.production: None,
-        LevelEnum.campaign: campaign_table.c.c_status,
-        LevelEnum.step: step_table.c.s_status,
-        LevelEnum.group: group_table.c.g_status,
-        LevelEnum.workflow: workflow_table.c.w_status,
+        LevelEnum.campaign: campaign_table.c.status,
+        LevelEnum.step: step_table.c.status,
+        LevelEnum.group: group_table.c.status,
+        LevelEnum.workflow: workflow_table.c.status,
     }
     return all_keys[level]
 
@@ -232,10 +226,10 @@ def get_n_child_field(level: Optional[LevelEnum]) -> Optional[Column]:
     corresponding to an entry at `level`
     """
     all_keys = {
-        LevelEnum.production: production_table.c.n_campaigns,
-        LevelEnum.campaign: campaign_table.c.n_steps,
-        LevelEnum.step: step_table.c.n_groups,
-        LevelEnum.group: group_table.c.n_workflows,
+        LevelEnum.production: production_table.c.n_child,
+        LevelEnum.campaign: campaign_table.c.n_child,
+        LevelEnum.step: step_table.c.n_child,
+        LevelEnum.group: group_table.c.n_child,
         LevelEnum.workflow: None,
     }
     return all_keys[level]
@@ -266,45 +260,22 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
     in a particular table
     """
     field_list = ["handler", "config_yaml"]
+    common_fields = [
+        "prepare_script_url",
+        "prepare_log_url",
+        "collect_script_url",
+        "collect_log_url",
+        "data_query",
+        "coll_source",
+        "coll_in",
+        "coll_out",
+    ]
     extra_fields: dict[LevelEnum, list[str]] = {
         LevelEnum.production: [],
-        LevelEnum.campaign: [
-            "n_steps_done",
-            "n_steps_failed",
-            "c_prepare_script_url",
-            "c_prepare_log_url",
-            "c_collect_script_url",
-            "c_collect_log_url",
-            "c_data_query",
-            "c_coll_source",
-            "c_coll_in",
-            "c_coll_out",
-        ],
-        LevelEnum.step: [
-            "n_groups_done",
-            "n_groups_failed",
-            "s_prepare_script_url",
-            "s_prepare_log_url",
-            "s_collect_script_url",
-            "s_collect_log_url",
-            "s_data_query",
-            "s_coll_source",
-            "s_coll_in",
-            "s_coll_out",
-        ],
-        LevelEnum.group: [
-            "n_groups_done",
-            "n_groups_failed",
-            "g_prepare_script_url",
-            "g_prepare_log_url",
-            "g_collect_script_url",
-            "g_collect_log_url",
-            "g_data_query",
-            "g_coll_source",
-            "g_coll_in",
-            "g_coll_out",
-        ],
-        LevelEnum.workflow: [
+        LevelEnum.campaign: common_fields,
+        LevelEnum.step: common_fields,
+        LevelEnum.group: common_fields,
+        LevelEnum.workflow: common_fields + [
             "n_tasks_done",
             "n_tasks_failed",
             "n_clusters_done",
@@ -314,28 +285,9 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
             "workflow_cputime",
             "workflow_tmpl_url",
             "workflow_subm_url",
-            "w_prepare_script_url",
-            "w_prepare_log_url",
-            "w_run_script_url",
-            "w_run_log_url",
-            "w_collect_script_url",
-            "w_collect_log_url",
-            "w_data_query",
-            "w_coll_source",
-            "w_coll_in",
-            "w_coll_out",
+            "run_script_url",
+            "run_log_url",
         ],
     }
     field_list += extra_fields[level]
     return field_list
-
-
-def get_prefix(level: LevelEnum) -> str:
-    all_prefixes = {
-        LevelEnum.production: "p",
-        LevelEnum.campaign: "c",
-        LevelEnum.step: "s",
-        LevelEnum.group: "g",
-        LevelEnum.workflow: "w",
-    }
-    return all_prefixes[level]

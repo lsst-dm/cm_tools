@@ -26,7 +26,7 @@ from typing import Any, Iterable
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db.tables import get_prefix, get_update_field_list
+from lsst.cm.tools.db.tables import get_update_field_list
 
 # import datetime
 
@@ -47,13 +47,22 @@ class SQLAlchemyHandler(Handler):  # noqa
 
     default_config = dict(
         prod_base_url="archive_test",
-        coll_in_template="/prod/{basecoll}_input",
-        coll_out_template="/prod/{basecoll}_output",
+        coll_in_template="/prod/{fullname}_input",
+        coll_out_template="/prod/{fullname}_output",
         prepare_script_url_template="{prod_base_url}/{fullname}/prepare.sh",
         prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
         collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
         collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
         command_tmpl="bps",
+    )
+
+    template_names = dict(
+        coll_in="coll_in_template",
+        coll_out="coll_out_template",
+        prepare_script_url="prepare_script_url_template",
+        prepare_log_url="prepare_log_url_template",
+        collect_script_url="collect_script_url_template",
+        collect_log_url="collect_log_url_template",
     )
 
     step_dict: OrderedDict[str, type] = OrderedDict([])
@@ -75,7 +84,6 @@ class SQLAlchemyHandler(Handler):  # noqa
     ) -> dict[str, Any]:
         kwcopy = kwargs.copy()
         kwcopy["fullname"] = dbi.full_name(level, **kwargs)
-        kwcopy["basecoll"] = kwcopy["fullname"]
         func_dict = {
             LevelEnum.production: self._get_insert_production_fields,
             LevelEnum.campaign: self._get_insert_campaign_fields,
@@ -116,10 +124,10 @@ class SQLAlchemyHandler(Handler):  # noqa
         field_list = get_update_field_list(level)
         status_fields = {
             LevelEnum.production: None,
-            LevelEnum.campaign: "c_status",
-            LevelEnum.step: "s_status",
-            LevelEnum.group: "g_status",
-            LevelEnum.workflow: "w_status",
+            LevelEnum.campaign: "status",
+            LevelEnum.step: "status",
+            LevelEnum.group: "status",
+            LevelEnum.workflow: "status",
         }
         status_field = status_fields[level]
         update_fields = self._copy_fields(field_list, **kwcopy)
@@ -129,7 +137,7 @@ class SQLAlchemyHandler(Handler):  # noqa
 
     def prepare_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, recurse: bool = True, **kwargs,
-    ) -> None:
+    ) -> list[DbId]:
         path_var_names = {
             LevelEnum.production: "p_name",
             LevelEnum.campaign: "fullname",
@@ -137,24 +145,26 @@ class SQLAlchemyHandler(Handler):  # noqa
             LevelEnum.group: "fullname",
             LevelEnum.workflow: "fullname",
         }
+        db_id_list = []
         if not self._check_prerequistes(level, dbi, db_id, data):
-            return
+            return db_id_list
         path_var_name = path_var_names[level]
         full_path = os.path.join(
             self._get_config_var("prod_base_url", "archive", **kwargs), data[path_var_name],
         )
         safe_makedirs(full_path)
         update_kwargs = dict(status=StatusEnum.ready)
-        prefix = get_prefix(level)
         if level != LevelEnum.production:
-            if data[f"{prefix}_prepare_script_url"] is not None:
+            db_id_list.append(db_id)
+            if data["prepare_script_url"] is not None:
                 self.prepare_script_hook(level, dbi, db_id, data)
                 update_kwargs["status"] = StatusEnum.preparing
         if level == LevelEnum.step:
-            self._make_groups(dbi, db_id, data, recurse)
+            db_id_list += self._make_groups(dbi, db_id, data, recurse)
         elif level == LevelEnum.workflow:
             update_kwargs["workflow_tmpl_url"] = self._copy_workflow_template(data, **kwargs)
         dbi.update(level, db_id, **update_kwargs)
+        return db_id_list
 
     def _get_insert_production_fields(self, dbi: DbInterface, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
         """Production specific version of get_insert_fields()"""
@@ -167,23 +177,15 @@ class SQLAlchemyHandler(Handler):  # noqa
         """Campaign specific version of get_insert_fields()"""
         fullname = kwargs.get("fullname")
         self._check_unused(LevelEnum.campaign, dbi, parent_db_id, fullname)
-        template_names = dict(
-            c_coll_in="coll_in_template",
-            c_coll_out="coll_out_template",
-            c_prepare_script_url="prepare_script_url_template",
-            c_prepare_log_url="prepare_log_url_template",
-            c_collect_script_url="collect_script_url_template",
-            c_collect_log_url="collect_log_url_template",
-        )
         insert_fields = dict(
             fullname=fullname,
             c_name=self._get_kwarg_value("campaign_name", **kwargs),
             p_id=parent_db_id.p_id,
-            c_data_query=self._get_config_var("c_data_query", "", **kwargs),
-            c_coll_source=self._get_config_var("c_coll_source", "", **kwargs),
-            c_status=StatusEnum.waiting,
+            data_query=self._get_config_var("data_query", "", **kwargs),
+            coll_source=self._get_config_var("coll_source", "", **kwargs),
+            status=StatusEnum.waiting,
         )
-        extra_fields = self._resolve_templated_strings(template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -192,25 +194,17 @@ class SQLAlchemyHandler(Handler):  # noqa
         previous_step_id = kwargs.get("previous_step_id")
         fullname = kwargs.get("fullname")
         self._check_unused(LevelEnum.step, dbi, parent_db_id, fullname)
-        template_names = dict(
-            s_coll_in="coll_in_template",
-            s_coll_out="coll_out_template",
-            s_prepare_script_url="prepare_script_url_template",
-            s_prepare_log_url="prepare_log_url_template",
-            s_collect_script_url="collect_script_url_template",
-            s_collect_log_url="collect_log_url_template",
-        )
         insert_fields = dict(
             fullname=fullname,
             s_name=self._get_kwarg_value("step_name", **kwargs),
             previous_step_id=previous_step_id,
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
-            s_data_query=self._get_config_var("s_data_query", "", **kwargs),
-            s_coll_source=self._get_config_var("s_coll_source", "", **kwargs),
-            s_status=StatusEnum.waiting,
+            data_query=self._get_config_var("data_query", "", **kwargs),
+            coll_source=self._get_config_var("coll_source", "", **kwargs),
+            status=StatusEnum.waiting,
         )
-        extra_fields = self._resolve_templated_strings(template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -218,43 +212,27 @@ class SQLAlchemyHandler(Handler):  # noqa
         """Group specific version of get_insert_fields()"""
         fullname = kwargs.get("fullname")
         self._check_unused(LevelEnum.group, dbi, parent_db_id, fullname)
-        template_names = dict(
-            g_coll_in="coll_in_template",
-            g_coll_out="coll_out_template",
-            g_prepare_script_url="prepare_script_url_template",
-            g_prepare_log_url="prepare_log_url_template",
-            g_collect_script_url="collect_script_url_template",
-            g_collect_log_url="collect_log_url_template",
-        )
         insert_fields = dict(
             fullname=fullname,
             g_name=self._get_kwarg_value("group_name", **kwargs),
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
-            g_data_query=self._get_config_var("g_data_query", "", **kwargs),
-            g_coll_source=self._get_config_var("g_coll_source", "", **kwargs),
-            g_status=StatusEnum.waiting,
+            data_query=self._get_config_var("data_query", "", **kwargs),
+            coll_source=self._get_config_var("coll_source", "", **kwargs),
+            status=StatusEnum.waiting,
         )
-        extra_fields = self._resolve_templated_strings(template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
     def _get_insert_workflow_fields(self, dbi: DbInterface, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
         """Workflow specific version of get_insert_fields()"""
         fullname = kwargs.get("fullname")
-        w_run_log_url = os.path.join(
+        run_log_url = os.path.join(
             self._get_config_var("prod_base_url", "archive", **kwargs), fullname, "workflow_log.yaml",
         )
         self._check_unused(LevelEnum.workflow, dbi, parent_db_id, fullname)
-        template_names = dict(
-            w_coll_in="coll_in_template",
-            w_coll_out="coll_out_template",
-            w_prepare_script_url="prepare_script_url_template",
-            w_prepare_log_url="prepare_log_url_template",
-            w_collect_script_url="collect_script_url_template",
-            w_collect_log_url="collect_log_url_template",
-        )
         insert_fields = dict(
             fullname=fullname,
             w_idx=self._get_kwarg_value("workflow_idx", **kwargs),
@@ -262,13 +240,13 @@ class SQLAlchemyHandler(Handler):  # noqa
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
             g_id=parent_db_id.g_id,
-            w_run_script_url=self._get_config_var("command_tmpl", "", **kwargs),
-            w_run_log_url=w_run_log_url,
-            w_coll_source=self._get_config_var("w_coll_source", "", **kwargs),
-            w_status=StatusEnum.waiting,
+            run_script_url=self._get_config_var("command_tmpl", "", **kwargs),
+            run_log_url=run_log_url,
+            coll_source=self._get_config_var("coll_source", "", **kwargs),
+            status=StatusEnum.waiting,
         )
-        extra_fields = dict(w_data_query=self._get_data_query(dbi, insert_fields, **kwargs))
-        extra_fields.update(self._resolve_templated_strings(template_names, insert_fields, **kwargs))
+        extra_fields = dict(data_query=self._get_data_query(dbi, insert_fields, **kwargs))
+        extra_fields.update(self._resolve_templated_strings(self.template_names, insert_fields, **kwargs))
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -281,14 +259,14 @@ class SQLAlchemyHandler(Handler):  # noqa
         """Campaign specific version of post_insert_hook()"""
         kwcopy = kwargs.copy()
         previous_step_id = None
-        s_coll_source = insert_fields.get("c_coll_in")
+        s_coll_source = insert_fields.get("coll_in")
         parent_db_id = dbi.get_db_id(LevelEnum.campaign, **kwcopy)
         for step_name in self.step_dict.keys():
             kwcopy.update(step_name=step_name)
             kwcopy.update(previous_step_id=previous_step_id)
             kwcopy.update(s_coll_source=s_coll_source)
             step_insert = dbi.insert(LevelEnum.step, parent_db_id, self, recurse, **kwcopy)
-            s_coll_source = step_insert.get("s_coll_out")
+            s_coll_source = step_insert.get("coll_out")
             previous_step_id = dbi.get_row_id(LevelEnum.step, **kwcopy)
 
     def _post_insert_group(
@@ -296,8 +274,8 @@ class SQLAlchemyHandler(Handler):  # noqa
     ) -> None:
         """Group specific version of post_insert_hook()"""
         kwcopy = kwargs.copy()
-        kwcopy["workflow_idx"] = kwcopy.get("n_workflows", 0)
-        g_coll_in = insert_fields.get("g_coll_in")
+        kwcopy["workflow_idx"] = kwcopy.get("n_child", 0)
+        g_coll_in = insert_fields.get("coll_in")
         kwcopy.update(w_coll_source=g_coll_in)
         parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
         dbi.insert(LevelEnum.workflow, parent_db_id, self, recurse, **kwcopy)
@@ -305,13 +283,13 @@ class SQLAlchemyHandler(Handler):  # noqa
             dbi.prepare(LevelEnum.workflow, parent_db_id, recurse)
 
     def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        w_run_script_url = data["w_run_script_url"]
+        run_script_url = data["run_script_url"]
         workflow_tmpl_url = data["workflow_tmpl_url"]
-        submit_command = f"{w_run_script_url} {workflow_tmpl_url}"
+        submit_command = f"{run_script_url} {workflow_tmpl_url}"
         # workflow_start = datetime.now()
         print(f"Submitting workflow {str(db_id)} with {submit_command}")
         update_fields = dict(
-            workflow_subm_url=workflow_tmpl_url, w_run_script_url=w_run_script_url, status=StatusEnum.running,
+            workflow_subm_url=workflow_tmpl_url, run_script_url=run_script_url, status=StatusEnum.running,
         )
         dbi.update(LevelEnum.workflow, db_id, **update_fields)
 
@@ -324,20 +302,22 @@ class SQLAlchemyHandler(Handler):  # noqa
             raise KeyError(f"No Grouper object associated to step {step_name}") from msg
         return grouper(self.config, dbi, parent_data_id, data, **kwargs)
 
-    def _make_groups(self, dbi: DbInterface, db_id: DbId, data, recurse: bool = True) -> None:
+    def _make_groups(self, dbi: DbInterface, db_id: DbId, data, recurse: bool = True) -> list[DbId]:
         """Internal function called to insert groups into a given step"""
         tokens = data["fullname"].split("/")
         insert_fields = dict(
             production_name=tokens[0],
             campaign_name=tokens[1],
             step_name=tokens[2],
-            g_coll_source=data["s_coll_in"],
+            g_coll_source=data["coll_in"],
         )
+        db_id_list = []
         for group_kwargs in self._group_iterator(dbi, db_id, data, **insert_fields):
             insert_fields.update(**group_kwargs)
             dbi.insert(LevelEnum.group, db_id, self, recurse, **insert_fields)
         if recurse:
-            dbi.prepare(LevelEnum.group, db_id, recurse)
+            db_id_list += dbi.prepare(LevelEnum.group, db_id, recurse)
+        return db_id_list
 
     def _copy_workflow_template(self, data, **kwargs) -> str:
         """Internal function to write the bps.yaml file for a given workflow"""
@@ -350,10 +330,10 @@ class SQLAlchemyHandler(Handler):  # noqa
 
         step_name = data["fullname"].split("/")[2]
         format_vars = dict(
-            w_coll_in=data["w_coll_in"],
-            w_coll_out=data["w_coll_out"],
+            w_coll_in=data["coll_in"],
+            w_coll_out=data["coll_out"],
             butler_config=self.config["bulter_config"],
-            data_query=data["w_data_query"],
+            data_query=data["data_query"],
             pipeline_yaml=self.config["pipeline_yaml"][step_name],
             sw_image=self.config["sw_image"],
         )

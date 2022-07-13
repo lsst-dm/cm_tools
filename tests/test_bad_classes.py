@@ -90,6 +90,9 @@ def test_bad_db_interface():
     with pytest.raises(NotImplementedError):
         bad_db.fake_run(LevelEnum.production, null_db_id)
 
+    with pytest.raises(NotImplementedError):
+        bad_db.daemon(null_db_id)
+
 
 def test_bad_grouper():
 

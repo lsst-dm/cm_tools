@@ -53,6 +53,7 @@ __all__ = [
     "cm_accept",
     "cm_reject",
     "cm_fake_run",
+    "cm_daemon",
 ]
 
 
@@ -228,13 +229,13 @@ def cm_check(**kwargs):
 @db_option()
 @echo_option()
 @recurse_option()
-@max_running_option()
 def cm_accept(**kwargs):
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.accept(the_level, the_db_id)
+    recurse_value = all_args.pop("recurse")
+    iface.accept(the_level, the_db_id, recurse_value)
 
 
 @click.command("reject")
@@ -246,8 +247,6 @@ def cm_accept(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
-@max_running_option()
 def cm_reject(**kwargs):
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
@@ -273,3 +272,17 @@ def cm_fake_run(**kwargs):
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     iface.fake_run(the_db_id, StatusEnum.completed)
+
+
+@click.command("daemon")
+@production_option()
+@campaign_option()
+@db_option()
+@echo_option()
+@max_running_option()
+def cm_daemon(**kwargs):
+    all_args = kwargs.copy()
+    max_running = all_args.pop("max_running")
+    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    the_db_id = iface.get_db_id(LevelEnum.campaign, **all_args)
+    iface.daemon(the_db_id, max_running)

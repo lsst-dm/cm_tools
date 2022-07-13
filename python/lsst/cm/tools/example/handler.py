@@ -28,7 +28,6 @@ from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_handler import SQLAlchemyHandler
-from lsst.cm.tools.db.tables import get_prefix
 
 
 class ExampleStep1Grouper(Grouper):
@@ -77,13 +76,12 @@ class ExampleHandler(SQLAlchemyHandler):
     )
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
-        prefix = get_prefix(level)
         butler_repo = self.config["butler_repo"]
-        coll_in = data[f"{prefix}_coll_in"]
-        coll_source = data[f"{prefix}_coll_source"]
-        data_query = data[f"{prefix}_data_query"]
-        prepare_script_url = data[f"{prefix}_prepare_script_url"]
-        prepare_log_url = data[f"{prefix}_prepare_log_url"]
+        coll_in = data["coll_in"]
+        coll_source = data["coll_source"]
+        data_query = data["data_query"]
+        prepare_script_url = data["prepare_script_url"]
+        prepare_log_url = data["prepare_log_url"]
         with open(prepare_script_url, "wt", encoding="utf-8") as fout:
             fout.write(
                 f'butler associate {butler_repo} {coll_in} --collections {coll_source} --where "{data_query}"'
@@ -92,10 +90,10 @@ class ExampleHandler(SQLAlchemyHandler):
             fout.write("status: completed\n")
 
     def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
-        w_run_log_url = data["w_run_log_url"]
-        if not os.path.exists(w_run_log_url):
-            return dict(status=data["w_status"])
-        with open(w_run_log_url, "rt", encoding="utf-8") as fin:
+        run_log_url = data["run_log_url"]
+        if not os.path.exists(run_log_url):
+            return dict(status=data["status"])
+        with open(run_log_url, "rt", encoding="utf-8") as fin:
             update_fields = yaml.safe_load(fin)
         update_fields["status"] = StatusEnum[update_fields["status"]]
         return update_fields
@@ -103,16 +101,15 @@ class ExampleHandler(SQLAlchemyHandler):
     def fake_run_hook(
         self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
-        w_run_log_url = data["w_run_log_url"]
-        with open(w_run_log_url, "wt", encoding="utf-8") as fout:
+        run_log_url = data["run_log_url"]
+        with open(run_log_url, "wt", encoding="utf-8") as fout:
             fout.write(f"status: {status.name}\n")
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
     ) -> StatusEnum:
-        prefix = get_prefix(level)
-        collect_script_url = data[f"{prefix}_collect_script_url"]
-        collect_log_url = data[f"{prefix}_collect_log_url"]
+        collect_script_url = data["collect_script_url"]
+        collect_log_url = data["collect_log_url"]
         with open(collect_script_url, "wt", encoding="utf-8") as fout:
             fout.write("butler chain stuff")
         with open(collect_log_url, "wt", encoding="utf-8") as fout:
