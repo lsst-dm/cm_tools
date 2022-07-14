@@ -5,15 +5,6 @@ includeConfigs:
 
 project: example
 campaign: example/test
-pipelineYaml: {pipeline_yaml}
-
-payload:
-  payloadName: example/test
-  output: "{w_coll_out}"
-  butlerConfig: {butler_config}
-  inCollection: "{w_coll_in}"
-  dataQuery: "{data_query}"
-  sw_image: "{sw_image}
 
 saveClusteredQgraph: True
 saveGenericWorkflow: True

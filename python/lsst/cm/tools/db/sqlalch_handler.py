@@ -324,24 +324,36 @@ class SQLAlchemyHandler(Handler):  # noqa
     def _copy_workflow_template(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> str:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
-        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
-            lines = fin.readlines()
+        butler_repo = dbi.get_repo(db_id)
         prod_base_url = dbi.get_prod_base(db_id)
         outpath = os.path.join(prod_base_url, data["fullname"], "bps.yaml")
+        tokens = data["fullname"].split("/")
+        production_name = tokens[0]
+        campaign_name = tokens[1]
+        step_name = tokens[2]
+        import yaml
+        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
+            workflow_config = yaml.safe_load(fin)
 
-        step_name = data["fullname"].split("/")[2]
-        format_vars = dict(
-            w_coll_in=data["coll_in"],
-            w_coll_out=data["coll_out"],
-            butler_config=dbi.get_repo(db_id),
-            data_query=data["data_query"],
-            pipeline_yaml=self.config["pipeline_yaml"][step_name],
-            sw_image=self.config["sw_image"],
+        workflow_config['project'] = production_name
+        workflow_config['campaign'] = f'{production_name}/{campaign_name}'
+
+        workflow_config['pipelineYaml'] = self.config["pipeline_yaml"][step_name]
+        payload = dict(
+            payloadName=f'{production_name}/{campaign_name}',
+            output=data["coll_out"],
+            butlerConfig=butler_repo,
+            inCollection=data["coll_in"],
         )
-
+        sw_image = kwargs.get('sw_image')
+        if sw_image:
+            payload['sw_image'] = sw_image
+        dataQuery = kwargs.get('dataQuery')
+        if dataQuery:
+            payload['dataQuery'] = dataQuery
+        workflow_config['payload'] = payload
         with open(outpath, "wt", encoding="utf-8") as fout:
-            for line_ in lines:
-                fout.write(line_.format(**format_vars))
+            yaml.dump(workflow_config, fout)
         return outpath
 
     def _check_prerequistes(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> bool:
