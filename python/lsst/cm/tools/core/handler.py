@@ -24,12 +24,13 @@ from __future__ import annotations  # Needed for class member returning class
 from typing import TYPE_CHECKING, Any, Iterable
 
 import yaml
+from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbId, DbInterface
+    from lsst.cm.tools.core.db_interface import DbInterface
 
 
 class Handler:

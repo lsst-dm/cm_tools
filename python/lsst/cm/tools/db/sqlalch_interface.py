@@ -26,11 +26,11 @@ from time import sleep
 from typing import Any, Optional, TextIO
 
 import numpy as np
-from lsst.cm.tools.core.db_interface import DbId, DbInterface
+from lsst.cm.tools.core.db_interface import DbInterface
+from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db import tables
-
 from sqlalchemy import and_, create_engine, func, select  # type: ignore
 
 

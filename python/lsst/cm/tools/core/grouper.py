@@ -23,8 +23,10 @@ from __future__ import annotations  # Needed for class member returning class
 
 from typing import TYPE_CHECKING, Any, Iterable
 
+from lsst.cm.tools.core.dbid import DbId
+
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbId, DbInterface
+    from lsst.cm.tools.core.db_interface import DbInterface
 
 
 class Grouper:

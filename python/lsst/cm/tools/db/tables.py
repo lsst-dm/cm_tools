@@ -19,12 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional, Iterable, TextIO
+from typing import Iterable, Optional, TextIO
 
+from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import select, Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table
-
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table, select
 
 production_meta = MetaData()
 production_table = Table(
@@ -404,7 +404,7 @@ def get_prod_base_coll():
     return campaign_table.c.prod_base_url
 
 
-def get_select(level: LevelEnum, db_id):
+def get_select(level: LevelEnum, db_id: DbId):
     """Returns the selection for a given db_id at a given level"""
     table = get_table(level)
     id_tuple = db_id.to_tuple()[0 : level.value + 1]
@@ -421,7 +421,7 @@ def get_select(level: LevelEnum, db_id):
     return sel
 
 
-def get_join(level: LevelEnum, db_id, join_levels: list[LevelEnum]) -> Iterable:
+def get_join(level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum]) -> Iterable:
     """Returns the joint selection for a given db_id at a given level"""
     table = get_table(level)
     join_tables = [get_table(join_level_) for join_level_ in join_levels]
@@ -450,7 +450,7 @@ def insert_values(conn, level: LevelEnum, **kwargs):
     _check_result(ins_result)
 
 
-def update_values(conn, level: LevelEnum, db_id, **kwargs):
+def update_values(conn, level: LevelEnum, db_id: DbId, **kwargs):
     """Updates a given row with values given in kwargs"""
     table = get_table(level)
     prim_key = get_primary_key(level)
