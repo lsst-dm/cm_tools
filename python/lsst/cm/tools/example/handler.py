@@ -38,7 +38,7 @@ class ExampleStep1Grouper(Grouper):
         )
 
         for i in range(10):
-            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
             yield out_dict
 
 
@@ -51,7 +51,7 @@ class ExampleStep2Grouper(Grouper):
         )
 
         for i in range(20):
-            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
             yield out_dict
 
 
@@ -64,7 +64,7 @@ class ExampleStep3Grouper(Grouper):
         )
 
         for i in range(20):
-            out_dict.update(group_name=f"group_{i}", g_data_query=f"i == {i}")
+            out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
             yield out_dict
 
 
@@ -75,7 +75,7 @@ class ExampleHandler(SQLAlchemyHandler):
     )
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
-        butler_repo = self.config["butler_repo"]
+        butler_repo = dbi.get_repo(db_id)
         prepare_script_url = data["prepare_script_url"]
         with open(prepare_script_url, "wt", encoding="utf-8") as fout:
             fout.write(make_butler_associate_command(butler_repo, data))
@@ -93,7 +93,7 @@ class ExampleHandler(SQLAlchemyHandler):
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
     ) -> StatusEnum:
-        butler_repo = self.config["butler_repo"]
+        butler_repo = dbi.get_repo(db_id)
         collect_script_url = data["collect_script_url"]
         with open(collect_script_url, "wt", encoding="utf-8") as fout:
             fout.write(make_butler_chain_command(butler_repo, data, itr))

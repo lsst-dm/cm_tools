@@ -1,4 +1,5 @@
 \rm cm.db
+\rm -rf archive
 
 p_name="example"
 c_name="test"
@@ -9,8 +10,9 @@ command="${CM_TOOLS_DIR}/bin.src/cm"
 ${command} create
 ${command} insert --level production --production_name ${p_name} --handler ${handler} --config_yaml ${config}
 ${command} insert --recurse --level campaign --production_name ${p_name} --campaign_name ${c_name} --handler ${handler} --config_yaml ${config}
+${command} prepare --recurse --level campaign --production_name ${p_name} --campaign_name ${c_name}
 
-${command} prepare --recurse --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step1
+${command} prepare --recurse --level step --production_name ${p_name} --campaign_name ${c_name}
 ${command} queue --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step1
 ${command} launch --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step1
 ${command} fake_run --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step1
@@ -20,7 +22,7 @@ ${command} prepare --recurse --level step --production_name ${p_name} --campaign
 ${command} queue --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step2
 ${command} launch --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step2
 ${command} fake_run --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step2
-${command} accept --recurse -level step --production_name ${p_name} --campaign_name ${c_name} --step_name step2
+${command} accept --recurse --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step2
 
 ${command} prepare --recurse --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step3
 ${command} queue --level step --production_name ${p_name} --campaign_name ${c_name} --step_name step3

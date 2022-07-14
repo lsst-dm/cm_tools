@@ -125,6 +125,36 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def get_repo(self, db_id: DbId) -> str:
+        """Return the data repository for a given campaign
+
+        Parameters
+        ----------
+        db_id : DbId
+            The database ID used to identify the campaign
+
+        Returns
+        -------
+        repo : str
+            Url for the data repository
+        """
+        raise NotImplementedError()
+
+    def get_prod_base(self, db_id: DbId) -> str:
+        """Return the URL for the production area for a given campaign
+
+        Parameters
+        ----------
+        db_id : DbId
+            The database ID used to identify the campaign
+
+        Returns
+        -------
+        repo : str
+            Url for the root of the production area
+        """
+        raise NotImplementedError()
+
     def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
         """Return an id that identifies one or more database entries
 

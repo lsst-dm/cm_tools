@@ -23,6 +23,7 @@ import sys
 
 import click  # type: ignore
 from lsst.cm.tools.cli.opt.options import (
+    butler_option,
     campaign_option,
     config_option,
     db_option,
@@ -31,6 +32,7 @@ from lsst.cm.tools.cli.opt.options import (
     handler_option,
     level_option,
     max_running_option,
+    prod_base_option,
     production_option,
     recurse_option,
     step_option,
@@ -70,6 +72,8 @@ def cm_create(**kwargs):
 @campaign_option()
 @step_option()
 @group_option()
+@butler_option()
+@prod_base_option()
 @workflow_option()
 @handler_option(required=True)
 @config_option()

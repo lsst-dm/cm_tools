@@ -54,7 +54,12 @@ def test_full_example():
         the_handler,
         recurse=True,
         production_name='example',
-        campaign_name='test')
+        campaign_name='test',
+        butler_repo='repo',
+        prod_base_url='archive_test')
+
+    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
+    iface.prepare(LevelEnum.campaign, db_c_id, recurse=True)
 
     db_s3_id = iface.get_db_id(
         LevelEnum.step,
@@ -91,7 +96,6 @@ def test_full_example():
         result = iface.fake_run(db_s_id)
         assert not result
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name='example', campaign_name='test')
     iface.accept(LevelEnum.campaign, db_c_id)
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
@@ -183,7 +187,9 @@ def test_failed_workflows():
         the_handler,
         recurse=True,
         production_name='example',
-        campaign_name='test')
+        campaign_name='test',
+        butler_repo='repo',
+        prod_base_url='archive_test')
 
     for step_name in ['step1']:
         db_s_id = iface.get_db_id(

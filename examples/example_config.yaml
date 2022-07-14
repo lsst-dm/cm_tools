@@ -1,7 +1,4 @@
-prod_base_url: 'archive_test'
-butler_repo: 'repo'
 workflow_template_yaml: "${CM_TOOLS_DIR}/examples/example_template.yaml"
-bulter_config: 'butler_config.yaml'
 sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
 coll_source: '/prod/raw/all'
 command_tmpl: 'bps'

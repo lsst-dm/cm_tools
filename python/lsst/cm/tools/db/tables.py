@@ -23,14 +23,14 @@ from typing import Optional
 
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, DateTime, Enum, Float, MetaData, String, Table
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table
 
 production_meta = MetaData()
 production_table = Table(
     "production",
     production_meta,
     Column("p_id", Integer, primary_key=True),  # Unique production ID
-    Column("p_name", String),  # Production Name
+    Column("p_name", String, unique=True),  # Production Name
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
     Column("n_child", Integer, default=0),  # Number of associated children
@@ -41,12 +41,13 @@ campaign_table = Table(
     "campaign",
     campaign_meta,
     Column("c_id", Integer, primary_key=True),  # Unique campaign ID
-    Column("fullname", String),  # Full name of this campaign
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("fullname", String, unique=True),  # Full name of this campaign
     Column("c_name", String),  # Campaign Name
-    Column("p_id", Integer),  # Parent production ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
     Column("butler_repo", String),  # URL for butler repository
+    Column("prod_base_url", String),  # URL for root of the production area
     Column("n_child", Integer, default=0),  # Number of associated children
     Column("prepare_script_url", String),  # Script run to prepare data
     Column("prepare_log_url", String),  # Url for log from prepare script
@@ -64,11 +65,11 @@ step_table = Table(
     "step",
     step_meta,
     Column("s_id", Integer, primary_key=True),  # Unique Step ID
-    Column("fullname", String),  # Full name of this step
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("fullname", String, unique=True),  # Full name of this step
     Column("s_name", String),  # Step Name
     Column("previous_step_id", Integer),  # Unique ID of pervious step
-    Column("p_id", Integer),  # Parent production ID
-    Column("c_id", Integer),  # Parent campaign ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
     Column("n_child", Integer, default=0),  # Number of associated children
@@ -88,11 +89,11 @@ group_table = Table(
     "group",
     group_meta,
     Column("g_id", Integer, primary_key=True),  # Unique Group ID
-    Column("fullname", String),  # Full name of this group
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
+    Column("fullname", String, unique=True),  # Full name of this group
     Column("g_name", String),  # Group Name
-    Column("p_id", Integer),  # Parent production ID
-    Column("c_id", Integer),  # Parent campaign ID
-    Column("s_id", Integer),  # Parent step ID
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
     Column("n_workflows", Integer, default=0),  # Number of associated workflows
@@ -113,12 +114,12 @@ workflow_table = Table(
     "workflow",
     workflow_meta,
     Column("w_id", Integer, primary_key=True),  # Unique Workflow ID
-    Column("fullname", String),  # Full name of this workflow
-    Column("w_idx", Integer),  # Index of this workflow within group
-    Column("p_id", Integer),  # Parent production ID
-    Column("c_id", Integer),  # Parent campaign ID
-    Column("s_id", Integer),  # Parent step ID
-    Column("g_id", Integer),  # Parent group ID
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
+    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
+    Column("w_idx", Integer),  # Index for this workflow
+    Column("fullname", String, unique=True),  # Full name of this workflow
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
     Column("n_tasks_all", Integer, default=0),  # Number of associated tasks
@@ -291,3 +292,13 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
     }
     field_list += extra_fields[level]
     return field_list
+
+
+def get_repo_coll():
+    """Return the column that has the butler repo"""
+    return campaign_table.c.butler_repo
+
+
+def get_prod_base_coll():
+    """Return the column that has the production base area"""
+    return campaign_table.c.prod_base_url

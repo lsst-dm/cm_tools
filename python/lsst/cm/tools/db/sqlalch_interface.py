@@ -36,6 +36,8 @@ from lsst.cm.tools.db.tables import (
     get_name_field,
     get_parent_field,
     get_primary_key,
+    get_prod_base_coll,
+    get_repo_coll,
     get_status_key,
     get_table,
 )
@@ -168,10 +170,10 @@ class SQLAlchemyInterface(DbInterface):
         sel = table.select().where(prim_key == db_id[level])
         return self._return_single_row(sel)
 
-    def get_iterable(self, level: LevelEnum, db_id: DbId) -> Iterable:
+    def get_iterable(self, level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum] = []) -> Iterable:
         if level is None:
             return None
-        sel = self._get_select(level, db_id)
+        sel = self._get_join(level, db_id, join_levels)
         return self._return_iterable(sel)
 
     def insert(
@@ -290,7 +292,6 @@ class SQLAlchemyInterface(DbInterface):
             handler.fake_run_hook(self, one_id, row_, status)
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
-
         i_iter = n_iter
         while i_iter != 0:
             if os.path.exists("daemon.stop"):
@@ -386,6 +387,25 @@ class SQLAlchemyInterface(DbInterface):
             sel = table.select().where(parent_key == row_id)
         return sel
 
+    def _get_join(self, level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum]) -> Iterable:
+        table = get_table(level)
+        join_tables = [get_table(join_level_) for join_level_ in join_levels]
+        join_keys = [get_primary_key(join_level_) for join_level_ in join_levels]
+        id_tuple = db_id.to_tuple()[0 : level.value + 1]
+        parent_key = None
+        row_id = None
+        for i, row_id_ in enumerate(id_tuple):
+            if row_id_ is not None:
+                parent_key = get_matching_key(level, LevelEnum(i))
+                row_id = row_id_
+        if parent_key is None:
+            sel = select(table, *join_tables)
+        else:
+            sel = select(table, *join_tables).where(parent_key == row_id)
+        for join_table, join_key, join_level in zip(join_tables, join_keys, join_levels):
+            sel = sel.join(join_table, join_key == id_tuple[join_level.value])
+        return sel
+
     def _insert_values(self, level: LevelEnum, **kwargs):
         """Inserts a new row at a given level with values given in kwargs"""
         table = get_table(level)
@@ -403,6 +423,18 @@ class SQLAlchemyInterface(DbInterface):
 
     def _current_id(self, level: LevelEnum) -> int:
         return self.count(level, None)
+
+    def get_repo(self, db_id: DbId) -> str:
+        repo_col = get_repo_coll()
+        prim_key = get_primary_key(LevelEnum.campaign)
+        sel = select(repo_col).where(prim_key == db_id[LevelEnum.campaign])
+        return self._return_single_row(sel)[0]
+
+    def get_prod_base(self, db_id: DbId) -> str:
+        prod_base_coll = get_prod_base_coll()
+        prim_key = get_primary_key(LevelEnum.campaign)
+        sel = select(prod_base_coll).where(prim_key == db_id[LevelEnum.campaign])
+        return self._return_single_row(sel)[0]
 
     @staticmethod
     def _extract_child_status(itr: Iterable, status_name: str) -> np.ndarray:
