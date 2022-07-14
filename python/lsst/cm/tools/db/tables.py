@@ -19,11 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional
+from typing import Optional, Iterable, TextIO
 
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table
+from sqlalchemy import select, Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table
+
 
 production_meta = MetaData()
 production_table = Table(
@@ -146,6 +147,37 @@ workflow_table = Table(
     Column("status", Enum(StatusEnum)),  # Status flag
 )
 
+dependency_meta = MetaData()
+dependency_table = Table(
+    "dependency",
+    dependency_meta,
+    Column("d_id", Integer, primary_key=True),  # Unique dependency ID
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
+    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
+    Column("w_id", Integer, ForeignKey(workflow_table.c.w_id)),
+    Column("depend_p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("depend_c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("depend_s_id", Integer, ForeignKey(step_table.c.s_id)),
+    Column("depend_g_id", Integer, ForeignKey(group_table.c.g_id)),
+    Column("depend_w_id", Integer, ForeignKey(workflow_table.c.w_id)),
+)
+
+script_meta = MetaData()
+script_table = Table(
+    "script",
+    script_meta,
+    Column("x_id", Integer, primary_key=True),  # Unique script ID
+    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
+    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
+    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
+    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
+    Column("w_id", Integer, ForeignKey(workflow_table.c.w_id)),
+    Column("script_url", String),  # Script run to prepare data
+    Column("log_url", String),  # Url for log from prepare script
+)
+
 
 def create_db(engine) -> None:
     """Creates a database as specific by `engine.url`
@@ -155,7 +187,15 @@ def create_db(engine) -> None:
     from sqlalchemy_utils import create_database  # pylint: disable=import-outside-toplevel
 
     create_database(engine.url)
-    for meta in [production_meta, campaign_meta, step_meta, group_meta, workflow_meta]:
+    for meta in [
+        production_meta,
+        campaign_meta,
+        step_meta,
+        group_meta,
+        workflow_meta,
+        dependency_meta,
+        script_meta
+    ]:
         meta.create_all(engine)
 
 
@@ -294,6 +334,66 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
     return field_list
 
 
+def _check_result(result) -> None:
+    """Placeholder function to check on SQL query results"""
+    assert result
+
+
+def return_first_column(conn, sel) -> Optional[int]:
+    """Returns the first column in the first row matching a selection"""
+    sel_result = conn.execute(sel)
+    _check_result(sel_result)
+    try:
+        return sel_result.all()[0][0]
+    except IndexError:
+        return None
+
+
+def return_single_row(conn, sel):
+    """Returns the first row matching a selection"""
+    sel_result = conn.execute(sel)
+    _check_result(sel_result)
+    return sel_result.all()[0]
+
+
+def return_data(conn, sel):
+    """Returns all the data matching a selection"""
+    sel_result = conn.execute(sel)
+    _check_result(sel_result)
+    return sel_result.all()
+
+
+def return_iterable(conn, sel) -> Iterable:
+    """Returns an iterable matching a selection"""
+    sel_result = conn.execute(sel)
+    _check_result(sel_result)
+    return sel_result
+
+
+def return_count(conn, count) -> int:
+    """Returns the number of rows mathcing a selection"""
+    count_result = conn.execute(count)
+    _check_result(count_result)
+    return count_result.scalar()
+
+
+def return_select_count(conn, sel) -> int:
+    """Counts an iterable matching a selection"""
+    itr = return_iterable(conn, sel)
+    n_sel = 0
+    for _ in itr:
+        n_sel += 1
+    return n_sel
+
+
+def print_select(conn, stream: TextIO, sel) -> None:
+    """Prints all the rows matching a selection"""
+    sel_result = conn.execute(sel)
+    _check_result(sel_result)
+    for row in sel_result:
+        stream.write(f"{str(row)}\n")
+
+
 def get_repo_coll():
     """Return the column that has the butler repo"""
     return campaign_table.c.butler_repo
@@ -302,3 +402,58 @@ def get_repo_coll():
 def get_prod_base_coll():
     """Return the column that has the production base area"""
     return campaign_table.c.prod_base_url
+
+
+def get_select(level: LevelEnum, db_id):
+    """Returns the selection for a given db_id at a given level"""
+    table = get_table(level)
+    id_tuple = db_id.to_tuple()[0 : level.value + 1]
+    parent_key = None
+    row_id = None
+    for i, row_id_ in enumerate(id_tuple):
+        if row_id_ is not None:
+            parent_key = get_matching_key(level, LevelEnum(i))
+            row_id = row_id_
+    if parent_key is None:
+        sel = table.select()
+    else:
+        sel = table.select().where(parent_key == row_id)
+    return sel
+
+
+def get_join(level: LevelEnum, db_id, join_levels: list[LevelEnum]) -> Iterable:
+    """Returns the joint selection for a given db_id at a given level"""
+    table = get_table(level)
+    join_tables = [get_table(join_level_) for join_level_ in join_levels]
+    join_keys = [get_primary_key(join_level_) for join_level_ in join_levels]
+    id_tuple = db_id.to_tuple()[0 : level.value + 1]
+    parent_key = None
+    row_id = None
+    for i, row_id_ in enumerate(id_tuple):
+        if row_id_ is not None:
+            parent_key = get_matching_key(level, LevelEnum(i))
+            row_id = row_id_
+    if parent_key is None:
+        sel = select(table, *join_tables)
+    else:
+        sel = select(table, *join_tables).where(parent_key == row_id)
+    for join_table, join_key, join_level in zip(join_tables, join_keys, join_levels):
+        sel = sel.join(join_table, join_key == id_tuple[join_level.value])
+    return sel
+
+
+def insert_values(conn, level: LevelEnum, **kwargs):
+    """Inserts a new row at a given level with values given in kwargs"""
+    table = get_table(level)
+    ins = table.insert().values(**kwargs)
+    ins_result = conn.execute(ins)
+    _check_result(ins_result)
+
+
+def update_values(conn, level: LevelEnum, db_id, **kwargs):
+    """Updates a given row with values given in kwargs"""
+    table = get_table(level)
+    prim_key = get_primary_key(level)
+    stmt = table.update().where(prim_key == db_id[level]).values(**kwargs)
+    upd_result = conn.execute(stmt)
+    _check_result(upd_result)

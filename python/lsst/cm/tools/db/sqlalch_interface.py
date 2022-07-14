@@ -29,18 +29,8 @@ import numpy as np
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db.tables import (
-    create_db,
-    get_matching_key,
-    get_n_child_field,
-    get_name_field,
-    get_parent_field,
-    get_primary_key,
-    get_prod_base_coll,
-    get_repo_coll,
-    get_status_key,
-    get_table,
-)
+from lsst.cm.tools.db import tables
+
 from sqlalchemy import and_, create_engine, func, select  # type: ignore
 
 
@@ -70,7 +60,7 @@ class SQLAlchemyInterface(DbInterface):
         self._engine = create_engine(db, **kwcopy)
         if not database_exists(self._engine.url):
             if create:
-                create_db(self._engine)
+                tables.create_db(self._engine)
         if not database_exists(self._engine.url):
             raise RuntimeError(f"Failed to access or create database {db}")
         self._conn = self._engine.connect()
@@ -95,32 +85,32 @@ class SQLAlchemyInterface(DbInterface):
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_status(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
-        table = get_table(level)
-        prim_key = get_primary_key(level)
-        status_key = get_status_key(level)
+        table = tables.get_table(level)
+        prim_key = tables.get_primary_key(level)
+        status_key = tables.get_status_key(level)
         sel = table.select().where(prim_key == db_id[level])
-        return self._return_single_row(sel)[status_key.name]
+        return tables.return_single_row(self._conn, sel)[status_key.name]
 
     def print_(self, stream, level: LevelEnum, db_id: DbId) -> None:
-        sel = self._get_select(level, db_id)
-        self._print_select(stream, sel)
+        sel = tables.get_select(level, db_id)
+        tables.print_select(self._conn, stream, sel)
 
     def print_table(self, stream: TextIO, level: LevelEnum) -> None:
-        table = get_table(level)
+        table = tables.get_table(level)
         sel = table.select()
-        self._print_select(stream, sel)
+        tables.print_select(self._conn, stream, sel)
 
-    def count(self, level: LevelEnum, db_id: Optional[DbId]):
-        count_key = get_parent_field(level)
+    def count(self, level: LevelEnum, db_id: Optional[DbId]) -> int:
+        count_key = tables.get_parent_field(level)
         if count_key is None:
-            count_key = get_primary_key(level)
+            count_key = tables.get_primary_key(level)
             counter = func.count(count_key)
         else:
             if db_id is not None:
                 counter = func.count(count_key == db_id[level])
             else:
                 counter = func.count(count_key)
-        return self._return_count(counter)
+        return tables.return_count(self._conn, counter)
 
     def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
         data = self.get_data(level, db_id)
@@ -129,7 +119,7 @@ class SQLAlchemyInterface(DbInterface):
         assert handler is not None
         update_args = handler.get_update_fields_hook(level, self, data, itr, **kwargs)
         if update_args:
-            self._update_values(level, db_id, **update_args)
+            tables.update_values(self._conn, level, db_id, **update_args)
 
     def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
         if recurse:
@@ -137,7 +127,7 @@ class SQLAlchemyInterface(DbInterface):
             if child_level is not None:
                 self.check(child_level, db_id, recurse)
         itr = self.get_iterable(level, db_id)
-        status_key = get_status_key(level)
+        status_key = tables.get_status_key(level)
 
         for row_ in itr:
             one_id = DbId.create_from_row(row_)
@@ -165,38 +155,38 @@ class SQLAlchemyInterface(DbInterface):
             self.check(level, db_id, recurse, counter=counter - 1)
 
     def get_data(self, level: LevelEnum, db_id: DbId):
-        table = get_table(level)
-        prim_key = get_primary_key(level)
+        table = tables.get_table(level)
+        prim_key = tables.get_primary_key(level)
         sel = table.select().where(prim_key == db_id[level])
-        return self._return_single_row(sel)
+        return tables.return_single_row(self._conn, sel)
 
-    def get_iterable(self, level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum] = []) -> Iterable:
+    def get_iterable(self, level: LevelEnum, db_id: DbId) -> Iterable:
         if level is None:
             return None
-        sel = self._get_join(level, db_id, join_levels)
-        return self._return_iterable(sel)
+        sel = tables.get_select(level, db_id)
+        return tables.return_iterable(self._conn, sel)
 
     def insert(
         self, level: LevelEnum, parent_db_id: DbId, handler: Handler, recurse: bool = True, **kwargs,
     ) -> dict[str, Any]:
-        prim_key = get_primary_key(level)
+        prim_key = tables.get_primary_key(level)
         insert_fields = handler.get_insert_fields_hook(level, self, parent_db_id, **kwargs)
-        self._insert_values(level, **insert_fields)
+        tables.insert_values(self._conn, level, **insert_fields)
         insert_fields[prim_key.name] = self._current_id(level)
         parent_level = level.parent()
         if parent_level is not None:
-            n_siblings_fields = get_n_child_field(parent_level)
+            n_siblings_fields = tables.get_n_child_field(parent_level)
             n_siblings = self.count(level, parent_db_id)
             update_fields = {n_siblings_fields.name: n_siblings}
-            self._update_values(parent_level, parent_db_id, **update_fields)
+            tables.update_values(self._conn, parent_level, parent_db_id, **update_fields)
         if recurse:
             handler.post_insert_hook(level, self, insert_fields, recurse, **kwargs)
         return insert_fields
 
     def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> list[DbId]:
         itr = self.get_iterable(level, db_id)
-        prim_key = get_primary_key(level)
-        status_key = get_status_key(level)
+        prim_key = tables.get_primary_key(level)
+        status_key = tables.get_status_key(level)
         kwcopy = kwargs.copy()
         db_id_list = []
         for row_ in itr:
@@ -252,7 +242,7 @@ class SQLAlchemyInterface(DbInterface):
                 recurse_level = recurse_level.parent()
         self.check(level, db_id)
         itr = self.get_iterable(level, db_id)
-        status_key = get_status_key(level)
+        status_key = tables.get_status_key(level)
         for row_ in itr:
             status = row_[status_key.name]
             if status != StatusEnum.completed:
@@ -267,7 +257,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def reject(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         itr = self.get_iterable(level, db_id)
-        status_key = get_status_key(level)
+        status_key = tables.get_status_key(level)
         db_id_list = []
         for row_ in itr:
             status = row_[status_key.name]
@@ -282,7 +272,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def fake_run(self, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
         itr = self.get_iterable(LevelEnum.workflow, db_id)
-        status_key = get_status_key(LevelEnum.workflow)
+        status_key = tables.get_status_key(LevelEnum.workflow)
         for row_ in itr:
             old_status = row_[status_key.name]
             if old_status not in [StatusEnum.running]:
@@ -306,135 +296,39 @@ class SQLAlchemyInterface(DbInterface):
             i_iter -= 1
             sleep(sleep_time)
 
-    def _check_result(self, result) -> None:
-        """Placeholder function to check on SQL query results"""
-        assert result
-
-    def _return_id(self, sel) -> Optional[int]:
-        """Returns the first column in the first row matching a selection"""
-        sel_result = self._conn.execute(sel)
-        self._check_result(sel_result)
-        try:
-            return sel_result.all()[0][0]
-        except IndexError:
-            return None
-
-    def _return_single_row(self, sel):
-        """Returns the first row matching a selection"""
-        sel_result = self._conn.execute(sel)
-        self._check_result(sel_result)
-        return sel_result.all()[0]
-
-    def _return_iterable(self, sel) -> Iterable:
-        """Returns an iterable matching a selection"""
-        sel_result = self._conn.execute(sel)
-        self._check_result(sel_result)
-        return sel_result
-
-    def _return_select_count(self, sel) -> int:
-        """Returns an iterable matching a selection"""
-        itr = self._return_iterable(sel)
-        n_sel = 0
-        for _ in itr:
-            n_sel += 1
-        return n_sel
-
-    def _return_count(self, count) -> int:
-        """Returns the number of rows mathcing a selection"""
-        count_result = self._conn.execute(count)
-        self._check_result(count_result)
-        return count_result.scalar()
-
     def _count_workflows_at_status(self, status: StatusEnum) -> int:
-        prim_key = get_primary_key(LevelEnum.workflow)
-        status_key = get_status_key(LevelEnum.workflow)
+        prim_key = tables.get_primary_key(LevelEnum.workflow)
+        status_key = tables.get_status_key(LevelEnum.workflow)
         sel = select([prim_key]).where(status_key == status)
-        return self._return_select_count(sel)
-
-    def _print_select(self, stream: TextIO, sel):
-        """Prints all the rows matching a selection"""
-        sel_result = self._conn.execute(sel)
-        self._check_result(sel_result)
-        for row in sel_result:
-            stream.write(f"{str(row)}\n")
+        return tables.return_select_count(self._conn, sel)
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Any) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""
         if match_name is None:
             return None
-        prim_key = get_primary_key(level)
-        name_field = get_name_field(level)
-        parent_field = get_parent_field(level)
+        prim_key = tables.get_primary_key(level)
+        name_field = tables.get_name_field(level)
+        parent_field = tables.get_parent_field(level)
         if parent_field is None:
             sel = select([prim_key]).where(name_field == match_name)
         else:
             sel = select([prim_key]).where(and_(parent_field == parent_id, name_field == match_name))
-        return self._return_id(sel)
-
-    def _get_select(self, level: LevelEnum, db_id: DbId):
-        """Returns the selection for a given db_id at a given level"""
-        table = get_table(level)
-        id_tuple = db_id.to_tuple()[0 : level.value + 1]
-        parent_key = None
-        row_id = None
-        for i, row_id_ in enumerate(id_tuple):
-            if row_id_ is not None:
-                parent_key = get_matching_key(level, LevelEnum(i))
-                row_id = row_id_
-        if parent_key is None:
-            sel = table.select()
-        else:
-            sel = table.select().where(parent_key == row_id)
-        return sel
-
-    def _get_join(self, level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum]) -> Iterable:
-        table = get_table(level)
-        join_tables = [get_table(join_level_) for join_level_ in join_levels]
-        join_keys = [get_primary_key(join_level_) for join_level_ in join_levels]
-        id_tuple = db_id.to_tuple()[0 : level.value + 1]
-        parent_key = None
-        row_id = None
-        for i, row_id_ in enumerate(id_tuple):
-            if row_id_ is not None:
-                parent_key = get_matching_key(level, LevelEnum(i))
-                row_id = row_id_
-        if parent_key is None:
-            sel = select(table, *join_tables)
-        else:
-            sel = select(table, *join_tables).where(parent_key == row_id)
-        for join_table, join_key, join_level in zip(join_tables, join_keys, join_levels):
-            sel = sel.join(join_table, join_key == id_tuple[join_level.value])
-        return sel
-
-    def _insert_values(self, level: LevelEnum, **kwargs):
-        """Inserts a new row at a given level with values given in kwargs"""
-        table = get_table(level)
-        ins = table.insert().values(**kwargs)
-        ins_result = self._conn.execute(ins)
-        self._check_result(ins_result)
-
-    def _update_values(self, level: LevelEnum, db_id: DbId, **kwargs):
-        """Updates a given row with values given in kwargs"""
-        table = get_table(level)
-        prim_key = get_primary_key(level)
-        stmt = table.update().where(prim_key == db_id[level]).values(**kwargs)
-        upd_result = self._conn.execute(stmt)
-        self._check_result(upd_result)
+        return tables.return_first_column(self._conn, sel)
 
     def _current_id(self, level: LevelEnum) -> int:
         return self.count(level, None)
 
     def get_repo(self, db_id: DbId) -> str:
-        repo_col = get_repo_coll()
-        prim_key = get_primary_key(LevelEnum.campaign)
+        repo_col = tables.get_repo_coll()
+        prim_key = tables.get_primary_key(LevelEnum.campaign)
         sel = select(repo_col).where(prim_key == db_id[LevelEnum.campaign])
-        return self._return_single_row(sel)[0]
+        return tables.return_first_column(self._conn, sel)
 
     def get_prod_base(self, db_id: DbId) -> str:
-        prod_base_coll = get_prod_base_coll()
-        prim_key = get_primary_key(LevelEnum.campaign)
+        prod_base_coll = tables.get_prod_base_coll()
+        prim_key = tables.get_primary_key(LevelEnum.campaign)
         sel = select(prod_base_coll).where(prim_key == db_id[LevelEnum.campaign])
-        return self._return_single_row(sel)[0]
+        return tables.return_first_column(self._conn, sel)
 
     @staticmethod
     def _extract_child_status(itr: Iterable, status_name: str) -> np.ndarray:
