@@ -26,7 +26,7 @@ from typing import Any, Iterable
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db.tables import get_update_field_list
+from lsst.cm.tools.db import tables
 
 # import datetime
 
@@ -128,7 +128,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         self, level: LevelEnum, dbi: DbInterface, data, itr: Iterable, **kwargs
     ) -> dict[str, Any]:
         kwcopy = kwargs.copy()
-        field_list = get_update_field_list(level)
+        field_list = tables.get_update_field_list(level)
         status_fields = {
             LevelEnum.production: None,
             LevelEnum.campaign: "status",
