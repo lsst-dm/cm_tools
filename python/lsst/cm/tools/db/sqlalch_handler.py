@@ -53,10 +53,9 @@ class SQLAlchemyHandler(Handler):  # noqa
         prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
         collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
         collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
-        run_script_url_template="{prod_base_url}/{fullname}/run.sh",
+        run_script_url_template="bps",
         run_log_url_template="{prod_base_url}/{fullname}/run.log",
         run_config_url_template="{prod_base_url}/{fullname}/bps.yaml",
-        command_tmpl="bps",
     )
 
     coll_template_names = dict(coll_in="coll_in_template", coll_out="coll_out_template",)

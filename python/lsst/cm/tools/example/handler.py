@@ -84,6 +84,8 @@ class ExampleHandler(SQLAlchemyHandler):
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
         assert level.value >= LevelEnum.campaign.value
+        if level == LevelEnum.workflow:
+            return None
         butler_repo = dbi.get_repo(db_id)
         script_data = self._resolve_templated_strings(
             self.prepare_script_url_tempatle_names,
@@ -145,6 +147,8 @@ class ExampleHandler(SQLAlchemyHandler):
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
     ) -> dict[str, Any]:
         assert level.value >= LevelEnum.campaign.value
+        if level == LevelEnum.campaign:
+            return dict(status=StatusEnum.collecting, collect_script=None)
         butler_repo = dbi.get_repo(db_id)
         script_data = self._resolve_templated_strings(
             self.collect_script_url_template_names,

@@ -59,7 +59,6 @@ production_table = Table(
     Column("p_name", String, unique=True),  # Production Name
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("n_child", Integer, default=0),  # Number of associated children
 )
 
 campaign_meta = MetaData()
@@ -74,7 +73,6 @@ campaign_table = Table(
     Column("config_yaml", String),  # Configuration file
     Column("butler_repo", String),  # URL for butler repository
     Column("prod_base_url", String),  # URL for root of the production area
-    Column("n_child", Integer, default=0),  # Number of associated children
     Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
@@ -96,8 +94,6 @@ step_table = Table(
     Column("previous_step_id", Integer),  # Unique ID of pervious step
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("n_child", Integer, default=0),  # Number of associated children
-    Column("prepare_script_url", String),  # Script run to prepare data
     Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
@@ -119,8 +115,6 @@ group_table = Table(
     Column("g_name", String),  # Group Name
     Column("handler", String),  # Handler class
     Column("config_yaml", String),  # Configuration file
-    Column("n_workflows", Integer, default=0),  # Number of associated workflows
-    Column("n_child", Integer, default=0),  # Number of associated children
     Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
@@ -152,8 +146,6 @@ workflow_table = Table(
     Column("workflow_start", DateTime),  # Workflow start time
     Column("workflow_end", DateTime),  # Workflow end time
     Column("workflow_cputime", Float),
-    Column("workflow_tmpl_url", String),  # URL template for workflow yaml
-    Column("workflow_subm_url", String),  # URL for as submitted workflow yaml
     Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("run_script", Integer, ForeignKey(script_table.c.x_id)),
@@ -279,20 +271,6 @@ def get_parent_field(level: LevelEnum) -> Optional[Column]:
     return all_keys[level]
 
 
-def get_n_child_field(level: Optional[LevelEnum]) -> Optional[Column]:
-    """Return the id field for the number of childern
-    corresponding to an entry at `level`
-    """
-    all_keys = {
-        LevelEnum.production: production_table.c.n_child,
-        LevelEnum.campaign: campaign_table.c.n_child,
-        LevelEnum.step: step_table.c.n_child,
-        LevelEnum.group: group_table.c.n_child,
-        LevelEnum.workflow: None,
-    }
-    return all_keys[level]
-
-
 def get_matching_key(table_level: LevelEnum, match_level: LevelEnum) -> Column:
     """Return the id field that can be used to match all
     entries in a particular table with any level of parent
@@ -354,8 +332,6 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
             "workflow_start",
             "workflow_end",
             "workflow_cputime",
-            "workflow_tmpl_url",
-            "workflow_subm_url",
             "run_script",
         ],
     }

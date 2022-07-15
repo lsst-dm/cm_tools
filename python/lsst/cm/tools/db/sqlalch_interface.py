@@ -157,8 +157,7 @@ class SQLAlchemyInterface(DbInterface):
         db.add_prerequisite(self._conn, depend_id, prereq_id)
 
     def add_script(self, **kwargs) -> int:
-        if "status" not in kwargs:
-            kwargs["status"] = StatusEnum.ready
+        kwargs.setdefault("status", StatusEnum.ready)
         return db.add_script(self._conn, **kwargs)
 
     def insert(
@@ -168,12 +167,6 @@ class SQLAlchemyInterface(DbInterface):
         insert_fields = handler.get_insert_fields_hook(level, self, parent_db_id, **kwargs)
         db.insert_values(self._conn, level, **insert_fields)
         insert_fields[prim_key.name] = self._current_id(level)
-        parent_level = level.parent()
-        if parent_level is not None:
-            n_siblings_fields = db.get_n_child_field(parent_level)
-            n_siblings = self.count(level, parent_db_id)
-            update_fields = {n_siblings_fields.name: n_siblings}
-            db.update_values(self._conn, parent_level, parent_db_id, **update_fields)
         if recurse:
             handler.post_insert_hook(level, self, insert_fields, recurse, **kwargs)
         return insert_fields
@@ -279,7 +272,7 @@ class SQLAlchemyInterface(DbInterface):
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
         i_iter = n_iter
         while i_iter != 0:
-            if os.path.exists("daemon.stop"):
+            if os.path.exists("daemon.stop"):  # pragma: no cover
                 break
             self.prepare(LevelEnum.step, db_id, recurse=True)
             self.queue_workflows(LevelEnum.campaign, db_id)
