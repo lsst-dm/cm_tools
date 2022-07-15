@@ -50,6 +50,19 @@ class DbId:
                 ids[key] = None
         return cls(**ids)
 
+    def level(self) -> Optional[LevelEnum]:
+        if self.w_id is not None:
+            return LevelEnum.workflow
+        if self.g_id is not None:
+            return LevelEnum.group
+        if self.s_id is not None:
+            return LevelEnum.step
+        if self.c_id is not None:
+            return LevelEnum.campaign
+        if self.p_id is not None:
+            return LevelEnum.production
+        return None
+
     def to_tuple(self) -> tuple:
         """Return data as tuple"""
         return (self.p_id, self.c_id, self.s_id, self.g_id, self.w_id)

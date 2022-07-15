@@ -19,13 +19,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 from collections import OrderedDict
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
-from lsst.cm.tools.core.script_utils import make_butler_associate_command, make_butler_chain_command
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, check_status_from_yaml, write_status_to_yaml
+from lsst.cm.tools.core.script_utils import (
+    YamlChecker,
+    make_butler_associate_command,
+    make_butler_chain_command,
+    write_status_to_yaml,
+)
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_handler import SQLAlchemyHandler
 
 
@@ -74,35 +80,84 @@ class ExampleHandler(SQLAlchemyHandler):
         [("step1", ExampleStep1Grouper), ("step2", ExampleStep2Grouper), ("step3", ExampleStep3Grouper)]
     )
 
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
-        butler_repo = dbi.get_repo(db_id)
-        prepare_script_url = data["prepare_script_url"]
-        with open(prepare_script_url, "wt", encoding="utf-8") as fout:
-            fout.write(make_butler_associate_command(butler_repo, data))
-            fout.write('\n')
-        write_status_to_yaml(data["prepare_log_url"], StatusEnum.completed)
+    yaml_checker_class = YamlChecker().get_checker_class_name()
 
-    def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
-        return dict(status=check_status_from_yaml(data["run_log_url"], data["status"]))
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
+        assert level.value >= LevelEnum.campaign.value
+        butler_repo = dbi.get_repo(db_id)
+        script_data = self._resolve_templated_strings(
+            self.prepare_script_url_tempatle_names,
+            {},
+            prod_base_url=dbi.get_prod_base(db_id),
+            fullname=data["fullname"],
+        )
+        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
+        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
+            fout.write(make_butler_associate_command(butler_repo, data))
+            fout.write("\n")
+        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
+        return script_id
+
+    def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> str:
+        """Internal function to write the bps.yaml file for a given workflow"""
+        workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
+        butler_repo = dbi.get_repo(db_id)
+        script_data = self._resolve_templated_strings(
+            self.run_script_url_template_names,
+            {},
+            prod_base_url=dbi.get_prod_base(db_id),
+            fullname=data["fullname"],
+        )
+        outpath = script_data["config_url"]
+        script_id = dbi.add_script(checker="lsst.cm.tools.core.script_utils.YamlChecker", **script_data)
+        tokens = data["fullname"].split("/")
+        production_name = tokens[0]
+        campaign_name = tokens[1]
+        step_name = tokens[2]
+        import yaml
+
+        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
+            workflow_config = yaml.safe_load(fin)
+
+        workflow_config["project"] = production_name
+        workflow_config["campaign"] = f"{production_name}/{campaign_name}"
+
+        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][step_name]
+        payload = dict(
+            payloadName=f"{production_name}/{campaign_name}",
+            output=data["coll_out"],
+            butlerConfig=butler_repo,
+            inCollection=data["coll_in"],
+        )
+        workflow_config["payload"] = payload
+        with open(outpath, "wt", encoding="utf-8") as fout:
+            yaml.dump(workflow_config, fout)
+        return script_id
 
     def fake_run_hook(
         self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
-        write_status_to_yaml(data["run_log_url"], status)
+        script_id = data["run_script"]
+        script_data = dbi.get_script(script_id)
+        write_status_to_yaml(script_data["log_url"], status)
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> StatusEnum:
+    ) -> dict[str, Any]:
+        assert level.value >= LevelEnum.campaign.value
         butler_repo = dbi.get_repo(db_id)
-        collect_script_url = data["collect_script_url"]
-        with open(collect_script_url, "wt", encoding="utf-8") as fout:
+        script_data = self._resolve_templated_strings(
+            self.collect_script_url_template_names,
+            {},
+            prod_base_url=dbi.get_prod_base(db_id),
+            fullname=data["fullname"],
+        )
+        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
+        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
             fout.write(make_butler_chain_command(butler_repo, data, itr))
-            fout.write('\n')
-        write_status_to_yaml(data["collect_log_url"], StatusEnum.completed)
-        return StatusEnum.collecting
-
-    def check_script_status_hook(self, log_url) -> StatusEnum:
-        return check_status_from_yaml(log_url, StatusEnum.running)
+            fout.write("\n")
+        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
+        return dict(status=StatusEnum.collecting, collect_script=script_id)
 
     def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
         return

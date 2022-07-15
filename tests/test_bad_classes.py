@@ -22,14 +22,14 @@
 import sys
 
 import pytest
+from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbId, DbInterface
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 
 
 def test_bad_db_interface():
-
     class BadDbInterface(DbInterface):
         pass
 
@@ -40,6 +40,12 @@ def test_bad_db_interface():
         BadDbInterface.full_name(LevelEnum.production)
 
     with pytest.raises(NotImplementedError):
+        bad_db.get_repo(null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.get_prod_base(null_db_id)
+
+    with pytest.raises(NotImplementedError):
         bad_db.get_db_id(LevelEnum.production)
 
     with pytest.raises(NotImplementedError):
@@ -47,6 +53,12 @@ def test_bad_db_interface():
 
     with pytest.raises(NotImplementedError):
         bad_db.get_status(LevelEnum.production, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.get_prerequisites(LevelEnum.production, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.get_script(0)
 
     with pytest.raises(NotImplementedError):
         bad_db.print_(sys.stdout, LevelEnum.production, null_db_id)
@@ -61,6 +73,9 @@ def test_bad_db_interface():
         bad_db.update(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
+        bad_db.update_script_status(0, StatusEnum.ready)
+
+    with pytest.raises(NotImplementedError):
         bad_db.check(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
@@ -68,6 +83,12 @@ def test_bad_db_interface():
 
     with pytest.raises(NotImplementedError):
         bad_db.get_iterable(LevelEnum.production, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.add_prerequisite(null_db_id, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.add_script()
 
     with pytest.raises(NotImplementedError):
         bad_db.insert(LevelEnum.production, null_db_id, None)
@@ -95,7 +116,6 @@ def test_bad_db_interface():
 
 
 def test_bad_grouper():
-
     class BadDbInterface(DbInterface):
         pass
 
@@ -110,20 +130,28 @@ def test_bad_grouper():
         bad_grouper({}, bad_db, null_db_id, None)
 
 
-def test_bad_handler():
+def test_bad_checker():
+    class BadChecker(Checker):
+        pass
 
+    bad_checker = BadChecker()
+
+    with pytest.raises(NotImplementedError):
+        bad_checker.check_url(None, StatusEnum.ready)
+
+
+def test_bad_handler():
     class BadDbInterface(DbInterface):
         pass
 
     class BadHandler(Handler):
-
         @classmethod
         def bad_get_kwarg(cls):
-            return cls._get_kwarg_value('bad')
+            return cls._get_kwarg_value("bad")
 
         def bad_resolve_templated(self):
-            self._config['bad_template'] = '{missing}'
-            self._resolve_templated_string('bad_template', {})
+            self._config["bad_template"] = "{missing}"
+            self._resolve_templated_string("bad_template", {})
 
     bad_db = BadDbInterface()
     null_db_id = DbId()
@@ -167,6 +195,3 @@ def test_bad_handler():
 
     with pytest.raises(NotImplementedError):
         bad_handler.fake_run_hook(bad_db, null_db_id, None)
-
-    with pytest.raises(NotImplementedError):
-        bad_handler.check_script_status_hook("")

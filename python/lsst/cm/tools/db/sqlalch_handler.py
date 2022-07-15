@@ -27,7 +27,7 @@ from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db import tables
+from lsst.cm.tools.db import db
 
 # import datetime
 
@@ -53,16 +53,26 @@ class SQLAlchemyHandler(Handler):  # noqa
         prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
         collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
         collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
+        run_script_url_template="{prod_base_url}/{fullname}/run.sh",
+        run_log_url_template="{prod_base_url}/{fullname}/run.log",
+        run_config_url_template="{prod_base_url}/{fullname}/bps.yaml",
         command_tmpl="bps",
     )
 
-    template_names = dict(
-        coll_in="coll_in_template",
-        coll_out="coll_out_template",
-        prepare_script_url="prepare_script_url_template",
-        prepare_log_url="prepare_log_url_template",
-        collect_script_url="collect_script_url_template",
-        collect_log_url="collect_log_url_template",
+    coll_template_names = dict(coll_in="coll_in_template", coll_out="coll_out_template",)
+
+    prepare_script_url_tempatle_names = dict(
+        script_url="prepare_script_url_template", log_url="prepare_log_url_template",
+    )
+
+    collect_script_url_template_names = dict(
+        script_url="collect_script_url_template", log_url="collect_log_url_template",
+    )
+
+    run_script_url_template_names = dict(
+        script_url="run_script_url_template",
+        log_url="run_log_url_template",
+        config_url="run_config_url_template",
     )
 
     step_dict: OrderedDict[str, type] = OrderedDict([])
@@ -83,10 +93,10 @@ class SQLAlchemyHandler(Handler):  # noqa
         if level.value > LevelEnum.campaign.value:
             kwcopy["prod_base_url"] = dbi.get_prod_base(parent_db_id)
         elif level.value == LevelEnum.campaign.value:
-            if 'butler_repo' not in kwcopy:
-                raise KeyError('butler_repo must be specified with inserting a campaign')
-            if 'prod_base_url' not in kwcopy:
-                raise KeyError('prod_base_url must be specified with inserting a campaign')
+            if "butler_repo" not in kwcopy:
+                raise KeyError("butler_repo must be specified with inserting a campaign")
+            if "prod_base_url" not in kwcopy:
+                raise KeyError("prod_base_url must be specified with inserting a campaign")
         func_dict = {
             LevelEnum.production: self._get_insert_production_fields,
             LevelEnum.campaign: self._get_insert_campaign_fields,
@@ -129,7 +139,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         self, level: LevelEnum, dbi: DbInterface, data, itr: Iterable, **kwargs
     ) -> dict[str, Any]:
         kwcopy = kwargs.copy()
-        field_list = tables.get_update_field_list(level)
+        field_list = db.get_update_field_list(level)
         status_fields = {
             LevelEnum.production: None,
             LevelEnum.campaign: "status",
@@ -154,23 +164,23 @@ class SQLAlchemyHandler(Handler):  # noqa
             LevelEnum.workflow: "fullname",
         }
         db_id_list = []
-        if not self._check_prerequistes(level, dbi, db_id, data):
+        if not self._check_prerequistes(level, dbi, db_id):
             return db_id_list
         path_var_name = path_var_names[level]
         prod_base_url = dbi.get_prod_base(db_id)
         full_path = os.path.join(prod_base_url, data[path_var_name])
         safe_makedirs(full_path)
-        update_kwargs = dict(status=StatusEnum.ready)
+        update_kwargs = {}
+        db_id_list.append(db_id)
+        script_id = self.prepare_script_hook(level, dbi, db_id, data)
+        if script_id is not None:
+            update_kwargs["prepare_script"] = script_id
         if level != LevelEnum.production:
-            db_id_list.append(db_id)
-            if data["prepare_script_url"] is not None:
-                self.prepare_script_hook(level, dbi, db_id, data)
-                update_kwargs["status"] = StatusEnum.preparing
+            update_kwargs["status"] = StatusEnum.preparing
         if level == LevelEnum.step:
             db_id_list += self._make_groups(dbi, db_id, data, recurse)
         elif level == LevelEnum.workflow:
-            update_kwargs["workflow_tmpl_url"] = self._copy_workflow_template(
-                dbi, db_id, data, **kwargs)
+            update_kwargs["run_script"] = self.workflow_hook(dbi, db_id, data, **kwargs)
         dbi.update(level, db_id, **update_kwargs)
         return db_id_list
 
@@ -190,10 +200,10 @@ class SQLAlchemyHandler(Handler):  # noqa
             data_query=self._get_config_var("data_query", "", **kwargs),
             coll_source=self._get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
-            butler_repo=kwargs['butler_repo'],
-            prod_base_url=kwargs['prod_base_url'],
+            butler_repo=kwargs["butler_repo"],
+            prod_base_url=kwargs["prod_base_url"],
         )
-        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -211,7 +221,7 @@ class SQLAlchemyHandler(Handler):  # noqa
             coll_source=self._get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
         )
-        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -228,14 +238,13 @@ class SQLAlchemyHandler(Handler):  # noqa
             coll_source=self._get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
         )
-        extra_fields = self._resolve_templated_strings(self.template_names, insert_fields, **kwargs)
+        extra_fields = self._resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
         insert_fields.update(**extra_fields)
         return insert_fields
 
     def _get_insert_workflow_fields(self, dbi: DbInterface, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
         """Workflow specific version of get_insert_fields()"""
         fullname = kwargs.get("fullname")
-        run_log_url = os.path.join(kwargs['prod_base_url'], fullname, "workflow_log.yaml")
         insert_fields = dict(
             fullname=fullname,
             w_idx=self._get_kwarg_value("workflow_idx", **kwargs),
@@ -243,13 +252,13 @@ class SQLAlchemyHandler(Handler):  # noqa
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
             g_id=parent_db_id.g_id,
-            run_script_url=self._get_config_var("command_tmpl", "", **kwargs),
-            run_log_url=run_log_url,
             coll_source=self._get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
         )
         extra_fields = dict(data_query=self._get_data_query(dbi, insert_fields, **kwargs))
-        extra_fields.update(self._resolve_templated_strings(self.template_names, insert_fields, **kwargs))
+        extra_fields.update(
+            self._resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
+        )
         insert_fields.update(**extra_fields)
         return insert_fields
 
@@ -269,7 +278,10 @@ class SQLAlchemyHandler(Handler):  # noqa
             kwcopy.update(previous_step_id=previous_step_id)
             kwcopy.update(coll_source=coll_source)
             step_insert = dbi.insert(LevelEnum.step, parent_db_id, self, recurse, **kwcopy)
+            step_id = parent_db_id.extend(LevelEnum.step, step_insert["s_id"])
             coll_source = step_insert.get("coll_out")
+            if previous_step_id is not None:
+                dbi.add_prerequisite(step_id, parent_db_id.extend(LevelEnum.step, previous_step_id))
             previous_step_id = dbi.get_row_id(LevelEnum.step, **kwcopy)
 
     def _post_insert_group(
@@ -286,14 +298,14 @@ class SQLAlchemyHandler(Handler):  # noqa
             dbi.prepare(LevelEnum.workflow, parent_db_id, recurse)
 
     def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        run_script_url = data["run_script_url"]
-        workflow_tmpl_url = data["workflow_tmpl_url"]
-        submit_command = f"{run_script_url} {workflow_tmpl_url}"
+        script_id = data["run_script"]
+        script_data = dbi.get_script(script_id)
+        config_url = script_data["config_url"]
+        script_url = script_data["script_url"]
+        submit_command = f"{script_url} {config_url}"
         # workflow_start = datetime.now()
         print(f"Submitting workflow {str(db_id)} with {submit_command}")
-        update_fields = dict(
-            workflow_subm_url=workflow_tmpl_url, run_script_url=run_script_url, status=StatusEnum.running,
-        )
+        update_fields = dict(status=StatusEnum.running)
         dbi.update(LevelEnum.workflow, db_id, **update_fields)
 
     def _group_iterator(self, dbi: DbInterface, parent_data_id: DbId, data, **kwargs) -> Iterable:
@@ -322,56 +334,12 @@ class SQLAlchemyHandler(Handler):  # noqa
             db_id_list += dbi.prepare(LevelEnum.group, db_id, recurse)
         return db_id_list
 
-    def _copy_workflow_template(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> str:
-        """Internal function to write the bps.yaml file for a given workflow"""
-        workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
-        butler_repo = dbi.get_repo(db_id)
-        prod_base_url = dbi.get_prod_base(db_id)
-        outpath = os.path.join(prod_base_url, data["fullname"], "bps.yaml")
-        tokens = data["fullname"].split("/")
-        production_name = tokens[0]
-        campaign_name = tokens[1]
-        step_name = tokens[2]
-        import yaml
-        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
-            workflow_config = yaml.safe_load(fin)
-
-        workflow_config['project'] = production_name
-        workflow_config['campaign'] = f'{production_name}/{campaign_name}'
-
-        workflow_config['pipelineYaml'] = self.config["pipeline_yaml"][step_name]
-        payload = dict(
-            payloadName=f'{production_name}/{campaign_name}',
-            output=data["coll_out"],
-            butlerConfig=butler_repo,
-            inCollection=data["coll_in"],
-        )
-        sw_image = kwargs.get('sw_image')
-        if sw_image:
-            payload['sw_image'] = sw_image
-        dataQuery = kwargs.get('dataQuery')
-        if dataQuery:
-            payload['dataQuery'] = dataQuery
-        workflow_config['payload'] = payload
-        with open(outpath, "wt", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
-        return outpath
-
-    def _check_prerequistes(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> bool:
+    def _check_prerequistes(self, level: LevelEnum, dbi: DbInterface, db_id) -> bool:
         """Internal function to see if the pre-requistes for a given step
         have been completed"""
-        if level in [
-            LevelEnum.production,
-            LevelEnum.campaign,
-            LevelEnum.group,
-            LevelEnum.workflow,
-        ]:
-            return True
-        previous_step_id = data["previous_step_id"]
-        if previous_step_id is None:
-            return True
-        parent_db_id = DbId(p_id=db_id.p_id, c_id=db_id.c_id, s_id=previous_step_id)
-        status = dbi.get_status(LevelEnum.step, parent_db_id)
-        if status == StatusEnum.accepted:
-            return True
-        return False
+        prereq_list = dbi.get_prerequisites(level, db_id)
+        for prereq_ in prereq_list:
+            status = dbi.get_status(prereq_.level(), prereq_)
+            if status.value < StatusEnum.accepted.value:
+                return False
+        return True

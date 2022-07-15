@@ -84,9 +84,7 @@ max_running_option = MWOptionDecorator(
 butler_option = MWOptionDecorator("--butler_repo", default="repo", help="URL for butler.")
 
 prod_base_option = MWOptionDecorator(
-    "--prod_base_url",
-    default="archive",
-    help="URL for production area base"
+    "--prod_base_url", default="archive", help="URL for production area base"
 )
 
 db_option = MWOptionDecorator("--db", default="sqlite:///cm.db", help="URL for campaign management database.")

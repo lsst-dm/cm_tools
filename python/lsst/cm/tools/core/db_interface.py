@@ -156,6 +156,39 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def get_prerequisites(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        """Return the prerequisites of a selected entry
+
+        Parameters
+        ----------
+        level : LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Database ID specifying which row to select.
+            See class notes above.
+
+        Returns
+        -------
+        prerequisites : list[DbId]
+            Prerequisites for the selected entry
+        """
+        raise NotImplementedError()
+
+    def get_script(self, script_id: int):
+        """Return the info about a selected script
+
+        Parameters
+        ----------
+        script_id : int
+            The id for the selected script
+
+        Returns
+        -------
+        script_data :
+        """
+        raise NotImplementedError()
+
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         """Print a database entry or entries
 
@@ -224,6 +257,19 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def update_script_status(self, script_id: int, script_status: StatusEnum) -> None:
+        """Update a particular script status
+
+        Parameters
+        ----------
+        script_id: int
+            Selects script to update
+
+        script_status: StatusEnum
+            The new status
+        """
+        raise NotImplementedError()
+
     def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
         """Check all database entries at a particular level
 
@@ -276,6 +322,50 @@ class DbInterface:
         -------
         itr : iterator
             Iterator over the matching rows
+        """
+        raise NotImplementedError()
+
+    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> None:
+        """Add a prerequisite to
+
+        Parameters
+        ----------
+        depend_id : DbId
+            The dependent entry
+
+        prereq_id : DbId
+            The prerequiste entry
+        """
+        raise NotImplementedError()
+
+    def add_script(
+        self,
+        script_url: Optional[str] = None,
+        log_url: Optional[str] = None,
+        checker: Optional[str] = None,
+        status: Optional[StatusEnum] = StatusEnum.ready,
+    ) -> int:
+        """Insert a new row with details about a script
+
+        Parameters
+        ----------
+        script_url: str
+            The location of the script
+
+        log_url: str
+            The location of the log
+            (which can be checked to set the script status)
+
+        checker : str
+            Fully defined path to a class to check the status of the script
+
+        status : StatusEnum
+            Status of the script
+
+        Returns
+        -------
+        script_id : int
+            The ID for the new script
         """
         raise NotImplementedError()
 

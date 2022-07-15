@@ -21,7 +21,7 @@
 
 from __future__ import annotations  # Needed for class member returning class
 
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 import yaml
 from lsst.cm.tools.core.dbid import DbId
@@ -215,7 +215,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data,) -> None:
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -238,9 +238,10 @@ class Handler:
         data : ???
             Current data for the entry we are preparing
 
-        Keywords
-        --------
-        Keywords can be used by sub-classes
+        Returns
+        -------
+        script_id : int
+            The id of the returned script
         """
         raise NotImplementedError()
 
@@ -283,7 +284,7 @@ class Handler:
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> StatusEnum:
+    ) -> dict[str, Any]:
         """Called when all the childern of a particular entry are finished
 
         Parameters
@@ -302,21 +303,6 @@ class Handler:
 
         data : ???
             The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def check_script_status_hook(self, log_url) -> StatusEnum:
-        """Called to check the status of a preparation or collection script
-
-        Parameters
-        ----------
-        log_url : str
-            URL to the resources needed to check the status
-
-        Returns
-        -------
-        status : StatusEnum
-            The status of the script
         """
         raise NotImplementedError()
 

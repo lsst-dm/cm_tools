@@ -63,7 +63,7 @@ __all__ = [
 @db_option()
 @echo_option()
 def cm_create(**kwargs):
-    SQLAlchemyInterface(db=kwargs.get("db"), echo=kwargs.get("echo"), create=True)
+    SQLAlchemyInterface(db_url=kwargs.get("db"), echo=kwargs.get("echo"), create=True)
 
 
 @click.command("insert")
@@ -82,7 +82,7 @@ def cm_create(**kwargs):
 @recurse_option()
 def cm_insert(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     config_yaml = all_args.pop("config_yaml")
     assert config_yaml is not None
     handler_class = all_args.pop("handler")
@@ -104,7 +104,7 @@ def cm_insert(**kwargs):
 @echo_option()
 def cm_print(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     iface.print_(sys.stdout, the_level, the_db_id)
@@ -116,7 +116,7 @@ def cm_print(**kwargs):
 @echo_option()
 def cm_print_table(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     iface.print_table(sys.stdout, the_level)
 
@@ -132,7 +132,7 @@ def cm_print_table(**kwargs):
 @echo_option()
 def cm_count(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     print(iface.count(the_level, the_db_id))
@@ -150,7 +150,7 @@ def cm_count(**kwargs):
 @recurse_option()
 def cm_prepare(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     recurse_value = all_args.pop("recurse")
@@ -178,7 +178,7 @@ def cm_prepare(**kwargs):
 @recurse_option()
 def cm_queue(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     iface.queue_workflows(the_level, the_db_id)
@@ -197,7 +197,7 @@ def cm_queue(**kwargs):
 @max_running_option()
 def cm_launch(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     max_running = all_args.pop("max_running")
@@ -216,7 +216,7 @@ def cm_launch(**kwargs):
 @recurse_option()
 def cm_check(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     recurse_value = all_args.pop("recurse")
@@ -235,7 +235,7 @@ def cm_check(**kwargs):
 @recurse_option()
 def cm_accept(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     recurse_value = all_args.pop("recurse")
@@ -253,7 +253,7 @@ def cm_accept(**kwargs):
 @echo_option()
 def cm_reject(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     iface.reject(the_level, the_db_id)
@@ -272,7 +272,7 @@ def cm_reject(**kwargs):
 @max_running_option()
 def cm_fake_run(**kwargs):
     all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     iface.fake_run(the_db_id, StatusEnum.completed)
@@ -287,6 +287,6 @@ def cm_fake_run(**kwargs):
 def cm_daemon(**kwargs):
     all_args = kwargs.copy()
     max_running = all_args.pop("max_running")
-    iface = SQLAlchemyInterface(db=all_args.pop("db"), echo=all_args.pop("echo"))
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_db_id = iface.get_db_id(LevelEnum.campaign, **all_args)
     iface.daemon(the_db_id, max_running)

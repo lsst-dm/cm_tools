@@ -19,12 +19,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Iterable, Optional, TextIO
+from typing import Any, Iterable, Optional, TextIO
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, MetaData, String, Table, select
+from sqlalchemy import (  # type: ignore
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    MetaData,
+    String,
+    Table,
+    and_,
+    create_engine,
+    func,
+    select,
+)
+
+script_meta = MetaData()
+script_table = Table(
+    "script",
+    script_meta,
+    Column("x_id", Integer, primary_key=True),  # Unique script ID
+    Column("script_url", String),  # Url for script
+    Column("log_url", String),  # Url for log
+    Column("config_url", String),  # Url for config
+    Column("checker", String),  # Checker class
+    Column("status", Enum(StatusEnum)),  # Status flag
+)
 
 production_meta = MetaData()
 production_table = Table(
@@ -50,10 +75,8 @@ campaign_table = Table(
     Column("butler_repo", String),  # URL for butler repository
     Column("prod_base_url", String),  # URL for root of the production area
     Column("n_child", Integer, default=0),  # Number of associated children
-    Column("prepare_script_url", String),  # Script run to prepare data
-    Column("prepare_log_url", String),  # Url for log from prepare script
-    Column("collect_script_url", String),  # Script run to prepare data
-    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
+    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
     Column("coll_source", String),  # Source data collection
     Column("coll_in", String),  # Input data collection (post-query)
@@ -75,9 +98,8 @@ step_table = Table(
     Column("config_yaml", String),  # Configuration file
     Column("n_child", Integer, default=0),  # Number of associated children
     Column("prepare_script_url", String),  # Script run to prepare data
-    Column("prepare_log_url", String),  # Url for log from prepare script
-    Column("collect_script_url", String),  # Script run to prepare data
-    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
+    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
     Column("coll_source", String),  # Source data collection
     Column("coll_in", String),  # Input data collection (post-query)
@@ -99,10 +121,8 @@ group_table = Table(
     Column("config_yaml", String),  # Configuration file
     Column("n_workflows", Integer, default=0),  # Number of associated workflows
     Column("n_child", Integer, default=0),  # Number of associated children
-    Column("prepare_script_url", String),  # Script run to prepare data
-    Column("prepare_log_url", String),  # Url for log from prepare script
-    Column("collect_script_url", String),  # Script run to prepare data
-    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
+    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
     Column("coll_source", String),  # Source data collection
     Column("coll_in", String),  # Input data collection (post-query)
@@ -134,12 +154,9 @@ workflow_table = Table(
     Column("workflow_cputime", Float),
     Column("workflow_tmpl_url", String),  # URL template for workflow yaml
     Column("workflow_subm_url", String),  # URL for as submitted workflow yaml
-    Column("prepare_script_url", String),  # Script run to prepare data
-    Column("prepare_log_url", String),  # Url for log from prepare script
-    Column("run_script_url", String),  # Script to run workflow
-    Column("run_log_url", String),  # Url for log from workflow
-    Column("collect_script_url", String),  # Script run to prepare data
-    Column("collect_log_url", String),  # Url for log from prepare script
+    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
+    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
+    Column("run_script", Integer, ForeignKey(script_table.c.x_id)),
     Column("data_query", String),  # Data query
     Column("coll_source", String),  # Source data collection
     Column("coll_in", String),  # Input data collection (post-query)
@@ -164,20 +181,6 @@ dependency_table = Table(
     Column("depend_w_id", Integer, ForeignKey(workflow_table.c.w_id)),
 )
 
-script_meta = MetaData()
-script_table = Table(
-    "script",
-    script_meta,
-    Column("x_id", Integer, primary_key=True),  # Unique script ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
-    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
-    Column("w_id", Integer, ForeignKey(workflow_table.c.w_id)),
-    Column("script_url", String),  # Script run to prepare data
-    Column("log_url", String),  # Url for log from prepare script
-)
-
 
 def create_db(engine) -> None:
     """Creates a database as specific by `engine.url`
@@ -194,9 +197,24 @@ def create_db(engine) -> None:
         group_meta,
         workflow_meta,
         dependency_meta,
-        script_meta
+        script_meta,
     ]:
         meta.create_all(engine)
+
+
+def build_engine(db_url, **kwargs):
+    """Return the sqlalchemy engine, building the database if needed"""
+    from sqlalchemy_utils import database_exists  # type: ignore
+
+    kwcopy = kwargs.copy()
+    create = kwcopy.pop("create", False)
+    engine = create_engine(db_url, **kwcopy)
+    if not database_exists(engine.url):
+        if create:
+            create_db(engine)
+    if not database_exists(engine.url):
+        raise RuntimeError(f"Failed to access or create database {db_url}")
+    return engine
 
 
 def get_table(level: LevelEnum) -> Table:
@@ -251,7 +269,6 @@ def get_parent_field(level: LevelEnum) -> Optional[Column]:
     """Return the id field of the parent entry in a table
     corresponding to a `level`
     """
-
     all_keys = {
         LevelEnum.production: None,
         LevelEnum.campaign: campaign_table.c.p_id,
@@ -296,16 +313,28 @@ def get_matching_key(table_level: LevelEnum, match_level: LevelEnum) -> Column:
     return all_keys[table_level][match_level.value]
 
 
+def get_depend_key(level: LevelEnum):
+    """Return the id field of the dependency entry
+    corresponding to a `level`
+    """
+    all_keys = {
+        LevelEnum.production: dependency_table.c.depend_p_id,
+        LevelEnum.campaign: dependency_table.c.depend_c_id,
+        LevelEnum.step: dependency_table.c.depend_s_id,
+        LevelEnum.group: dependency_table.c.depend_g_id,
+        LevelEnum.workflow: dependency_table.c.depend_w_id,
+    }
+    return all_keys[level]
+
+
 def get_update_field_list(level: LevelEnum) -> list[str]:
     """Return the list of fields that we can update
     in a particular table
     """
     field_list = ["handler", "config_yaml"]
     common_fields = [
-        "prepare_script_url",
-        "prepare_log_url",
-        "collect_script_url",
-        "collect_log_url",
+        "prepare_script",
+        "collect_script",
         "data_query",
         "coll_source",
         "coll_in",
@@ -316,7 +345,8 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
         LevelEnum.campaign: common_fields,
         LevelEnum.step: common_fields,
         LevelEnum.group: common_fields,
-        LevelEnum.workflow: common_fields + [
+        LevelEnum.workflow: common_fields
+        + [
             "n_tasks_done",
             "n_tasks_failed",
             "n_clusters_done",
@@ -326,8 +356,7 @@ def get_update_field_list(level: LevelEnum) -> list[str]:
             "workflow_cputime",
             "workflow_tmpl_url",
             "workflow_subm_url",
-            "run_script_url",
-            "run_log_url",
+            "run_script",
         ],
     }
     field_list += extra_fields[level]
@@ -354,13 +383,6 @@ def return_single_row(conn, sel):
     sel_result = conn.execute(sel)
     _check_result(sel_result)
     return sel_result.all()[0]
-
-
-def return_data(conn, sel):
-    """Returns all the data matching a selection"""
-    sel_result = conn.execute(sel)
-    _check_result(sel_result)
-    return sel_result.all()
 
 
 def return_iterable(conn, sel) -> Iterable:
@@ -404,10 +426,55 @@ def get_prod_base_coll():
     return campaign_table.c.prod_base_url
 
 
-def get_select(level: LevelEnum, db_id: DbId):
-    """Returns the selection for a given db_id at a given level"""
+def get_count_query(level: LevelEnum, db_id: Optional[DbId]):
+    """Return the query to count rows matching an id"""
+    count_key = get_parent_field(level)
+    if count_key is None:
+        count_key = get_primary_key(level)
+        return func.count(count_key)
+    if db_id is not None:
+        return func.count(count_key == db_id[level])
+    return func.count(count_key)
+
+
+def get_row_query(level: LevelEnum, db_id: DbId, columns=None):
+    """Returns the selection a single row given db_id"""
     table = get_table(level)
-    id_tuple = db_id.to_tuple()[0 : level.value + 1]
+    prim_key = get_primary_key(level)
+    if columns is None:
+        sel = table.select().where(prim_key == db_id[level])
+    else:
+        sel = select(columns).where(prim_key == db_id[level])
+    return sel
+
+
+def get_rows_with_status_query(level: LevelEnum, status: StatusEnum):
+    """Returns the selection for all rows with a particular status"""
+    prim_key = get_primary_key(level)
+    status_key = get_status_key(level)
+    sel = select([prim_key]).where(status_key == status)
+    return sel
+
+
+def get_id_match_query(level: LevelEnum, parent_id: Optional[int], match_name: Any):
+    """Returns the selection to match a particular ID"""
+    prim_key = get_primary_key(level)
+    name_field = get_name_field(level)
+    parent_field = get_parent_field(level)
+    if parent_field is None:
+        sel = select([prim_key]).where(name_field == match_name)
+    else:
+        sel = select([prim_key]).where(and_(parent_field == parent_id, name_field == match_name))
+    return sel
+
+
+def get_match_query(level: LevelEnum, db_id: DbId):
+    """Returns the selection all rows given db_id at a given level"""
+    table = get_table(level)
+    if db_id is None:
+        id_tuple = ()
+    else:
+        id_tuple = db_id.to_tuple()[0 : level.value + 1]
     parent_key = None
     row_id = None
     for i, row_id_ in enumerate(id_tuple):
@@ -421,25 +488,45 @@ def get_select(level: LevelEnum, db_id: DbId):
     return sel
 
 
-def get_join(level: LevelEnum, db_id: DbId, join_levels: list[LevelEnum]) -> Iterable:
-    """Returns the joint selection for a given db_id at a given level"""
-    table = get_table(level)
-    join_tables = [get_table(join_level_) for join_level_ in join_levels]
-    join_keys = [get_primary_key(join_level_) for join_level_ in join_levels]
-    id_tuple = db_id.to_tuple()[0 : level.value + 1]
-    parent_key = None
-    row_id = None
-    for i, row_id_ in enumerate(id_tuple):
-        if row_id_ is not None:
-            parent_key = get_matching_key(level, LevelEnum(i))
-            row_id = row_id_
-    if parent_key is None:
-        sel = select(table, *join_tables)
-    else:
-        sel = select(table, *join_tables).where(parent_key == row_id)
-    for join_table, join_key, join_level in zip(join_tables, join_keys, join_levels):
-        sel = sel.join(join_table, join_key == id_tuple[join_level.value])
-    return sel
+def add_prerequisite(conn, depend_id: DbId, prereq_id: DbId):
+    """Inserts a dependency"""
+    insert_vals = dict(
+        p_id=prereq_id[LevelEnum.production],
+        c_id=prereq_id[LevelEnum.campaign],
+        s_id=prereq_id[LevelEnum.step],
+        g_id=prereq_id[LevelEnum.group],
+        w_id=prereq_id[LevelEnum.workflow],
+        depend_p_id=depend_id[LevelEnum.production],
+        depend_c_id=depend_id[LevelEnum.campaign],
+        depend_s_id=depend_id[LevelEnum.step],
+        depend_g_id=depend_id[LevelEnum.group],
+        depend_w_id=depend_id[LevelEnum.workflow],
+    )
+    ins = dependency_table.insert().values(**insert_vals)
+    ins_result = conn.execute(ins)
+    _check_result(ins_result)
+
+
+def get_prerequisites(conn, level: LevelEnum, db_id: DbId):
+    depend_key = get_depend_key(level)
+    sel = dependency_table.select().where(depend_key == db_id[level])
+    itr = return_iterable(conn, sel)
+    db_id_list = [DbId.create_from_row(row_) for row_ in itr]
+    return db_id_list
+
+
+def add_script(conn, **kwargs) -> int:
+    """Insert a new row with details about a script"""
+    ins = script_table.insert().values(**kwargs)
+    ins_result = conn.execute(ins)
+    _check_result(ins_result)
+    counter = func.count(script_table.c.x_id)
+    return return_count(conn, counter)
+
+
+def get_script(conn, script_id: int):
+    sel = script_table.select().where(script_table.c.x_id == script_id)
+    return return_single_row(conn, sel)
 
 
 def insert_values(conn, level: LevelEnum, **kwargs):
@@ -455,5 +542,12 @@ def update_values(conn, level: LevelEnum, db_id: DbId, **kwargs):
     table = get_table(level)
     prim_key = get_primary_key(level)
     stmt = table.update().where(prim_key == db_id[level]).values(**kwargs)
+    upd_result = conn.execute(stmt)
+    _check_result(upd_result)
+
+
+def update_script_status(conn, script_id: int, script_status: StatusEnum) -> None:
+
+    stmt = script_table.update().where(script_table.c.x_id == script_id).values(status=script_status)
     upd_result = conn.execute(stmt)
     _check_result(upd_result)
