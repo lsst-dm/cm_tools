@@ -91,13 +91,13 @@ class ExampleHandler(SQLAlchemyHandler):
             self.prepare_script_url_tempatle_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data["fullname"],
+            fullname=data.fullname,
         )
         script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
+        with open(script_data['script_url'], "wt", encoding="utf-8") as fout:
             fout.write(make_butler_associate_command(butler_repo, data))
             fout.write("\n")
-        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
+        write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
         return script_id
 
     def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> str:
@@ -108,11 +108,11 @@ class ExampleHandler(SQLAlchemyHandler):
             self.run_script_url_template_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data["fullname"],
+            fullname=data.fullname,
         )
-        outpath = script_data["config_url"]
+        outpath = script_data['config_url']
         script_id = dbi.add_script(checker="lsst.cm.tools.core.script_utils.YamlChecker", **script_data)
-        tokens = data["fullname"].split("/")
+        tokens = data.fullname.split("/")
         production_name = tokens[0]
         campaign_name = tokens[1]
         step_name = tokens[2]
@@ -127,9 +127,9 @@ class ExampleHandler(SQLAlchemyHandler):
         workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][step_name]
         payload = dict(
             payloadName=f"{production_name}/{campaign_name}",
-            output=data["coll_out"],
+            output=data.coll_out,
             butlerConfig=butler_repo,
-            inCollection=data["coll_in"],
+            inCollection=data.coll_in,
         )
         workflow_config["payload"] = payload
         with open(outpath, "wt", encoding="utf-8") as fout:
@@ -139,9 +139,9 @@ class ExampleHandler(SQLAlchemyHandler):
     def fake_run_hook(
         self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
     ) -> None:
-        script_id = data["run_script"]
+        script_id = data.run_script
         script_data = dbi.get_script(script_id)
-        write_status_to_yaml(script_data["log_url"], status)
+        write_status_to_yaml(script_data.log_url, status)
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
@@ -154,13 +154,13 @@ class ExampleHandler(SQLAlchemyHandler):
             self.collect_script_url_template_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data["fullname"],
+            fullname=data.fullname,
         )
         script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
+        with open(script_data['script_url'], "wt", encoding="utf-8") as fout:
             fout.write(make_butler_chain_command(butler_repo, data, itr))
             fout.write("\n")
-        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
+        write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
         return dict(status=StatusEnum.collecting, collect_script=script_id)
 
     def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:

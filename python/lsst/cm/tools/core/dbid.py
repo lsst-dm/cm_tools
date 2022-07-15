@@ -45,8 +45,8 @@ class DbId:
         ids = {}
         for key in ["p_id", "c_id", "s_id", "g_id", "w_id"]:
             try:
-                ids[key] = row[key]
-            except KeyError:
+                ids[key] = getattr(row, key)
+            except AttributeError:
                 ids[key] = None
         return cls(**ids)
 

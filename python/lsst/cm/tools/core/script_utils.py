@@ -43,20 +43,20 @@ def check_status_from_yaml(log_url, current_status: StatusEnum) -> StatusEnum:
 
 def make_butler_associate_command(butler_repo: str, data) -> str:
     """Build and return a butler associate command"""
-    coll_in = data["coll_in"]
-    coll_source = data["coll_source"]
+    coll_in = data.coll_in
+    coll_source = data.coll_source
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
-    data_query = data["data_query"]
+    data_query = data.data_query
     if data_query:
         command += f" --where {data_query}"
     return command
 
 
 def make_butler_chain_command(butler_repo: str, data, itr) -> str:
-    coll_out = data["coll_out"]
+    coll_out = data.coll_out
     command = f"butler chain-collection {butler_repo} {coll_out}"
     for child in itr:
-        child_coll = child["coll_out"]
+        child_coll = child.coll_out
         command += f" {child_coll}"
     return command
 

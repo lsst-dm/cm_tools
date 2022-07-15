@@ -32,6 +32,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db import db
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyInterface(DbInterface):
@@ -54,7 +55,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def __init__(self, db_url: str, **kwargs):
         self._engine = db.build_engine(db_url, **kwargs)
-        self._conn = self._engine.connect()
+        self._conn = Session(self._engine, future=True)
         DbInterface.__init__(self)
 
     def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
@@ -101,7 +102,7 @@ class SQLAlchemyInterface(DbInterface):
     def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
         data = self.get_data(level, db_id)
         itr = self.get_iterable(level.child(), db_id)
-        handler = Handler.get_handler(data["handler"], data["config_yaml"])
+        handler = Handler.get_handler(data.handler, data.config_yaml)
         assert handler is not None
         update_args = handler.get_update_fields_hook(level, self, data, itr, **kwargs)
         if update_args:
@@ -121,7 +122,7 @@ class SQLAlchemyInterface(DbInterface):
         for row_ in itr:
             one_id = DbId.create_from_row(row_)
             if status_key is not None:
-                current_status = row_[status_key.name]
+                current_status = row_.status
                 if current_status == StatusEnum.preparing:
                     current_status = self._check_prepare_script(row_)
                 elif current_status == StatusEnum.collecting:
@@ -145,7 +146,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_data(self, level: LevelEnum, db_id: DbId):
         sel = db.get_row_query(level, db_id)
-        return db.return_single_row(self._conn, sel)
+        return db.return_single_row(self._conn, sel)[0]
 
     def get_iterable(self, level: LevelEnum, db_id: DbId) -> Iterable:
         if level is None:
@@ -174,16 +175,15 @@ class SQLAlchemyInterface(DbInterface):
     def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> list[DbId]:
         itr = self.get_iterable(level, db_id)
         prim_key = db.get_primary_key(level)
-        status_key = db.get_status_key(level)
         kwcopy = kwargs.copy()
         db_id_list = []
         for row_ in itr:
-            status = row_[status_key.name]
+            status = row_.status
             if status != StatusEnum.waiting:
                 continue
-            one_id = db_id.extend(level, row_[prim_key.name])
-            handler = Handler.get_handler(row_["handler"], row_["config_yaml"])
-            kwcopy.update(config_yaml=row_["config_yaml"])
+            one_id = db_id.extend(level, row_.__dict__[prim_key.name])
+            handler = Handler.get_handler(row_.handler, row_.config_yaml)
+            kwcopy.update(config_yaml=row_.config_yaml)
             db_id_list += handler.prepare_hook(level, self, one_id, row_, recurse, **kwcopy)
         self.check(level, db_id, recurse, counter=2)
         return db_id_list
@@ -192,7 +192,7 @@ class SQLAlchemyInterface(DbInterface):
         itr = self.get_iterable(LevelEnum.workflow, db_id)
         db_id_list = []
         for row_ in itr:
-            status = row_["status"]
+            status = row_.status
             if status != StatusEnum.ready:
                 continue
             one_id = DbId.create_from_row(row_)
@@ -207,12 +207,12 @@ class SQLAlchemyInterface(DbInterface):
         itr = self.get_iterable(LevelEnum.workflow, db_id)
         db_id_list = []
         for row_ in itr:
-            status = row_["status"]
+            status = row_.status
             if status != StatusEnum.pending:
                 continue
             one_id = DbId.create_from_row(row_)
             db_id_list.append(one_id)
-            handler = Handler.get_handler(row_["handler"], row_["config_yaml"])
+            handler = Handler.get_handler(row_.handler, row_.config_yaml)
             handler.launch_workflow_hook(self, one_id, row_)
             self.update(LevelEnum.workflow, one_id, status=StatusEnum.running)
             n_running += 1
@@ -230,14 +230,13 @@ class SQLAlchemyInterface(DbInterface):
                 recurse_level = recurse_level.parent()
         self.check(level, db_id)
         itr = self.get_iterable(level, db_id)
-        status_key = db.get_status_key(level)
         for row_ in itr:
-            status = row_[status_key.name]
+            status = row_.status
             if status != StatusEnum.completed:
                 continue
             one_id = DbId.create_from_row(row_)
             db_id_list.append(one_id)
-            handler = Handler.get_handler(row_["handler"], row_["config_yaml"])
+            handler = Handler.get_handler(row_.handler, row_.config_yaml)
             itr = self.get_iterable(level.child(), db_id)
             handler.accept_hook(level, self, one_id, itr, row_)
             self.update(level, one_id, status=StatusEnum.accepted)
@@ -245,28 +244,26 @@ class SQLAlchemyInterface(DbInterface):
 
     def reject(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         itr = self.get_iterable(level, db_id)
-        status_key = db.get_status_key(level)
         db_id_list = []
         for row_ in itr:
-            status = row_[status_key.name]
+            status = row_.status
             if status == StatusEnum.completed:
                 continue
             one_id = DbId.create_from_row(row_)
             db_id_list.append(one_id)
-            handler = Handler.get_handler(row_["handler"], row_["config_yaml"])
+            handler = Handler.get_handler(row_.handler, row_.config_yaml)
             handler.reject_hook(level, self, one_id, row_)
             self.update(level, one_id, status=StatusEnum.rejected)
         return db_id_list
 
     def fake_run(self, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
         itr = self.get_iterable(LevelEnum.workflow, db_id)
-        status_key = db.get_status_key(LevelEnum.workflow)
         for row_ in itr:
-            old_status = row_[status_key.name]
+            old_status = row_.status
             if old_status not in [StatusEnum.running]:
                 continue
             one_id = DbId.create_from_row(row_)
-            handler = Handler.get_handler(row_["handler"], row_["config_yaml"])
+            handler = Handler.get_handler(row_.handler, row_.config_yaml)
             handler.fake_run_hook(self, one_id, row_, status)
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
@@ -299,19 +296,19 @@ class SQLAlchemyInterface(DbInterface):
         return self.count(level, None)
 
     def get_repo(self, db_id: DbId) -> str:
-        repo_col = db.get_repo_coll()
-        sel = db.get_row_query(LevelEnum.campaign, db_id, [repo_col])
+        table = db.get_table(LevelEnum.campaign)
+        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.butler_repo])
         return db.return_first_column(self._conn, sel)
 
     def get_prod_base(self, db_id: DbId) -> str:
-        prod_base_coll = db.get_prod_base_coll()
-        sel = db.get_row_query(LevelEnum.campaign, db_id, [prod_base_coll])
+        table = db.get_table(LevelEnum.campaign)
+        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.prod_base_url])
         return db.return_first_column(self._conn, sel)
 
     @staticmethod
     def _extract_child_status(itr: Iterable, status_name: str) -> np.ndarray:
         """Return the status of all children in an array"""
-        return np.array([x[status_name].value for x in itr])
+        return np.array([x.status.value for x in itr])
 
     def _check_children(
         self, level: LevelEnum, db_id: DbId, current_status: Optional[StatusEnum], data
@@ -321,7 +318,7 @@ class SQLAlchemyInterface(DbInterface):
         itr = self.get_iterable(level.child(), db_id)
         child_status = self._extract_child_status(itr, "status")
         if child_status.size and (child_status >= StatusEnum.accepted.value).all():
-            handler = Handler.get_handler(data["handler"], data["config_yaml"])
+            handler = Handler.get_handler(data.handler, data.config_yaml)
             itr = self.get_iterable(level.child(), db_id)
             return handler.collection_hook(level, self, db_id, itr, data)
         if (child_status >= StatusEnum.running.value).any():
@@ -332,13 +329,13 @@ class SQLAlchemyInterface(DbInterface):
         """Check the status of one workflow matching a given db_id"""
         run_status = self._check_run_script(data)
         if run_status == StatusEnum.completed:
-            handler = Handler.get_handler(data["handler"], data["config_yaml"])
+            handler = Handler.get_handler(data.handler, data.config_yaml)
             return handler.collection_hook(LevelEnum.workflow, self, db_id, [], data)
         return {}
 
     def _check_prepare_script(self, data) -> StatusEnum:
         """Check the status of one entry matching a given db_id"""
-        script_id = data["prepare_script"]
+        script_id = data.prepare_script
         script_status = self._check_script(script_id)
         status_map = {
             StatusEnum.failed: StatusEnum.failed,
@@ -350,7 +347,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def _check_collect_script(self, data) -> StatusEnum:
         """Check the status of one entry matching a given db_id"""
-        script_id = data["collect_script"]
+        script_id = data.collect_script
         script_status = self._check_script(script_id)
         status_map = {
             StatusEnum.failed: StatusEnum.failed,
@@ -362,7 +359,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def _check_run_script(self, data) -> StatusEnum:
         """Check the status of one entry matching a given db_id"""
-        script_id = data["run_script"]
+        script_id = data.run_script
         assert script_id is not None
         script_status = self._check_script(script_id)
         status_map = {
@@ -379,9 +376,9 @@ class SQLAlchemyInterface(DbInterface):
             # No script to check, return completed
             return StatusEnum.completed
         script_data = self.get_script(script_id)
-        log_url = script_data["log_url"]
-        current_status = script_data["status"]
-        checker_class = script_data["checker"]
+        log_url = script_data.log_url
+        current_status = script_data.status
+        checker_class = script_data.checker
         checker = Checker.get_checker(checker_class)
         script_status = checker.check_url(log_url, current_status)
         if script_status != current_status:

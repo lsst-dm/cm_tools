@@ -30,148 +30,144 @@ from sqlalchemy import (  # type: ignore
     Enum,
     Float,
     ForeignKey,
-    MetaData,
     String,
     Table,
     and_,
     create_engine,
     func,
     select,
+    update,
 )
+from sqlalchemy.orm import declarative_base
 
-script_meta = MetaData()
-script_table = Table(
-    "script",
-    script_meta,
-    Column("x_id", Integer, primary_key=True),  # Unique script ID
-    Column("script_url", String),  # Url for script
-    Column("log_url", String),  # Url for log
-    Column("config_url", String),  # Url for config
-    Column("checker", String),  # Checker class
-    Column("status", Enum(StatusEnum)),  # Status flag
-)
+Base = declarative_base()
 
-production_meta = MetaData()
-production_table = Table(
-    "production",
-    production_meta,
-    Column("p_id", Integer, primary_key=True),  # Unique production ID
-    Column("p_name", String, unique=True),  # Production Name
-    Column("handler", String),  # Handler class
-    Column("config_yaml", String),  # Configuration file
-)
 
-campaign_meta = MetaData()
-campaign_table = Table(
-    "campaign",
-    campaign_meta,
-    Column("c_id", Integer, primary_key=True),  # Unique campaign ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("fullname", String, unique=True),  # Full name of this campaign
-    Column("c_name", String),  # Campaign Name
-    Column("handler", String),  # Handler class
-    Column("config_yaml", String),  # Configuration file
-    Column("butler_repo", String),  # URL for butler repository
-    Column("prod_base_url", String),  # URL for root of the production area
-    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("data_query", String),  # Data query
-    Column("coll_source", String),  # Source data collection
-    Column("coll_in", String),  # Input data collection (post-query)
-    Column("coll_out", String),  # Output data collection
-    Column("status", Enum(StatusEnum)),  # Status flag
-)
+class Script(Base):
+    __tablename__ = "script"
 
-step_meta = MetaData()
-step_table = Table(
-    "step",
-    step_meta,
-    Column("s_id", Integer, primary_key=True),  # Unique Step ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("fullname", String, unique=True),  # Full name of this step
-    Column("s_name", String),  # Step Name
-    Column("previous_step_id", Integer),  # Unique ID of pervious step
-    Column("handler", String),  # Handler class
-    Column("config_yaml", String),  # Configuration file
-    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("data_query", String),  # Data query
-    Column("coll_source", String),  # Source data collection
-    Column("coll_in", String),  # Input data collection (post-query)
-    Column("coll_out", String),  # Output data collection
-    Column("status", Enum(StatusEnum)),  # Status flag
-)
+    x_id = Column(Integer, primary_key=True)  # Unique script ID
+    script_url = Column(String)  # Url for script
+    log_url = Column(String)  # Url for log
+    config_url = Column(String)  # Url for config
+    checker = Column(String)  # Checker class
+    status = Column(Enum(StatusEnum))  # Status flag
 
-group_meta = MetaData()
-group_table = Table(
-    "group",
-    group_meta,
-    Column("g_id", Integer, primary_key=True),  # Unique Group ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
-    Column("fullname", String, unique=True),  # Full name of this group
-    Column("g_name", String),  # Group Name
-    Column("handler", String),  # Handler class
-    Column("config_yaml", String),  # Configuration file
-    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("data_query", String),  # Data query
-    Column("coll_source", String),  # Source data collection
-    Column("coll_in", String),  # Input data collection (post-query)
-    Column("coll_out", String),  # Output data collection
-    Column("status", Enum(StatusEnum)),  # Status flag
-)
 
-workflow_meta = MetaData()
-workflow_table = Table(
-    "workflow",
-    workflow_meta,
-    Column("w_id", Integer, primary_key=True),  # Unique Workflow ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
-    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
-    Column("w_idx", Integer),  # Index for this workflow
-    Column("fullname", String, unique=True),  # Full name of this workflow
-    Column("handler", String),  # Handler class
-    Column("config_yaml", String),  # Configuration file
-    Column("n_tasks_all", Integer, default=0),  # Number of associated tasks
-    Column("n_tasks_done", Integer, default=0),  # Number of finished tasks
-    Column("n_tasks_failed", Integer, default=0),  # Number of failed tasks
-    Column("n_clusters_all", Integer, default=0),  # Number of associated clusters
-    Column("n_clusters_done", Integer, default=0),  # Number of finished clusters
-    Column("n_clusters_failed", Integer, default=0),  # Number of failed clusters
-    Column("workflow_start", DateTime),  # Workflow start time
-    Column("workflow_end", DateTime),  # Workflow end time
-    Column("workflow_cputime", Float),
-    Column("prepare_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("collect_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("run_script", Integer, ForeignKey(script_table.c.x_id)),
-    Column("data_query", String),  # Data query
-    Column("coll_source", String),  # Source data collection
-    Column("coll_in", String),  # Input data collection (post-query)
-    Column("coll_out", String),  # Output data collection
-    Column("status", Enum(StatusEnum)),  # Status flag
-)
+class Production(Base):
+    __tablename__ = "production"
 
-dependency_meta = MetaData()
-dependency_table = Table(
-    "dependency",
-    dependency_meta,
-    Column("d_id", Integer, primary_key=True),  # Unique dependency ID
-    Column("p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("s_id", Integer, ForeignKey(step_table.c.s_id)),
-    Column("g_id", Integer, ForeignKey(group_table.c.g_id)),
-    Column("w_id", Integer, ForeignKey(workflow_table.c.w_id)),
-    Column("depend_p_id", Integer, ForeignKey(production_table.c.p_id)),
-    Column("depend_c_id", Integer, ForeignKey(campaign_table.c.c_id)),
-    Column("depend_s_id", Integer, ForeignKey(step_table.c.s_id)),
-    Column("depend_g_id", Integer, ForeignKey(group_table.c.g_id)),
-    Column("depend_w_id", Integer, ForeignKey(workflow_table.c.w_id)),
-)
+    p_id = Column(Integer, primary_key=True)  # Unique production ID
+    name = Column(String, unique=True)  # Production Name
+    handler = Column(String)  # Handler class
+    config_yaml = Column(String)  # Configuration file
+
+
+class Campaign(Base):
+    __tablename__ = "campaign"
+
+    c_id = Column(Integer, primary_key=True)  # Unique campaign ID
+    p_id = Column(Integer, ForeignKey(Production.p_id))
+    fullname = Column(String, unique=True)  # Full name of this campaign
+    c_name = Column(String)  # Campaign Name
+    handler = Column(String)  # Handler class
+    config_yaml = Column(String)  # Configuration file
+    prepare_script = Column(Integer, ForeignKey(Script.x_id))
+    collect_script = Column(Integer, ForeignKey(Script.x_id))
+    data_query = Column(String)  # Data query
+    coll_source = Column(String)  # Source data collection
+    coll_in = Column(String)  # Input data collection (post-query)
+    coll_out = Column(String)  # Output data collection
+    status = Column(Enum(StatusEnum))  # Status flag
+    butler_repo = Column(String)  # URL for butler repository
+    prod_base_url = Column(String)  # URL for root of the production area
+
+
+class Step(Base):
+    __tablename__ = "step"
+
+    s_id = Column(Integer, primary_key=True)  # Unique Step ID
+    p_id = Column(Integer, ForeignKey(Production.p_id))
+    c_id = Column(Integer, ForeignKey(Campaign.c_id))
+    fullname = Column(String, unique=True)  # Full name of this step
+    s_name = Column(String)  # Step name
+    handler = Column(String)  # Handler class
+    config_yaml = Column(String)  # Configuration file
+    prepare_script = Column(Integer, ForeignKey(Script.x_id))
+    collect_script = Column(Integer, ForeignKey(Script.x_id))
+    data_query = Column(String)  # Data query
+    coll_source = Column(String)  # Source data collection
+    coll_in = Column(String)  # Input data collection (post-query)
+    coll_out = Column(String)  # Output data collection
+    status = Column(Enum(StatusEnum))  # Status flag
+    previous_step_id = Column(Integer)
+
+
+class Group(Base):
+    __tablename__ = "group"
+
+    g_id = Column(Integer, primary_key=True)  # Unique Group ID
+    p_id = Column(Integer, ForeignKey(Production.p_id))
+    c_id = Column(Integer, ForeignKey(Campaign.c_id))
+    s_id = Column(Integer, ForeignKey(Step.s_id))
+    fullname = Column(String, unique=True)  # Full name of this group
+    g_name = Column(String)  # Group name
+    handler = Column(String)  # Handler class
+    config_yaml = Column(String)  # Configuration file
+    prepare_script = Column(Integer, ForeignKey(Script.x_id))
+    collect_script = Column(Integer, ForeignKey(Script.x_id))
+    data_query = Column(String)  # Data query
+    coll_source = Column(String)  # Source data collection
+    coll_in = Column(String)  # Input data collection (post-query)
+    coll_out = Column(String)  # Output data collection
+    status = Column(Enum(StatusEnum))  # Status flag
+
+
+class Workflow(Base):
+    __tablename__ = "workflow"
+
+    w_id = Column(Integer, primary_key=True)  # Unique Workflow ID
+    p_id = Column(Integer, ForeignKey(Production.p_id))
+    c_id = Column(Integer, ForeignKey(Campaign.c_id))
+    s_id = Column(Integer, ForeignKey(Step.s_id))
+    g_id = Column(Integer, ForeignKey(Group.g_id))
+    fullname = Column(String, unique=True)  # Full name of this workflow
+    w_idx = Column(Integer)  # Index for this workflow
+    handler = Column(String)  # Handler class
+    config_yaml = Column(String)  # Configuration file
+    prepare_script = Column(Integer, ForeignKey(Script.x_id))
+    collect_script = Column(Integer, ForeignKey(Script.x_id))
+    data_query = Column(String)  # Data query
+    coll_source = Column(String)  # Source data collection
+    coll_in = Column(String)  # Input data collection (post-query)
+    coll_out = Column(String)  # Output data collection
+    status = Column(Enum(StatusEnum))  # Status flag
+    n_tasks_all = Column(Integer, default=0)  # Number of associated tasks
+    n_tasks_done = Column(Integer, default=0)  # Number of finished tasks
+    n_tasks_failed = Column(Integer, default=0)  # Number of failed tasks
+    n_clusters_all = Column(Integer, default=0)  # Number of associated clusters
+    n_clusters_done = Column(Integer, default=0)  # Number of finished clusters
+    n_clusters_failed = Column(Integer, default=0)  # Number of failed clusters
+    workflow_start = Column(DateTime)  # Workflow start time
+    workflow_end = Column(DateTime)  # Workflow end time
+    workflow_cputime = Column(Float)
+    run_script = Column(Integer, ForeignKey(Script.x_id))
+
+
+class Dependency(Base):
+    __tablename__ = "dependency"
+
+    d_id = Column(Integer, primary_key=True)  # Unique dependency ID
+    p_id = Column(Integer, ForeignKey(Production.p_id))
+    c_id = Column(Integer, ForeignKey(Campaign.c_id))
+    s_id = Column(Integer, ForeignKey(Step.s_id))
+    g_id = Column(Integer, ForeignKey(Group.g_id))
+    w_id = Column(Integer, ForeignKey(Workflow.w_id))
+    depend_p_id = Column(Integer, ForeignKey(Production.p_id))
+    depend_c_id = Column(Integer, ForeignKey(Campaign.c_id))
+    depend_s_id = Column(Integer, ForeignKey(Step.s_id))
+    depend_g_id = Column(Integer, ForeignKey(Group.g_id))
+    depend_w_id = Column(Integer, ForeignKey(Workflow.w_id))
 
 
 def create_db(engine) -> None:
@@ -182,16 +178,7 @@ def create_db(engine) -> None:
     from sqlalchemy_utils import create_database  # pylint: disable=import-outside-toplevel
 
     create_database(engine.url)
-    for meta in [
-        production_meta,
-        campaign_meta,
-        step_meta,
-        group_meta,
-        workflow_meta,
-        dependency_meta,
-        script_meta,
-    ]:
-        meta.create_all(engine)
+    Base.metadata.create_all(engine)
 
 
 def build_engine(db_url, **kwargs):
@@ -212,11 +199,11 @@ def build_engine(db_url, **kwargs):
 def get_table(level: LevelEnum) -> Table:
     """Return the Table corresponding to a `level`"""
     all_tables = {
-        LevelEnum.production: production_table,
-        LevelEnum.campaign: campaign_table,
-        LevelEnum.step: step_table,
-        LevelEnum.group: group_table,
-        LevelEnum.workflow: workflow_table,
+        LevelEnum.production: Production,
+        LevelEnum.campaign: Campaign,
+        LevelEnum.step: Step,
+        LevelEnum.group: Group,
+        LevelEnum.workflow: Workflow,
     }
     return all_tables[level]
 
@@ -224,11 +211,11 @@ def get_table(level: LevelEnum) -> Table:
 def get_primary_key(level: LevelEnum) -> Column:
     """Return the primary key in the table corresponding to a `level`"""
     all_keys = {
-        LevelEnum.production: production_table.c.p_id,
-        LevelEnum.campaign: campaign_table.c.c_id,
-        LevelEnum.step: step_table.c.s_id,
-        LevelEnum.group: group_table.c.g_id,
-        LevelEnum.workflow: workflow_table.c.w_id,
+        LevelEnum.production: Production.p_id,
+        LevelEnum.campaign: Campaign.c_id,
+        LevelEnum.step: Step.s_id,
+        LevelEnum.group: Group.g_id,
+        LevelEnum.workflow: Workflow.w_id,
     }
     return all_keys[level]
 
@@ -237,10 +224,10 @@ def get_status_key(level: LevelEnum) -> Optional[Column]:
     """Return the primary key in the table corresponding to a `level`"""
     all_keys = {
         LevelEnum.production: None,
-        LevelEnum.campaign: campaign_table.c.status,
-        LevelEnum.step: step_table.c.status,
-        LevelEnum.group: group_table.c.status,
-        LevelEnum.workflow: workflow_table.c.status,
+        LevelEnum.campaign: Campaign.status,
+        LevelEnum.step: Step.status,
+        LevelEnum.group: Group.status,
+        LevelEnum.workflow: Workflow.status,
     }
     return all_keys[level]
 
@@ -248,11 +235,11 @@ def get_status_key(level: LevelEnum) -> Optional[Column]:
 def get_name_field(level: LevelEnum) -> Column:
     """Return the `name` field in a table corresponding to a `level`"""
     all_keys = {
-        LevelEnum.production: production_table.c.p_name,
-        LevelEnum.campaign: campaign_table.c.c_name,
-        LevelEnum.step: step_table.c.s_name,
-        LevelEnum.group: group_table.c.g_name,
-        LevelEnum.workflow: workflow_table.c.w_idx,
+        LevelEnum.production: Production.p_name,
+        LevelEnum.campaign: Campaign.c_name,
+        LevelEnum.step: Step.s_name,
+        LevelEnum.group: Group.g_name,
+        LevelEnum.workflow: Workflow.w_idx,
     }
     return all_keys[level]
 
@@ -263,10 +250,10 @@ def get_parent_field(level: LevelEnum) -> Optional[Column]:
     """
     all_keys = {
         LevelEnum.production: None,
-        LevelEnum.campaign: campaign_table.c.p_id,
-        LevelEnum.step: step_table.c.c_id,
-        LevelEnum.group: group_table.c.s_id,
-        LevelEnum.workflow: workflow_table.c.g_id,
+        LevelEnum.campaign: Campaign.p_id,
+        LevelEnum.step: Step.c_id,
+        LevelEnum.group: Group.s_id,
+        LevelEnum.workflow: Workflow.g_id,
     }
     return all_keys[level]
 
@@ -276,16 +263,16 @@ def get_matching_key(table_level: LevelEnum, match_level: LevelEnum) -> Column:
     entries in a particular table with any level of parent
     """
     all_keys = {
-        LevelEnum.production: [production_table.c.p_id],
-        LevelEnum.campaign: [campaign_table.c.p_id, campaign_table.c.c_id],
-        LevelEnum.step: [step_table.c.p_id, step_table.c.c_id, step_table.c.s_id],
-        LevelEnum.group: [group_table.c.p_id, group_table.c.c_id, group_table.c.s_id, group_table.c.g_id],
+        LevelEnum.production: [Production.p_id],
+        LevelEnum.campaign: [Campaign.p_id, Campaign.c_id],
+        LevelEnum.step: [Step.p_id, Step.c_id, Step.s_id],
+        LevelEnum.group: [Group.p_id, Group.c_id, Group.s_id, Group.g_id],
         LevelEnum.workflow: [
-            workflow_table.c.p_id,
-            workflow_table.c.c_id,
-            workflow_table.c.s_id,
-            workflow_table.c.g_id,
-            workflow_table.c.w_id,
+            Workflow.p_id,
+            Workflow.c_id,
+            Workflow.s_id,
+            Workflow.g_id,
+            Workflow.w_id,
         ],
     }
     return all_keys[table_level][match_level.value]
@@ -296,11 +283,11 @@ def get_depend_key(level: LevelEnum):
     corresponding to a `level`
     """
     all_keys = {
-        LevelEnum.production: dependency_table.c.depend_p_id,
-        LevelEnum.campaign: dependency_table.c.depend_c_id,
-        LevelEnum.step: dependency_table.c.depend_s_id,
-        LevelEnum.group: dependency_table.c.depend_g_id,
-        LevelEnum.workflow: dependency_table.c.depend_w_id,
+        LevelEnum.production: Dependency.depend_p_id,
+        LevelEnum.campaign: Dependency.depend_c_id,
+        LevelEnum.step: Dependency.depend_s_id,
+        LevelEnum.group: Dependency.depend_g_id,
+        LevelEnum.workflow: Dependency.depend_w_id,
     }
     return all_keys[level]
 
@@ -365,7 +352,8 @@ def return_iterable(conn, sel) -> Iterable:
     """Returns an iterable matching a selection"""
     sel_result = conn.execute(sel)
     _check_result(sel_result)
-    return sel_result
+    for x_ in sel_result:
+        yield x_[0]
 
 
 def return_count(conn, count) -> int:
@@ -392,16 +380,6 @@ def print_select(conn, stream: TextIO, sel) -> None:
         stream.write(f"{str(row)}\n")
 
 
-def get_repo_coll():
-    """Return the column that has the butler repo"""
-    return campaign_table.c.butler_repo
-
-
-def get_prod_base_coll():
-    """Return the column that has the production base area"""
-    return campaign_table.c.prod_base_url
-
-
 def get_count_query(level: LevelEnum, db_id: Optional[DbId]):
     """Return the query to count rows matching an id"""
     count_key = get_parent_field(level)
@@ -418,7 +396,7 @@ def get_row_query(level: LevelEnum, db_id: DbId, columns=None):
     table = get_table(level)
     prim_key = get_primary_key(level)
     if columns is None:
-        sel = table.select().where(prim_key == db_id[level])
+        sel = select(table).where(prim_key == db_id[level])
     else:
         sel = select(columns).where(prim_key == db_id[level])
     return sel
@@ -458,9 +436,9 @@ def get_match_query(level: LevelEnum, db_id: DbId):
             parent_key = get_matching_key(level, LevelEnum(i))
             row_id = row_id_
     if parent_key is None:
-        sel = table.select()
+        sel = select(table)
     else:
-        sel = table.select().where(parent_key == row_id)
+        sel = select(table).where(parent_key == row_id)
     return sel
 
 
@@ -478,14 +456,13 @@ def add_prerequisite(conn, depend_id: DbId, prereq_id: DbId):
         depend_g_id=depend_id[LevelEnum.group],
         depend_w_id=depend_id[LevelEnum.workflow],
     )
-    ins = dependency_table.insert().values(**insert_vals)
-    ins_result = conn.execute(ins)
-    _check_result(ins_result)
+    conn.add(Dependency(**insert_vals))
+    conn.commit()
 
 
 def get_prerequisites(conn, level: LevelEnum, db_id: DbId):
     depend_key = get_depend_key(level)
-    sel = dependency_table.select().where(depend_key == db_id[level])
+    sel = select(Dependency).where(depend_key == db_id[level])
     itr = return_iterable(conn, sel)
     db_id_list = [DbId.create_from_row(row_) for row_ in itr]
     return db_id_list
@@ -493,37 +470,35 @@ def get_prerequisites(conn, level: LevelEnum, db_id: DbId):
 
 def add_script(conn, **kwargs) -> int:
     """Insert a new row with details about a script"""
-    ins = script_table.insert().values(**kwargs)
-    ins_result = conn.execute(ins)
-    _check_result(ins_result)
-    counter = func.count(script_table.c.x_id)
+    conn.add(Script(**kwargs))
+    conn.commit()
+    counter = func.count(Script.x_id)
     return return_count(conn, counter)
 
 
 def get_script(conn, script_id: int):
-    sel = script_table.select().where(script_table.c.x_id == script_id)
-    return return_single_row(conn, sel)
+    sel = select(Script).where(Script.x_id == script_id)
+    return return_single_row(conn, sel)[0]
 
 
 def insert_values(conn, level: LevelEnum, **kwargs):
     """Inserts a new row at a given level with values given in kwargs"""
     table = get_table(level)
-    ins = table.insert().values(**kwargs)
-    ins_result = conn.execute(ins)
-    _check_result(ins_result)
+    conn.add(table(**kwargs))
+    conn.commit()
 
 
 def update_values(conn, level: LevelEnum, db_id: DbId, **kwargs):
     """Updates a given row with values given in kwargs"""
     table = get_table(level)
     prim_key = get_primary_key(level)
-    stmt = table.update().where(prim_key == db_id[level]).values(**kwargs)
+    stmt = update(table).where(prim_key == db_id[level]).values(**kwargs)
     upd_result = conn.execute(stmt)
     _check_result(upd_result)
 
 
 def update_script_status(conn, script_id: int, script_status: StatusEnum) -> None:
 
-    stmt = script_table.update().where(script_table.c.x_id == script_id).values(status=script_status)
+    stmt = update(Script).where(Script.x_id == script_id).values(status=script_status)
     upd_result = conn.execute(stmt)
     _check_result(upd_result)

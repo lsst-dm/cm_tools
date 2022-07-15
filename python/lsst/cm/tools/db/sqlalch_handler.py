@@ -97,19 +97,17 @@ class SQLAlchemyHandler(Handler):  # noqa
             if "prod_base_url" not in kwcopy:
                 raise KeyError("prod_base_url must be specified with inserting a campaign")
         func_dict = {
-            LevelEnum.production: self._get_insert_production_fields,
             LevelEnum.campaign: self._get_insert_campaign_fields,
             LevelEnum.step: self._get_insert_step_fields,
             LevelEnum.group: self._get_insert_group_fields,
-            LevelEnum.workflow: self._get_insert_workflow_fields,
         }
-        the_func = func_dict[level]
         if level == LevelEnum.production:
-            ret_dict = the_func(**kwcopy)
+            ret_dict = self._get_insert_production_fields(**kwcopy)
         elif level in [LevelEnum.campaign, LevelEnum.step, LevelEnum.group]:
+            the_func = func_dict[level]
             ret_dict = the_func(parent_db_id, **kwcopy)
         else:
-            ret_dict = the_func(dbi, parent_db_id, **kwcopy)
+            ret_dict = self._get_insert_workflow_fields(dbi, parent_db_id, **kwcopy)
         ret_dict["handler"] = self.get_handler_class_name()
         ret_dict["config_yaml"] = self._config_url
         return ret_dict
@@ -167,7 +165,7 @@ class SQLAlchemyHandler(Handler):  # noqa
             return db_id_list
         path_var_name = path_var_names[level]
         prod_base_url = dbi.get_prod_base(db_id)
-        full_path = os.path.join(prod_base_url, data[path_var_name])
+        full_path = os.path.join(prod_base_url, data.__dict__[path_var_name])
         safe_makedirs(full_path)
         update_kwargs = {}
         db_id_list.append(db_id)
@@ -297,10 +295,10 @@ class SQLAlchemyHandler(Handler):  # noqa
             dbi.prepare(LevelEnum.workflow, parent_db_id, recurse)
 
     def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        script_id = data["run_script"]
+        script_id = data.run_script
         script_data = dbi.get_script(script_id)
-        config_url = script_data["config_url"]
-        script_url = script_data["script_url"]
+        config_url = script_data.config_url
+        script_url = script_data.script_url
         submit_command = f"{script_url} {config_url}"
         # workflow_start = datetime.now()
         print(f"Submitting workflow {str(db_id)} with {submit_command}")
@@ -318,12 +316,12 @@ class SQLAlchemyHandler(Handler):  # noqa
 
     def _make_groups(self, dbi: DbInterface, db_id: DbId, data, recurse: bool = True) -> list[DbId]:
         """Internal function called to insert groups into a given step"""
-        tokens = data["fullname"].split("/")
+        tokens = data.fullname.split("/")
         insert_fields = dict(
             production_name=tokens[0],
             campaign_name=tokens[1],
             step_name=tokens[2],
-            coll_source=data["coll_in"],
+            coll_source=data.coll_in,
         )
         db_id_list = []
         for group_kwargs in self._group_iterator(dbi, db_id, data, **insert_fields):
