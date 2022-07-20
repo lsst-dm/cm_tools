@@ -36,6 +36,7 @@ class StatusEnum(enum.Enum):
     superseded = 8  # Marked as superseded
 
     def ignore(self):
+        """Can be used to filter out failed and rejected runs"""
         return self.value < 0
 
 
@@ -47,11 +48,13 @@ class LevelEnum(enum.Enum):
     workflow = 4  # A single Panda workflow
 
     def parent(self):
+        """Return the parent level, or `None` if does not exist"""
         if self.value == 0:
             return None
         return LevelEnum(self.value - 1)
 
     def child(self):
+        """Return the child level, or `None` if does not exist"""
         if self.value == 4:
             return None
         return LevelEnum(self.value + 1)

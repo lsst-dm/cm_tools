@@ -21,5 +21,7 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         ],
-    install_requires=["lsst-daf-butler"]
+    install_requires=["lsst-daf-butler", "sqlalchemy-utils"],
+    scripts=['bin/cm'],
+    tests_require=["pytest", "pytest-cov"],
 )

@@ -1,4 +1,4 @@
-workflow_template_yaml: "${CM_TOOLS_DIR}/examples/example_template.yaml"
+workflow_template_yaml: "examples/example_template.yaml"
 sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
 coll_source: '/prod/raw/all'
 command_tmpl: 'bps'

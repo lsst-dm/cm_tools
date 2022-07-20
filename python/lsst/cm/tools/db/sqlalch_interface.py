@@ -65,6 +65,16 @@ class SQLAlchemyInterface(DbInterface):
         self._conn = Session(self._engine, future=True)
         DbInterface.__init__(self)
 
+    def get_repo(self, db_id: DbId) -> str:
+        table = db.get_table(LevelEnum.campaign)
+        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.butler_repo])
+        return db.return_first_column(self._conn, sel)
+
+    def get_prod_base(self, db_id: DbId) -> str:
+        table = db.get_table(LevelEnum.campaign)
+        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.prod_base_url])
+        return db.return_first_column(self._conn, sel)
+
     def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
         if level is None:
             return DbId()
@@ -91,7 +101,7 @@ class SQLAlchemyInterface(DbInterface):
     def get_prerequisites(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         return db.get_prerequisites(self._conn, level, db_id)
 
-    def get_script(self, script_id: int):
+    def get_script(self, script_id: int) -> ScriptBase:
         return db.get_script(self._conn, script_id)
 
     def print_(self, stream, level: LevelEnum, db_id: DbId) -> None:
@@ -112,7 +122,7 @@ class SQLAlchemyInterface(DbInterface):
         if update_fields:
             db.update_values(self._conn, level, db_id, **update_fields)
 
-    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
+    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 1) -> None:
         if recurse:
             child_level = level.child()
             if child_level is not None:
@@ -296,16 +306,6 @@ class SQLAlchemyInterface(DbInterface):
 
     def _current_id(self, level: LevelEnum) -> int:
         return self.count(level, None)
-
-    def get_repo(self, db_id: DbId) -> str:
-        table = db.get_table(LevelEnum.campaign)
-        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.butler_repo])
-        return db.return_first_column(self._conn, sel)
-
-    def get_prod_base(self, db_id: DbId) -> str:
-        table = db.get_table(LevelEnum.campaign)
-        sel = db.get_row_query(LevelEnum.campaign, db_id, [table.prod_base_url])
-        return db.return_first_column(self._conn, sel)
 
     @staticmethod
     def _extract_child_status(itr: Iterable, status_name: str) -> np.ndarray:

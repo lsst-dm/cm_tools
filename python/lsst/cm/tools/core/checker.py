@@ -28,6 +28,12 @@ from lsst.utils.introspection import get_full_type_name
 
 class Checker:
     """Base class to check on script status
+
+    The derived classes should implement the `check_url` method
+    with returns a StatusEnum based on querying the URL.
+
+    Typically, this could mean scanning a log file, or checking the existance
+    of a file at the URL, or querying a server at that URL.
     """
 
     checker_cache = {}
@@ -49,8 +55,7 @@ class Checker:
         Notes
         -----
         There is a layer of caching here.
-        1.  A `dict` of HandlerChecker objects, keyed by class name
-        it has not changed.
+        1.  A `dict` of Checker objects, keyed by class name
         """
         cached_checker = Checker.checker_cache.get(class_name)
         if cached_checker is None:
@@ -60,7 +65,7 @@ class Checker:
         return cached_checker
 
     def get_checker_class_name(self) -> str:
-        """Return this classes full name"""
+        """Return this class's full name"""
         return get_full_type_name(self)
 
     def check_url(self, url, current_status: StatusEnum) -> StatusEnum:

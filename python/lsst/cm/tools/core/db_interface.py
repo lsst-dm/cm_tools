@@ -30,25 +30,57 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 
 
 class ScriptBase:
+    """Interface class for database entries describing Scripts
 
+    This will require the derived class to implement
+    a `check_status` method to check on the status of the script.
+    """
     def check_status(self, conn) -> StatusEnum:
         raise NotImplementedError()
 
 
 class CMTableBase:
+    """Interface class for database entries describing parts of
+    the data processing
+
+    This will require the derived class to implement
+    a `get_handler` method to get a callback handler,
+    and a `get_insert_fields` method to populate
+    the fields need to make a new entry in the associated table.
+    """
 
     def get_handler(self) -> Handler:
+        """Return the associated callback `Handler`"""
         raise NotImplementedError()
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+        """Return fields need to populate a new entry in this table
+
+        Parameters
+        ----------
+        handler : Handler
+            The callback handler
+
+        parent_db_id: DbId
+            The DbId for the parent of the entry being inserted
+
+        Keywords
+        --------
+        These can be used to help populate the fields in question
+
+        Returns
+        -------
+        insert_fields : dict[str, Any]
+            The keys and values of the fields to insert
+        """
         raise NotImplementedError()
 
 
 class DbInterface:
     """Base class for database interface
 
-    Many of the interface function here take a DbId an an argument.
+    Many of the interface functions here take a DbId argument.
     This can specify either a single database entry, or all of the
     entries in a given table with a particular parent.
 
@@ -127,14 +159,14 @@ class DbInterface:
         Returns
         -------
         db_id : DbId
-            The request database ID
+            The requested database ID
         """
         raise NotImplementedError()
 
     def get_row_id(self, level: LevelEnum, **kwargs) -> int:
         """Return the primary key of a particular row in the database
 
-         Parameters
+        Parameters
         ----------
         level: LevelEnum
             Selects which database table to search
@@ -273,7 +305,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
+    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 1) -> None:
         """Check all database entries at a particular level
 
         Parameters
@@ -352,17 +384,17 @@ class DbInterface:
 
         Parameters
         ----------
-        script_url: str
+        script_url: Optional[str]
             The location of the script
 
-        log_url: str
+        log_url: Optional[str]
             The location of the log
             (which can be checked to set the script status)
 
-        checker : str
+        checker : Optional[str]
             Fully defined path to a class to check the status of the script
 
-        status : StatusEnum
+        status : Optional[StatusEnum]
             Status of the script
 
         Returns
@@ -399,7 +431,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
-        """Preparing a database entry for execution
+        """Prepare a database entry for execution
 
         Parameters
         ----------
@@ -416,7 +448,7 @@ class DbInterface:
 
         Keywords
         --------
-,         Keywords can be used in recursion
+        Keywords can be based to the callback handler
         """
         raise NotImplementedError()
 
@@ -460,8 +492,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def accept(self, level: LevelEnum, db_id: DbId, recurse: bool = True) -> list[DbId]:
-        """Accept all the completed or part_fail
-        entries at a particular level
+        """Accept completed entries at a particular level
 
         Parameters
         ----------
@@ -479,8 +510,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def reject(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Reject all the completed or part_fail
-        entries at a particular level
+        """Reject entries at a particular level
 
         Parameters
         ----------
@@ -488,7 +518,7 @@ class DbInterface:
             Selects which database table to search
 
         db_id : DbId
-            Specifies the entries we are accepting
+            Specifies the entries we are rejecting
 
         Returns
         -------

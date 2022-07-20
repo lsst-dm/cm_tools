@@ -52,6 +52,7 @@ class Handler:
 
     @property
     def config_url(self):
+        """Return the url of the file with the handler configuration"""
         return self._config_url
 
     @staticmethod
@@ -88,10 +89,11 @@ class Handler:
 
     @property
     def config(self) -> dict[str, Any]:
+        """Return the handler's configuration"""
         return self._config
 
     def get_handler_class_name(self) -> str:
-        """Return this classes full name"""
+        """Return this class's full name"""
         return get_full_type_name(self)
 
     def get_insert_fields_hook(
@@ -144,7 +146,7 @@ class Handler:
             Interface to the database we intserted into
 
         insert_fields : dict
-            List of fields and values that were inserted
+            Dictionary of fields and values that were inserted
 
         Keywords
         --------
@@ -189,13 +191,7 @@ class Handler:
         raise NotImplementedError()
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
-        """Called when preparing a database entry for execution
-
-        Can be used to prepare additional entries, for example,
-        the children of this entry.
-
-        Can also be used to do any actions associated to preparing this entry,
-        e.g., making TAGGED Butler collections
+        """Called to set up a script need to prepare an entry for execution
 
         Parameters
         ----------
@@ -391,7 +387,7 @@ class Handler:
     def get_kwarg_value(key: str, **kwargs) -> Any:
         """Utility function to get a keyword value
 
-        Provides a more usefull error message if the keyword is not present
+        Provides a more useful error message if the keyword is not present
 
         Parameters
         ----------

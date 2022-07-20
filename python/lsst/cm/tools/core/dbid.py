@@ -32,6 +32,24 @@ class DbId:
     """Information to identify a single entry in the CM database tables
 
     This consist of primary keys into each of the tables
+
+    Notes
+    -----
+    A DbId can be used either to specific a single entry or to specify
+    a set of entries.
+
+    At each level, the DbId can either have a primary key, or `None`
+    any matching function should specify which table to search for
+    matches.
+
+    If matching is requested at a level which the DbId has a primary
+    key for, the matching should return only that one DbId.
+
+    On the other hand, the DbId does not have a primary key at that
+    level, the match should return all the entries that match
+    at the highest level it does have a key.  E.g., asking for matching
+    `LevelEnum.group` for a DbId that only contains `LevelEnum.step`
+    will match all the `LevelEnum.group` objects with that `LevelEnum.step`
     """
 
     p_id: Optional[int] = None
@@ -41,6 +59,7 @@ class DbId:
     w_id: Optional[int] = None
 
     def level(self) -> Optional[LevelEnum]:
+        """Return the highest level which we do have a specific key for"""
         if self.w_id is not None:
             return LevelEnum.workflow
         if self.g_id is not None:

@@ -4,7 +4,7 @@ p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
 config="examples/example_config.yaml"
-command="${CM_TOOLS_DIR}/bin.src/cm"
+command="cm"
 
 ${command} create
 ${command} insert --level production --production_name ${p_name} --handler ${handler} --config_yaml ${config}
