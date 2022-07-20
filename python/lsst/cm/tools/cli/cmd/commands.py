@@ -79,18 +79,16 @@ def cm_create(**kwargs):
 @config_option()
 @db_option()
 @echo_option()
-@recurse_option()
 def cm_insert(**kwargs):
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     config_yaml = all_args.pop("config_yaml")
     assert config_yaml is not None
     handler_class = all_args.pop("handler")
-    recurse_value = all_args.pop("recurse")
     the_handler = Handler.get_handler(handler_class, config_yaml)
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.insert(the_level, the_db_id, the_handler, recurse_value, **all_args)
+    iface.insert(the_level, the_db_id, the_handler, **all_args)
 
 
 @click.command("print")
@@ -147,13 +145,11 @@ def cm_count(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 def cm_prepare(**kwargs):
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    recurse_value = all_args.pop("recurse")
     id_args = [
         "production_name",
         "campaign_name",
@@ -163,7 +159,7 @@ def cm_prepare(**kwargs):
     ]
     for arg_ in id_args:
         all_args.pop(arg_)
-    iface.prepare(the_level, the_db_id, recurse_value, **all_args)
+    iface.prepare(the_level, the_db_id, **all_args)
 
 
 @click.command("queue")
@@ -175,7 +171,6 @@ def cm_prepare(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 def cm_queue(**kwargs):
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
@@ -193,7 +188,6 @@ def cm_queue(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 @max_running_option()
 def cm_launch(**kwargs):
     all_args = kwargs.copy()
@@ -268,7 +262,6 @@ def cm_reject(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 @max_running_option()
 def cm_fake_run(**kwargs):
     all_args = kwargs.copy()

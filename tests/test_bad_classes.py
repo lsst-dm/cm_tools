@@ -23,10 +23,33 @@ import sys
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import DbId, DbInterface
+from lsst.cm.tools.core.db_interface import DbId, DbInterface, ScriptBase, CMTableBase
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+
+
+def test_bad_script():
+    class BadScript(ScriptBase):
+        pass
+
+    bad_script = BadScript()
+    with pytest.raises(NotImplementedError):
+        bad_script.check_status(None)
+
+
+def test_bad_cm_table():
+    class BadCMTable(CMTableBase):
+        pass
+
+    bad_cm_table = BadCMTable()
+    null_db_id = DbId()
+
+    with pytest.raises(NotImplementedError):
+        bad_cm_table.get_handler()
+
+    with pytest.raises(NotImplementedError):
+        bad_cm_table.get_insert_fields(None, null_db_id)
 
 
 def test_bad_db_interface():
@@ -71,9 +94,6 @@ def test_bad_db_interface():
 
     with pytest.raises(NotImplementedError):
         bad_db.update(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.update_script_status(0, StatusEnum.ready)
 
     with pytest.raises(NotImplementedError):
         bad_db.check(LevelEnum.production, null_db_id)
@@ -147,11 +167,11 @@ def test_bad_handler():
     class BadHandler(Handler):
         @classmethod
         def bad_get_kwarg(cls):
-            return cls._get_kwarg_value("bad")
+            return cls.get_kwarg_value("bad")
 
         def bad_resolve_templated(self):
-            self._config["bad_template"] = "{missing}"
-            self._resolve_templated_string("bad_template", {})
+            self.config["bad_template"] = "{missing}"
+            self.resolve_templated_string("bad_template", {})
 
     bad_db = BadDbInterface()
     null_db_id = DbId()
@@ -168,9 +188,6 @@ def test_bad_handler():
 
     with pytest.raises(NotImplementedError):
         bad_handler.post_insert_hook(LevelEnum.production, bad_db, {})
-
-    with pytest.raises(NotImplementedError):
-        bad_handler.get_update_fields_hook(LevelEnum.production, bad_db, None, [])
 
     with pytest.raises(NotImplementedError):
         bad_handler.prepare_hook(LevelEnum.production, bad_db, null_db_id, None)

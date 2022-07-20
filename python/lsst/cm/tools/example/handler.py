@@ -76,8 +76,34 @@ class ExampleStep3Grouper(Grouper):
 
 class ExampleHandler(SQLAlchemyHandler):
 
+    default_config = SQLAlchemyHandler.default_config.copy()
+
+    default_config.update(
+        prepare_script_url_template="{prod_base_url}/{fullname}/prepare.sh",
+        prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
+        collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
+        collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
+        run_script_url_template="bps",
+        run_log_url_template="{prod_base_url}/{fullname}/run.log",
+        run_config_url_template="{prod_base_url}/{fullname}/bps.yaml",
+    )
+
     step_dict = OrderedDict(
         [("step1", ExampleStep1Grouper), ("step2", ExampleStep2Grouper), ("step3", ExampleStep3Grouper)]
+    )
+
+    prepare_script_url_template_names = dict(
+        script_url="prepare_script_url_template", log_url="prepare_log_url_template",
+    )
+
+    collect_script_url_template_names = dict(
+        script_url="collect_script_url_template", log_url="collect_log_url_template",
+    )
+
+    run_script_url_template_names = dict(
+        script_url="run_script_url_template",
+        log_url="run_log_url_template",
+        config_url="run_config_url_template",
     )
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
@@ -87,8 +113,8 @@ class ExampleHandler(SQLAlchemyHandler):
         if level == LevelEnum.workflow:
             return None
         butler_repo = dbi.get_repo(db_id)
-        script_data = self._resolve_templated_strings(
-            self.prepare_script_url_tempatle_names,
+        script_data = self.resolve_templated_strings(
+            self.prepare_script_url_template_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),
             fullname=data.fullname,
@@ -100,11 +126,11 @@ class ExampleHandler(SQLAlchemyHandler):
         write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
         return script_id
 
-    def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> str:
+    def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> int:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = dbi.get_repo(db_id)
-        script_data = self._resolve_templated_strings(
+        script_data = self.resolve_templated_strings(
             self.run_script_url_template_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),
@@ -141,7 +167,7 @@ class ExampleHandler(SQLAlchemyHandler):
     ) -> None:
         script_id = data.run_script
         script_data = dbi.get_script(script_id)
-        write_status_to_yaml(script_data.log_url, status)
+        write_status_to_yaml(script_data.log_url, status)  # type: ignore
 
     def collection_hook(
         self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
@@ -150,7 +176,7 @@ class ExampleHandler(SQLAlchemyHandler):
         if level == LevelEnum.campaign:
             return dict(status=StatusEnum.collecting, collect_script=None)
         butler_repo = dbi.get_repo(db_id)
-        script_data = self._resolve_templated_strings(
+        script_data = self.resolve_templated_strings(
             self.collect_script_url_template_names,
             {},
             prod_base_url=dbi.get_prod_base(db_id),

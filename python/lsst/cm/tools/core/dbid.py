@@ -40,16 +40,6 @@ class DbId:
     g_id: Optional[int] = None
     w_id: Optional[int] = None
 
-    @classmethod
-    def create_from_row(cls, row) -> DbId:
-        ids = {}
-        for key in ["p_id", "c_id", "s_id", "g_id", "w_id"]:
-            try:
-                ids[key] = getattr(row, key)
-            except AttributeError:
-                ids[key] = None
-        return cls(**ids)
-
     def level(self) -> Optional[LevelEnum]:
         if self.w_id is not None:
             return LevelEnum.workflow
@@ -70,6 +60,9 @@ class DbId:
     def __getitem__(self, level: LevelEnum) -> int:
         """Return primary key at a particular level"""
         return self.to_tuple()[level.value]
+
+    def __repr__(self) -> str:
+        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace('None', 'x')
 
     def extend(self, level: LevelEnum, row_id: int) -> DbId:
         """Return an extension of this DbId

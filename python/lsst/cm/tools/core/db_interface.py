@@ -29,6 +29,22 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 
 
+class ScriptBase:
+
+    def check_status(self, conn) -> StatusEnum:
+        raise NotImplementedError()
+
+
+class CMTableBase:
+
+    def get_handler(self) -> Handler:
+        raise NotImplementedError()
+
+    @classmethod
+    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+        raise NotImplementedError()
+
+
 class DbInterface:
     """Base class for database interface
 
@@ -175,7 +191,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_script(self, script_id: int):
+    def get_script(self, script_id: int) -> ScriptBase:
         """Return the info about a selected script
 
         Parameters
@@ -254,19 +270,6 @@ class DbInterface:
         --------
         These are passed to the handler which can use
         them to derive the values for the fields to update.
-        """
-        raise NotImplementedError()
-
-    def update_script_status(self, script_id: int, script_status: StatusEnum) -> None:
-        """Update a particular script status
-
-        Parameters
-        ----------
-        script_id: int
-            Selects script to update
-
-        script_status: StatusEnum
-            The new status
         """
         raise NotImplementedError()
 
@@ -370,7 +373,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def insert(
-        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, recurse: bool = True, **kwargs
+        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs
     ) -> dict[str, Any]:
         """Insert a new database entry at a particular level
 
@@ -381,10 +384,6 @@ class DbInterface:
 
         parent_db_id : DbId
             Specifies the parent entry to the entry we are inserting
-
-        recurse : bool=True
-            If true, call `handler.post_insert_hook` to recursive insert
-            child entries
 
         Keywords
         --------
@@ -399,7 +398,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def prepare(self, level: LevelEnum, db_id: DbId, recurse: bool = True, **kwargs) -> list[DbId]:
+    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
         """Preparing a database entry for execution
 
         Parameters
@@ -409,9 +408,6 @@ class DbInterface:
 
         db_id : DbId
             Database ID for this entry
-
-        recurse : bool=True
-            If true, allows prepared entries to insert new entries
 
         Returns
         -------

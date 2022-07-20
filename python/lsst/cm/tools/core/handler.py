@@ -50,6 +50,10 @@ class Handler:
         self._config_url = None
         self._config = {}
 
+    @property
+    def config_url(self):
+        return self._config_url
+
     @staticmethod
     def get_handler(class_name: str, config_url: str) -> Handler:
         """Create and return a handler
@@ -122,7 +126,6 @@ class Handler:
         level: LevelEnum,
         dbi: DbInterface,
         insert_fields: dict[str, Any],
-        recurse: bool = False,
         **kwargs,
     ) -> None:
         """Called after inserting an entry into the database
@@ -149,38 +152,8 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def get_update_fields_hook(
-        self, level: LevelEnum, dbi: DbInterface, data, itr: Iterable, **kwargs
-    ) -> dict[str, Any]:
-        """Get the fields needed to update an entry into the database
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we are updating
-
-        dbi : DbInterface
-            Interface to the database we are updating
-
-        data : ???
-            Current data for the entry we are updating
-
-        itr : Iterable
-            Iterator over childer of the entry we are updating
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes to compute field values
-
-        Returns
-        -------
-        update_fields : dict[str, Any]
-            The fields and value to update
-        """
-        raise NotImplementedError()
-
     def prepare_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, recurse: bool = True, **kwargs,
+        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, **kwargs,
     ) -> list[DbId]:
         """Called when preparing a database entry for execution
 
@@ -385,7 +358,7 @@ class Handler:
             return
         self._read_config(config_url)
 
-    def _get_config_var(self, varname: str, default: Any, **kwargs) -> Any:
+    def get_config_var(self, varname: str, default: Any, **kwargs) -> Any:
         """Utility function to get a configuration parameter value
 
         Parameters
@@ -414,8 +387,8 @@ class Handler:
         """
         return kwargs.get(varname, self.config.get(varname, default))
 
-    @classmethod
-    def _get_kwarg_value(cls, key: str, **kwargs) -> Any:
+    @staticmethod
+    def get_kwarg_value(key: str, **kwargs) -> Any:
         """Utility function to get a keyword value
 
         Provides a more usefull error message if the keyword is not present
@@ -440,7 +413,7 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def _resolve_templated_string(self, template_name: str, insert_fields: dict, **kwargs) -> str:
+    def resolve_templated_string(self, template_name: str, insert_fields: dict, **kwargs) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
@@ -475,7 +448,7 @@ class Handler:
         except KeyError as msg:
             raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg
 
-    def _resolve_templated_strings(
+    def resolve_templated_strings(
         self, template_names: dict[str, str], insert_fields: dict, **kwargs
     ) -> dict[str, Any]:
         """Utility function resolve a list of templated names
@@ -505,6 +478,6 @@ class Handler:
             The formatting failed
         """
         return {
-            key_: self._resolve_templated_string(val_, insert_fields, **kwargs)
+            key_: self.resolve_templated_string(val_, insert_fields, **kwargs)
             for key_, val_ in template_names.items()
         }

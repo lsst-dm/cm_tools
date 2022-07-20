@@ -27,6 +27,7 @@ from lsst.cm.tools.core.db_interface import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
+from lsst.cm.tools.db import db
 
 
 def test_full_example():
@@ -52,7 +53,6 @@ def test_full_example():
         LevelEnum.campaign,
         db_p_id,
         the_handler,
-        recurse=True,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -60,24 +60,26 @@ def test_full_example():
     )
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
-    iface.prepare(LevelEnum.campaign, db_c_id, recurse=True)
+    iface.prepare(LevelEnum.campaign, db_c_id)
 
     db_s3_id = iface.get_db_id(
         LevelEnum.step, production_name="example", campaign_name="test", step_name="step3"
     )
 
     # These should all fail
-    result = iface.prepare(LevelEnum.step, db_s3_id, recurse=True)
+    result = iface.prepare(LevelEnum.step, db_s3_id)
     assert not result
 
     for step_name in ["step1", "step2", "step3"]:
         db_s_id = iface.get_db_id(
             LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
         )
-        iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        iface.prepare(LevelEnum.step, db_s_id)
         # This should fail
-        result = iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        result = iface.prepare(LevelEnum.step, db_s_id)
         assert not result
+        expected_count = dict(step1=10, step2=30, step3=50)
+        assert iface.count(LevelEnum.workflow, db_s_id) == expected_count[step_name]
         iface.queue_workflows(LevelEnum.step, db_s_id)
         iface.launch_workflows(LevelEnum.step, db_s_id, 5)
         iface.launch_workflows(LevelEnum.step, db_s_id, 100)
@@ -96,7 +98,6 @@ def test_full_example():
     iface.accept(LevelEnum.campaign, db_c_id)
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
-
     iface.print_table(sys.stdout, LevelEnum.production)
     iface.print_table(sys.stdout, LevelEnum.campaign)
     iface.print_table(sys.stdout, LevelEnum.step)
@@ -110,6 +111,10 @@ def test_full_example():
     assert check_p_id.to_tuple() == (1, None, None, None, None)
     iface.print_(sys.stdout, LevelEnum.production, check_p_id)
     iface.print_(sys.stdout, LevelEnum.production, check_top_id)
+
+    prod = iface.get_data(LevelEnum.production, check_p_id)
+    assert prod.db_id.to_tuple() == (1, None, None, None, None)
+    assert prod.name == 'example'
 
     check_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
     assert check_c_id.to_tuple() == (1, 1, None, None, None)
@@ -171,7 +176,6 @@ def test_failed_workflows():
         LevelEnum.campaign,
         db_p_id,
         the_handler,
-        recurse=True,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -183,7 +187,6 @@ def test_failed_workflows():
             LevelEnum.campaign,
             db_p_id,
             the_handler,
-            recurse=True,
             production_name="example",
             campaign_name="fail_1",
             prod_base_url="archive_test",
@@ -193,7 +196,6 @@ def test_failed_workflows():
             LevelEnum.campaign,
             db_p_id,
             the_handler,
-            recurse=True,
             production_name="example",
             campaign_name="fail_2",
             butler_repo="repo",
@@ -203,12 +205,12 @@ def test_failed_workflows():
         db_s_id = iface.get_db_id(
             LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
         )
-        iface.prepare(LevelEnum.step, db_s_id, recurse=True)
+        iface.prepare(LevelEnum.step, db_s_id)
         iface.check(LevelEnum.workflow, db_s_id)
         iface.queue_workflows(LevelEnum.step, db_s_id)
         iface.launch_workflows(LevelEnum.step, db_s_id, 100)
         db_w_id = iface.get_db_id(
-            LevelEnum.step,
+            LevelEnum.workflow,
             production_name="example",
             campaign_name="test",
             step_name=step_name,
@@ -217,10 +219,12 @@ def test_failed_workflows():
         )
         iface.fake_run(db_s_id)
         iface.fake_run(db_w_id, StatusEnum.failed)
-        # iface.check(LevelEnum.workflow, db_s_id)
         iface.accept(LevelEnum.step, db_s_id, recurse=True)
         iface.reject(LevelEnum.workflow, db_s_id)
         iface.check(LevelEnum.group, db_w_id)
+
+        iface2 = SQLAlchemyInterface("sqlite:///fail.db", echo=False)
+        assert iface2
         os.system("\\rm -rf archive_test")
         os.unlink("fail.db")
 
@@ -229,3 +233,12 @@ def test_bad_db():
 
     with pytest.raises(RuntimeError):
         SQLAlchemyInterface("sqlite:///bad.db", echo=False)
+
+
+def test_table_repr():
+
+    depend = db.Dependency()
+    assert repr(depend)
+
+    script = db.Script(status=StatusEnum.ready)
+    assert repr(script)
