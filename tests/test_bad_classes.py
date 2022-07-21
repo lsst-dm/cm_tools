@@ -23,33 +23,73 @@ import sys
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import DbId, DbInterface, ScriptBase, CMTableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, DbId, DbInterface, DependencyBase, ScriptBase
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.db.common import CMTable
 
 
 def test_bad_script():
     class BadScript(ScriptBase):
         pass
 
+    class BadDbInterface(DbInterface):
+        pass
+
+    bad_db = BadDbInterface()
     bad_script = BadScript()
+
     with pytest.raises(NotImplementedError):
         bad_script.check_status(None)
 
+    with pytest.raises(NotImplementedError):
+        bad_script.add_script(bad_db)
 
-def test_bad_cm_table():
-    class BadCMTable(CMTableBase):
+    with pytest.raises(NotImplementedError):
+        bad_script.get_script(bad_db, 0)
+
+
+def test_bad_dependency():
+    class BadDependency(DependencyBase):
         pass
 
-    bad_cm_table = BadCMTable()
+    class BadDbInterface(DbInterface):
+        pass
+
+    bad_db = BadDbInterface()
+    bad_dep = BadDependency()
     null_db_id = DbId()
 
     with pytest.raises(NotImplementedError):
-        bad_cm_table.get_handler()
+        bad_dep.add_prerequisite(bad_db, null_db_id, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_cm_table.get_insert_fields(None, null_db_id)
+        bad_dep.get_prerequisites(bad_db, null_db_id)
+
+
+def test_bad_cm_table():
+    class BadCMTableBase(CMTableBase):
+        pass
+
+    class BadDbInterface(DbInterface):
+        pass
+
+    bad_cm_table_base = BadCMTableBase()
+    bad_db = BadDbInterface()
+    null_db_id = DbId()
+
+    with pytest.raises(NotImplementedError):
+        bad_cm_table_base.get_handler()
+
+    with pytest.raises(NotImplementedError):
+        bad_cm_table_base.get_insert_fields(None, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_cm_table_base.post_insert(bad_db, None, {})
+
+    with pytest.raises(NotImplementedError):
+        CMTable.get_parent_key()
 
 
 def test_bad_db_interface():
@@ -58,6 +98,9 @@ def test_bad_db_interface():
 
     bad_db = BadDbInterface()
     null_db_id = DbId()
+
+    with pytest.raises(NotImplementedError):
+        bad_db.connection()
 
     with pytest.raises(NotImplementedError):
         bad_db.get_repo(null_db_id)
@@ -75,7 +118,7 @@ def test_bad_db_interface():
         bad_db.get_status(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_prerequisites(LevelEnum.production, null_db_id)
+        bad_db.get_prerequisites(null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.get_script(0)
@@ -181,25 +224,28 @@ def test_bad_handler():
         bad_handler.bad_resolve_templated()
 
     with pytest.raises(NotImplementedError):
-        bad_handler.prepare_hook(LevelEnum.production, bad_db, null_db_id, None)
+        bad_handler.coll_name_hook(LevelEnum.production, {})
 
     with pytest.raises(NotImplementedError):
-        bad_handler.prepare_script_hook(LevelEnum.production, bad_db, null_db_id, None)
+        bad_handler.prepare_script_hook(LevelEnum.production, bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.launch_workflow_hook(bad_db, null_db_id, None)
+        bad_handler.workflow_script_hook(bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.check_workflow_status_hook(bad_db, null_db_id, None)
+        bad_handler.check_workflow_status_hook(bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.collection_hook(LevelEnum.production, bad_db, null_db_id, [], None)
+        bad_handler.collect_script_hook(LevelEnum.production, bad_db, [], None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.accept_hook(LevelEnum.production, bad_db, null_db_id, [], None)
+        bad_handler.accept_hook(LevelEnum.production, bad_db, [], None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.reject_hook(LevelEnum.production, bad_db, null_db_id, [])
+        bad_handler.reject_hook(LevelEnum.production, bad_db, [])
 
     with pytest.raises(NotImplementedError):
         bad_handler.fake_run_hook(bad_db, null_db_id, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_handler.check_prerequistes(bad_db, null_db_id)

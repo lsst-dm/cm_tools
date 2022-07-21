@@ -20,6 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import enum
+import os
 
 
 class StatusEnum(enum.Enum):
@@ -58,3 +59,10 @@ class LevelEnum(enum.Enum):
         if self.value == 4:
             return None
         return LevelEnum(self.value + 1)
+
+
+def safe_makedirs(path):
+    try:
+        os.makedirs(path)
+    except OSError:
+        pass

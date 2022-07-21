@@ -30,7 +30,7 @@ from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbInterface
+    from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 
 
 class Handler:
@@ -96,47 +96,6 @@ class Handler:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def prepare_hook(
-        self,
-        level: LevelEnum,
-        dbi: DbInterface,
-        db_id: DbId,
-        data,
-        **kwargs,
-    ) -> list[DbId]:
-        """Called when preparing a database entry for execution
-
-        Can be used to prepare additional entries, for example,
-        the children of this entry.
-
-        Can also be used to do any actions associated to preparing this entry,
-        e.g., making TAGGED Butler collections
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            Current data for the entry we are preparing
-
-        Returns
-        -------
-        entries : list[DbId]
-            The entries that were prepared
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        raise NotImplementedError()
-
     def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
         """Called to get the name of the input and output collections
 
@@ -156,7 +115,9 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
+    def prepare_script_hook(
+        self, level: LevelEnum, dbi: DbInterface, data
+    ) -> Optional[ScriptBase]:
         """Called to set up a script need to prepare an entry for execution
 
         Parameters
@@ -166,9 +127,6 @@ class Handler:
 
         dbi : DbInterface
             Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
 
         data : ???
             Current data for the entry we are preparing
@@ -180,16 +138,13 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def workflow_script_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> Optional[int]:
+    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
         """Write the script to run a workflow
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
 
         data : ???
             The data associated to this entry
@@ -201,32 +156,13 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        """Launch a particular workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
+    def check_workflow_status_hook(self, dbi: DbInterface, data) -> dict[str, Any]:
         """Check the status of a particular workflow
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
 
         data : ???
             The data associated to this entry
@@ -238,9 +174,9 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def collection_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> dict[str, Any]:
+    def collect_script_hook(
+        self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data
+    ) -> Optional[ScriptBase]:
         """Called when all the childern of a particular entry are finished
 
         Parameters
@@ -251,9 +187,6 @@ class Handler:
         dbi : DbInterface
             Interface to the database we updated
 
-        db_id : DbId
-            Database ID for this entry
-
         itr : Iterable
             Iterator over children of the entry we are updating
 
@@ -262,7 +195,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
+    def accept_hook(self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data) -> None:
         """Called when a particular entry is accepted
 
         Parameters
@@ -273,15 +206,12 @@ class Handler:
         dbi : DbInterface
             Interface to the database we updated
 
-        db_id : DbId
-            Database ID for this entry
-
         data : ???
             The data associated to this entry
         """
         raise NotImplementedError()
 
-    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
+    def reject_hook(self, level: LevelEnum, dbi: DbInterface, data) -> None:
         """Called when a particular entry is rejected
 
         Parameters
@@ -292,9 +222,6 @@ class Handler:
         dbi : DbInterface
             Interface to the database we updated
 
-        db_id : DbId
-            Database ID for this entry
-
         data : ???
             The data associated to this entry
         """
@@ -303,7 +230,6 @@ class Handler:
     def fake_run_hook(
         self,
         dbi: DbInterface,
-        db_id: DbId,
         data,
         status: StatusEnum = StatusEnum.completed,
     ) -> None:
@@ -314,14 +240,29 @@ class Handler:
         dbi : DbInterface
             Interface to the database we updated
 
-        db_id : DbId
-            Specifies the entries we are running
-
         data :  ???
             The data associated to this entry
 
         status: StatusEnum
             Status value to set
+        """
+        raise NotImplementedError()
+
+    def check_prerequistes(self, dbi: DbInterface, db_id: DbId) -> bool:
+        """Check to see if a particular entry is waiting on prerequistes
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Database ID for this entry
+
+        Returns
+        -------
+        ready : bool
+            True if entry is ready
         """
         raise NotImplementedError()
 

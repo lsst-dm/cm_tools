@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 from collections import OrderedDict
 from typing import Iterable
 
@@ -29,13 +28,6 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 
 # import datetime
-
-
-def safe_makedirs(path):
-    try:
-        os.makedirs(path)
-    except OSError:
-        pass
 
 
 class SQLAlchemyHandler(Handler):  # noqa
@@ -49,45 +41,6 @@ class SQLAlchemyHandler(Handler):  # noqa
 
     step_dict: OrderedDict[str, type] = OrderedDict([])
 
-    def prepare_hook(
-        self,
-        level: LevelEnum,
-        dbi: DbInterface,
-        db_id: DbId,
-        data,
-        **kwargs,
-    ) -> list[DbId]:
-        db_id_list = []
-        assert level != LevelEnum.production
-        if not self._check_prerequistes(level, dbi, db_id):
-            return db_id_list
-        prod_base_url = dbi.get_prod_base(db_id)
-        full_path = os.path.join(prod_base_url, data.fullname)
-        safe_makedirs(full_path)
-        db_id_list.append(db_id)
-        update_kwargs = {}
-        script_id = self.prepare_script_hook(level, dbi, db_id, data)
-        if script_id is not None:
-            update_kwargs["prepare_script"] = script_id
-        update_kwargs["status"] = StatusEnum.preparing
-        if level == LevelEnum.step:
-            db_id_list += self._make_groups(dbi, db_id, data)
-        elif level == LevelEnum.workflow:
-            update_kwargs["run_script"] = self.workflow_script_hook(dbi, db_id, data, **kwargs)
-        dbi.update(level, db_id, **update_kwargs)
-        return db_id_list
-
-    def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        script_id = data.run_script
-        script_data = dbi.get_script(script_id)
-        config_url = script_data.config_url
-        script_url = script_data.script_url
-        submit_command = f"{script_url} {config_url}"
-        # workflow_start = datetime.now()
-        print(f"Submitting workflow {str(db_id)} with {submit_command}")
-        update_fields = dict(status=StatusEnum.running)
-        dbi.update(LevelEnum.workflow, db_id, **update_fields)
-
     def _group_iterator(self, dbi: DbInterface, parent_data_id: DbId, data, **kwargs) -> Iterable:
         step_name = str(kwargs.get("step_name"))
         try:
@@ -97,13 +50,12 @@ class SQLAlchemyHandler(Handler):  # noqa
             raise KeyError(f"No Grouper object associated to step {step_name}") from msg
         return grouper(self.config, dbi, parent_data_id, data, **kwargs)
 
-    def _make_groups(self, dbi: DbInterface, db_id: DbId, data) -> list[DbId]:
+    def make_groups(self, dbi: DbInterface, db_id: DbId, data) -> list[DbId]:
         """Internal function called to insert groups into a given step"""
-        tokens = data.fullname.split("/")
         insert_fields = dict(
-            production_name=tokens[0],
-            campaign_name=tokens[1],
-            step_name=tokens[2],
+            production_name=data.p_name,
+            campaign_name=data.c_name,
+            step_name=data.name,
             coll_source=data.coll_in,
         )
         db_id_list = []
@@ -113,10 +65,10 @@ class SQLAlchemyHandler(Handler):  # noqa
         db_id_list += dbi.prepare(LevelEnum.group, db_id)
         return db_id_list
 
-    def _check_prerequistes(self, level: LevelEnum, dbi: DbInterface, db_id) -> bool:
+    def check_prerequistes(self, dbi: DbInterface, db_id: DbId) -> bool:
         """Internal function to see if the pre-requistes for a given step
         have been completed"""
-        prereq_list = dbi.get_prerequisites(level, db_id)
+        prereq_list = dbi.get_prerequisites(db_id)
         for prereq_ in prereq_list:
             status = dbi.get_status(prereq_.level(), prereq_)
             if status.value < StatusEnum.accepted.value:

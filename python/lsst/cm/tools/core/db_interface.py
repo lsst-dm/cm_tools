@@ -36,7 +36,31 @@ class ScriptBase:
     a `check_status` method to check on the status of the script.
     """
 
-    def check_status(self, conn) -> StatusEnum:
+    script_url = ""
+    log_url = ""
+    id = -1
+
+    def check_status(self, dbi: DbInterface) -> StatusEnum:
+        raise NotImplementedError()
+
+    @classmethod
+    def add_script(cls, dbi: DbInterface, **kwargs) -> ScriptBase:
+        raise NotImplementedError()
+
+    @classmethod
+    def get_script(cls, dbi: DbInterface, script_id: int) -> ScriptBase:
+        raise NotImplementedError()
+
+
+class DependencyBase:
+    """Interface class for database entries describing Dependencies"""
+
+    @classmethod
+    def add_prerequisite(cls, dbi: DbInterface, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
+        raise NotImplementedError()
+
+    @classmethod
+    def get_prerequisites(cls, dbi: DbInterface, db_id: DbId) -> list[DbId]:
         raise NotImplementedError()
 
 
@@ -110,6 +134,10 @@ class DbInterface:
     Internally, the DbInterface will use DbId to select entries for the
     requested operation.
     """
+
+    def connection(self):
+        """Return the database connection object"""
+        raise NotImplementedError()
 
     def get_repo(self, db_id: DbId) -> str:
         """Return the data repository for a given campaign
@@ -202,14 +230,11 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_prerequisites(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def get_prerequisites(self, db_id: DbId) -> list[DbId]:
         """Return the prerequisites of a selected entry
 
         Parameters
         ----------
-        level : LevelEnum
-            Selects which database table to search
-
         db_id : DbId
             Database ID specifying which row to select.
             See class notes above.
@@ -358,7 +383,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> None:
+    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
         """Add a prerequisite to
 
         Parameters
@@ -371,7 +396,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def add_script(self, **kwargs) -> int:
+    def add_script(self, **kwargs) -> ScriptBase:
         """Insert a new row with details about a script
 
         Keywords

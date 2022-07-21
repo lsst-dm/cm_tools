@@ -21,9 +21,9 @@
 
 import os
 from collections import OrderedDict
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 
-from lsst.cm.tools.core.db_interface import DbId, DbInterface
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.script_utils import (
     YamlChecker,
@@ -120,51 +120,49 @@ class ExampleHandler(SQLAlchemyHandler):
     def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
         return self.resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
 
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
+    def prepare_script_hook(
+        self, level: LevelEnum, dbi: DbInterface, data
+    ) -> Optional[ScriptBase]:
         assert level.value >= LevelEnum.campaign.value
         if level == LevelEnum.workflow:
             return None
-        butler_repo = dbi.get_repo(db_id)
+        butler_repo = dbi.get_repo(data.db_id)
         script_data = self.resolve_templated_strings(
             self.prepare_script_url_template_names,
             {},
-            prod_base_url=dbi.get_prod_base(db_id),
+            prod_base_url=dbi.get_prod_base(data.db_id),
             fullname=data.fullname,
         )
-        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
+        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
+        with open(script.script_url, "wt", encoding="utf-8") as fout:
             fout.write(make_butler_associate_command(butler_repo, data))
             fout.write("\n")
-        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
-        return script_id
+        write_status_to_yaml(script.log_url, StatusEnum.completed)
+        return script
 
-    def workflow_script_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> Optional[int]:
+    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
-        butler_repo = dbi.get_repo(db_id)
+        butler_repo = dbi.get_repo(data.db_id)
         script_data = self.resolve_templated_strings(
             self.run_script_url_template_names,
             {},
-            prod_base_url=dbi.get_prod_base(db_id),
+            prod_base_url=dbi.get_prod_base(data.db_id),
             fullname=data.fullname,
         )
         outpath = script_data["config_url"]
-        script_id = dbi.add_script(checker="lsst.cm.tools.core.script_utils.YamlChecker", **script_data)
-        tokens = data.fullname.split("/")
-        production_name = tokens[0]
-        campaign_name = tokens[1]
-        step_name = tokens[2]
+        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
         import yaml
 
         with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
             workflow_config = yaml.safe_load(fin)
 
-        workflow_config["project"] = production_name
-        workflow_config["campaign"] = f"{production_name}/{campaign_name}"
+        workflow_config["project"] = data.p_name
+        workflow_config["campaign"] = f"{data.p_name}/{data.c_name}"
 
-        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][step_name]
+        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][data.s_name]
         payload = dict(
-            payloadName=f"{production_name}/{campaign_name}",
+            payloadName=f"{data.p_name}/{data.c_name}",
             output=data.coll_out,
             butlerConfig=butler_repo,
             inCollection=data.coll_in,
@@ -172,41 +170,40 @@ class ExampleHandler(SQLAlchemyHandler):
         workflow_config["payload"] = payload
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
-        return script_id
+        return script
 
     def fake_run_hook(
         self,
         dbi: DbInterface,
-        db_id: DbId,
         data,
         status: StatusEnum = StatusEnum.completed,
     ) -> None:
         script_id = data.run_script
-        script_data = dbi.get_script(script_id)
-        write_status_to_yaml(script_data.log_url, status)  # type: ignore
+        script = dbi.get_script(script_id)
+        write_status_to_yaml(script.log_url, status)  # type: ignore
 
-    def collection_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> dict[str, Any]:
+    def collect_script_hook(
+        self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data
+    ) -> Optional[ScriptBase]:
         assert level.value >= LevelEnum.campaign.value
         if level == LevelEnum.campaign:
-            return dict(status=StatusEnum.collecting, collect_script=None)
-        butler_repo = dbi.get_repo(db_id)
+            return None
+        butler_repo = dbi.get_repo(data.db_id)
         script_data = self.resolve_templated_strings(
             self.collect_script_url_template_names,
             {},
-            prod_base_url=dbi.get_prod_base(db_id),
+            prod_base_url=dbi.get_prod_base(data.db_id),
             fullname=data.fullname,
         )
-        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data["script_url"], "wt", encoding="utf-8") as fout:
+        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
+        with open(script.script_url, "wt", encoding="utf-8") as fout:
             fout.write(make_butler_chain_command(butler_repo, data, itr))
             fout.write("\n")
-        write_status_to_yaml(script_data["log_url"], StatusEnum.completed)
-        return dict(status=StatusEnum.collecting, collect_script=script_id)
+        write_status_to_yaml(script.log_url, StatusEnum.completed)
+        return script
 
-    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
+    def accept_hook(self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data) -> None:
         return
 
-    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
+    def reject_hook(self, level: LevelEnum, dbi: DbInterface, data) -> None:
         return

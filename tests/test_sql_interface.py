@@ -26,8 +26,9 @@ import pytest
 from lsst.cm.tools.core.db_interface import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.db.dependency import Dependency
+from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
-from lsst.cm.tools.db import db
 
 
 def test_full_example():
@@ -236,8 +237,8 @@ def test_bad_db():
 
 def test_table_repr():
 
-    depend = db.Dependency()
+    depend = Dependency()
     assert repr(depend)
 
-    script = db.Script(status=StatusEnum.ready)
+    script = Script(status=StatusEnum.ready)
     assert repr(script)
