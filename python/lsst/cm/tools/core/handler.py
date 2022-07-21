@@ -96,66 +96,13 @@ class Handler:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def get_insert_fields_hook(
-        self, level: LevelEnum, dbi: DbInterface, parent_db_id: DbId, **kwargs
-    ) -> dict[str, Any]:
-        """Get the fields needed to insert an entry into the database
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we are inserting into
-
-        dbi : DbInterface
-            Interface to the database we are inserting into
-
-        parent_db_id : DbId
-            Database ID for the parent entry to the one we are inserting
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes to compute insert field values
-
-        Returns
-        -------
-        insert_fields : dict[str, Any]
-            The fields and value to insert
-        """
-        raise NotImplementedError()
-
-    def post_insert_hook(
+    def prepare_hook(
         self,
         level: LevelEnum,
         dbi: DbInterface,
-        insert_fields: dict[str, Any],
+        db_id: DbId,
+        data,
         **kwargs,
-    ) -> None:
-        """Called after inserting an entry into the database
-
-        Can be used to insert additional entries, i.e., children of this entry
-
-        Can also be used to do any actions associated to inserting this entry,
-        i.e., writing configuration files
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we inserted into
-
-        dbi : DbInterface
-            Interface to the database we intserted into
-
-        insert_fields : dict
-            Dictionary of fields and values that were inserted
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        raise NotImplementedError()
-
-    def prepare_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, **kwargs,
     ) -> list[DbId]:
         """Called when preparing a database entry for execution
 
@@ -187,6 +134,25 @@ class Handler:
         Keywords
         --------
         Keywords can be used by sub-classes
+        """
+        raise NotImplementedError()
+
+    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
+        """Called to get the name of the input and output collections
+
+        Parameters
+        ----------
+        level : LevelEnum
+            Specify which table we updated
+
+        insert_fields : dict
+            Fields used for most recent database insertion,
+            can be used in formatting
+
+        Returns
+        -------
+        coll_names : dict[str, str]
+            Names of the input and output collections
         """
         raise NotImplementedError()
 
@@ -335,7 +301,11 @@ class Handler:
         raise NotImplementedError()
 
     def fake_run_hook(
-        self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
+        self,
+        dbi: DbInterface,
+        db_id: DbId,
+        data,
+        status: StatusEnum = StatusEnum.completed,
     ) -> None:
         """Pretend to run workflows, this is for testing
 
@@ -463,7 +433,7 @@ class Handler:
         try:
             return template_string.format(**format_vars)
         except KeyError as msg:
-            raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg
+            raise KeyError(f"Failed to format {template_string} with {str(format_vars)}") from msg
 
     def resolve_templated_strings(
         self, template_names: dict[str, str], insert_fields: dict, **kwargs

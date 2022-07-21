@@ -35,15 +35,6 @@ from sqlalchemy.orm import Session
 
 
 class SQLAlchemyInterface(DbInterface):
-
-    full_name_templates = [
-        "{production_name}",
-        "{production_name}/{campaign_name}",
-        "{production_name}/{campaign_name}/{step_name}",
-        "{production_name}/{campaign_name}/{step_name}/{group_name}",
-        "{production_name}/{campaign_name}/{step_name}/{group_name}/{workflow_idx:06}",
-    ]
-
     @staticmethod
     def _copy_fields(fields: list[str], **kwargs) -> dict[str, Any]:
         ret_dict = {}
@@ -51,14 +42,6 @@ class SQLAlchemyInterface(DbInterface):
             if field_ in kwargs:
                 ret_dict[field_] = kwargs.get(field_)
         return ret_dict
-
-    @classmethod
-    def full_name(cls, level: LevelEnum, **kwargs) -> str:
-        """Utility function to return a full name
-        associated to a database entry"""
-        if level is None:
-            return None
-        return cls.full_name_templates[level.value].format(**kwargs)
 
     def __init__(self, db_url: str, **kwargs):
         self._engine = db.build_engine(db_url, **kwargs)
@@ -90,7 +73,7 @@ class SQLAlchemyInterface(DbInterface):
         g_id = self._get_id(LevelEnum.group, s_id, kwargs.get("group_name"))
         if level == LevelEnum.group:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
-        w_id = self._get_id(LevelEnum.workflow, g_id, kwargs.get("workflow_idx"))
+        w_id = self._get_id(LevelEnum.workflow, g_id, "%06i" % kwargs.get("workflow_idx"))
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_status(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
@@ -172,22 +155,26 @@ class SQLAlchemyInterface(DbInterface):
         return db.add_script(self._conn, **kwargs)
 
     def insert(
-        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs,
+        self,
+        level: LevelEnum,
+        parent_db_id: DbId,
+        handler: Handler,
+        **kwargs,
     ) -> dict[str, Any]:
         kwcopy = kwargs.copy()
-        kwcopy["fullname"] = self.full_name(level, **kwargs)
         if level.value > LevelEnum.campaign.value:
             kwcopy["prod_base_url"] = self.get_prod_base(parent_db_id)
         table = db.get_table(level)
         insert_fields = table.get_insert_fields(handler, parent_db_id, **kwcopy)
         db.insert_values(self._conn, level, **insert_fields)
-        insert_fields['id'] = self._current_id(level)
-        handler.post_insert_hook(level, self, insert_fields, **kwargs)
+        insert_fields["id"] = self._current_id(level)
+        table.post_insert(self, handler, insert_fields, **kwargs)
         return insert_fields
 
     def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
         itr = self.get_iterable(level, db_id)
         kwcopy = kwargs.copy()
+        kwcopy["prod_base_url"] = self.get_prod_base(db_id)
         db_id_list = []
         for row_ in itr:
             status = row_.status
@@ -297,7 +284,7 @@ class SQLAlchemyInterface(DbInterface):
         sel = db.get_rows_with_status_query(LevelEnum.workflow, status)
         return db.return_select_count(self._conn, sel)
 
-    def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Any) -> Optional[int]:
+    def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""
         if match_name is None:
             return None

@@ -41,6 +41,7 @@ from sqlalchemy import (  # type: ignore
     select,
     update,
 )
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import declarative_base, composite
 
 update_field_list = ["handler", "config_yaml"]
@@ -61,9 +62,12 @@ def _check_result(result) -> None:
 
 
 class CMTable(CMTableBase):
-
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
+
+    @classmethod
+    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+        return None
 
 
 Base = declarative_base()
@@ -80,7 +84,7 @@ class Script(Base, ScriptBase):
     status = Column(Enum(StatusEnum))  # Status flag
 
     def __repr__(self):
-        return f'Script {self.id}: {self.checker} {self.log_url} {self.status.name}'
+        return f"Script {self.id}: {self.checker} {self.log_url} {self.status.name}"
 
     def check_status(self, conn) -> StatusEnum:
         current_status = self.status
@@ -106,12 +110,16 @@ class Production(Base, CMTable):
     match_keys = [id]
     update_fields = update_field_list
 
+    @hybrid_property
+    def fullname(self):
+        return self.name
+
     @classmethod
     def get_parent_key(cls):
         return None
 
     def __repr__(self):
-        return f'Production {self.name} {self.db_id}: {self.handler} {self.config_yaml}'
+        return f"Production {self.name} {self.db_id}: {self.handler} {self.config_yaml}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
@@ -125,8 +133,8 @@ class Campaign(Base, CMTable):
 
     id = Column(Integer, primary_key=True)  # Unique campaign ID
     p_id = Column(Integer, ForeignKey(Production.id))
-    fullname = Column(String, unique=True)  # Full name of this campaign
     name = Column(String)  # Campaign Name
+    p_name = Column(String)  # Production Name
     handler = Column(String)  # Handler class
     config_yaml = Column(String)  # Configuration file
     prepare_script = Column(Integer, ForeignKey(Script.id))
@@ -142,35 +150,56 @@ class Campaign(Base, CMTable):
     match_keys = [p_id, id]
     update_fields = update_field_list + update_common_fields
 
+    @hybrid_property
+    def fullname(self):
+        return self.p_name + "/" + self.name
+
     @classmethod
     def get_parent_key(cls):
         return cls.p_id
 
     def __repr__(self):
-        return f'Campaign {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}'
+        return f"Campaign {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
-        fullname = kwargs.get("fullname")
         if "butler_repo" not in kwargs:
             raise KeyError("butler_repo must be specified with inserting a campaign")
         if "prod_base_url" not in kwargs:
             raise KeyError("prod_base_url must be specified with inserting a campaign")
         insert_fields = dict(
-            fullname=fullname,
             name=handler.get_kwarg_value("campaign_name", **kwargs),
+            p_name=handler.get_kwarg_value("production_name", **kwargs),
             p_id=parent_db_id.p_id,
-            data_query=handler.get_config_var("data_query", "", **kwargs),
-            coll_source=handler.get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
             butler_repo=kwargs["butler_repo"],
             prod_base_url=kwargs["prod_base_url"],
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,
         )
-        extra_fields = handler.resolve_templated_strings(handler.coll_template_names, insert_fields, **kwargs)
-        insert_fields.update(**extra_fields)
+        extra_fields = dict(
+            fullname="{p_name}/{name}".format(**insert_fields),
+        )
+        coll_names = handler.coll_name_hook(LevelEnum.step, insert_fields, **extra_fields)
+        insert_fields.update(**coll_names)
         return insert_fields
+
+    @classmethod
+    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+        kwcopy = kwargs.copy()
+        previous_step_id = None
+        coll_source = insert_fields.get("coll_in")
+        parent_db_id = dbi.get_db_id(LevelEnum.campaign, **kwcopy)
+        for step_name in handler.step_dict.keys():
+            kwcopy.update(step_name=step_name)
+            kwcopy.update(previous_step_id=previous_step_id)
+            kwcopy.update(coll_source=coll_source)
+            step_insert = dbi.insert(LevelEnum.step, parent_db_id, handler, **kwcopy)
+            step_id = parent_db_id.extend(LevelEnum.step, step_insert["id"])
+            coll_source = step_insert.get("coll_out")
+            if previous_step_id is not None:
+                dbi.add_prerequisite(step_id, parent_db_id.extend(LevelEnum.step, previous_step_id))
+            previous_step_id = dbi.get_row_id(LevelEnum.step, **kwcopy)
 
 
 class Step(Base, CMTable):
@@ -179,8 +208,9 @@ class Step(Base, CMTable):
     id = Column(Integer, primary_key=True)  # Unique Step ID
     p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
-    fullname = Column(String, unique=True)  # Full name of this step
     name = Column(String)  # Step name
+    p_name = Column(String)  # Production Name
+    c_name = Column(String)  # Campaign Name
     handler = Column(String)  # Handler class
     config_yaml = Column(String)  # Configuration file
     prepare_script = Column(Integer, ForeignKey(Script.id))
@@ -195,31 +225,36 @@ class Step(Base, CMTable):
     match_keys = [p_id, c_id, id]
     update_fields = update_field_list + update_common_fields
 
+    @hybrid_property
+    def fullname(self):
+        return self.p_name + "/" + self.c_name + "/" + self.name
+
     @classmethod
     def get_parent_key(cls):
         return cls.c_id
 
     def __repr__(self):
-        return f'Step {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}'
+        return f"Step {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
-        previous_step_id = kwargs.get("previous_step_id")
-        fullname = kwargs.get("fullname")
         insert_fields = dict(
-            fullname=fullname,
             name=handler.get_kwarg_value("step_name", **kwargs),
-            previous_step_id=previous_step_id,
+            p_name=handler.get_kwarg_value("production_name", **kwargs),
+            c_name=handler.get_kwarg_value("campaign_name", **kwargs),
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
             data_query=handler.get_config_var("data_query", "", **kwargs),
-            coll_source=handler.get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,
         )
-        extra_fields = handler.resolve_templated_strings(handler.coll_template_names, insert_fields, **kwargs)
-        insert_fields.update(**extra_fields)
+        extra_fields = dict(
+            fullname="{p_name}/{c_name}/{name}".format(**insert_fields),
+            prod_base_url=handler.get_kwarg_value("prod_base_url", **kwargs),
+        )
+        coll_names = handler.coll_name_hook(LevelEnum.step, insert_fields, **extra_fields)
+        insert_fields.update(**coll_names)
         return insert_fields
 
 
@@ -230,8 +265,10 @@ class Group(Base, CMTable):
     p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
     s_id = Column(Integer, ForeignKey(Step.id))
-    fullname = Column(String, unique=True)  # Full name of this group
     name = Column(String)  # Group name
+    p_name = Column(String)  # Production Name
+    c_name = Column(String)  # Campaign Name
+    s_name = Column(String)  # Step Name
     handler = Column(String)  # Handler class
     config_yaml = Column(String)  # Configuration file
     prepare_script = Column(Integer, ForeignKey(Script.id))
@@ -245,19 +282,24 @@ class Group(Base, CMTable):
     match_keys = [p_id, c_id, s_id, id]
     update_fields = update_field_list + update_common_fields
 
+    @hybrid_property
+    def fullname(self):
+        return self.p_name + "/" + self.c_name + "/" + self.s_name + "/" + self.name
+
     @classmethod
     def get_parent_key(cls):
         return cls.s_id
 
     def __repr__(self):
-        return f'Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}'
+        return f"Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
-        fullname = kwargs.get("fullname")
         insert_fields = dict(
-            fullname=fullname,
             name=handler.get_kwarg_value("group_name", **kwargs),
+            p_name=handler.get_kwarg_value("production_name", **kwargs),
+            c_name=handler.get_kwarg_value("campaign_name", **kwargs),
+            s_name=handler.get_kwarg_value("step_name", **kwargs),
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
@@ -267,9 +309,23 @@ class Group(Base, CMTable):
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,
         )
-        extra_fields = handler.resolve_templated_strings(handler.coll_template_names, insert_fields, **kwargs)
-        insert_fields.update(**extra_fields)
+        extra_fields = dict(
+            fullname="{p_name}/{c_name}/{s_name}/{name}".format(**insert_fields),
+            prod_base_url=handler.get_kwarg_value("prod_base_url", **kwargs),
+        )
+        coll_names = handler.coll_name_hook(LevelEnum.group, insert_fields, **extra_fields)
+        insert_fields.update(**coll_names)
         return insert_fields
+
+    @classmethod
+    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+        kwcopy = kwargs.copy()
+        kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
+        coll_in = insert_fields.get("coll_in")
+        kwcopy.update(coll_source=coll_in)
+        parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
+        dbi.insert(LevelEnum.workflow, parent_db_id, handler, **kwcopy)
+        dbi.prepare(LevelEnum.workflow, parent_db_id)
 
 
 class Workflow(Base, CMTable):
@@ -280,8 +336,11 @@ class Workflow(Base, CMTable):
     c_id = Column(Integer, ForeignKey(Campaign.id))
     s_id = Column(Integer, ForeignKey(Step.id))
     g_id = Column(Integer, ForeignKey(Group.id))
-    fullname = Column(String, unique=True)  # Full name of this workflow
-    name = Column(Integer)  # Index for this workflow
+    name = Column(String)  # Index for this workflow
+    p_name = Column(String)  # Production Name
+    c_name = Column(String)  # Campaign Name
+    s_name = Column(String)  # Step Name
+    g_name = Column(String)  # Group Name
     handler = Column(String)  # Handler class
     config_yaml = Column(String)  # Configuration file
     prepare_script = Column(Integer, ForeignKey(Script.id))
@@ -303,44 +362,54 @@ class Workflow(Base, CMTable):
     run_script = Column(Integer, ForeignKey(Script.id))
     db_id = composite(DbId, p_id, c_id, s_id, g_id, id)
     match_keys = [p_id, c_id, s_id, g_id, id]
-    update_fields = update_field_list + update_common_fields + [
-        "n_tasks_done",
-        "n_tasks_failed",
-        "n_clusters_done",
-        "n_clusters_failed",
-        "workflow_start",
-        "workflow_end",
-        "workflow_cputime",
-        "run_script",
-    ]
+    update_fields = (
+        update_field_list
+        + update_common_fields
+        + [
+            "n_tasks_done",
+            "n_tasks_failed",
+            "n_clusters_done",
+            "n_clusters_failed",
+            "workflow_start",
+            "workflow_end",
+            "workflow_cputime",
+            "run_script",
+        ]
+    )
+
+    @hybrid_property
+    def fullname(self):
+        return self.p_name + "/" + self.c_name + "/" + self.s_name + "/" + self.g_name + "/" + self.name
 
     @classmethod
     def get_parent_key(cls):
         return cls.g_id
 
     def __repr__(self):
-        return f'Workflow {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}'
+        return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
-        fullname = kwargs.get("fullname")
         insert_fields = dict(
-            fullname=fullname,
-            name=handler.get_kwarg_value("workflow_idx", **kwargs),
+            g_name=handler.get_kwarg_value("group_name", **kwargs),
+            p_name=handler.get_kwarg_value("production_name", **kwargs),
+            c_name=handler.get_kwarg_value("campaign_name", **kwargs),
+            s_name=handler.get_kwarg_value("step_name", **kwargs),
+            name="%06i" % handler.get_kwarg_value("workflow_idx", **kwargs),
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
             g_id=parent_db_id.g_id,
-            coll_source=handler.get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,
         )
-        extra_fields = dict(data_query=kwargs.get("data_query"))
-        extra_fields.update(
-            handler.resolve_templated_strings(handler.coll_template_names, insert_fields, **kwargs)
+        extra_fields = dict(
+            fullname="{p_name}/{c_name}/{s_name}/{g_name}/{name}".format(**insert_fields),
+            prod_base_url=handler.get_kwarg_value("prod_base_url", **kwargs),
         )
-        insert_fields.update(**extra_fields)
+        coll_names = handler.coll_name_hook(LevelEnum.workflow, insert_fields, **extra_fields)
+        insert_fields.update(**coll_names)
         return insert_fields
 
 
@@ -363,7 +432,7 @@ class Dependency(Base):
     depend_keys = [depend_p_id, depend_c_id, depend_s_id, depend_g_id, depend_w_id]
 
     def __repr__(self):
-        return f'Dependency {self.db_id}: {self.depend_db_id}'
+        return f"Dependency {self.db_id}: {self.depend_db_id}"
 
 
 def create_db(engine) -> None:
@@ -525,16 +594,14 @@ def add_prerequisite(conn, depend_id: DbId, prereq_id: DbId):
             depend_c_id=depend_id[LevelEnum.campaign],
             depend_s_id=depend_id[LevelEnum.step],
             depend_g_id=depend_id[LevelEnum.group],
-            depend_w_id=depend_id[LevelEnum.workflow]
+            depend_w_id=depend_id[LevelEnum.workflow],
         )
     )
     conn.commit()
 
 
 def get_prerequisites(conn, level: LevelEnum, db_id: DbId):
-    sel = select(Dependency).where(
-        Dependency.depend_keys[level.value] == db_id[level]
-    )
+    sel = select(Dependency).where(Dependency.depend_keys[level.value] == db_id[level])
     itr = return_iterable(conn, sel)
     db_id_list = [row_.db_id for row_ in itr]
     return db_id_list

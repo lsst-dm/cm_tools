@@ -149,7 +149,6 @@ def test_full_example():
     )
     assert check_w_id.to_tuple() == (1, 1, 1, 1, 1)
 
-    assert iface.full_name(None) is None
     os.system("\\rm -rf archive_test")
     os.unlink("test.db")
 

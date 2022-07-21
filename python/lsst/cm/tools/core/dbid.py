@@ -81,7 +81,7 @@ class DbId:
         return self.to_tuple()[level.value]
 
     def __repr__(self) -> str:
-        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace('None', 'x')
+        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace("None", "x")
 
     def extend(self, level: LevelEnum, row_id: int) -> DbId:
         """Return an extension of this DbId

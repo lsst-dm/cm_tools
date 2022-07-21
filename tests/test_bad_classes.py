@@ -60,9 +60,6 @@ def test_bad_db_interface():
     null_db_id = DbId()
 
     with pytest.raises(NotImplementedError):
-        BadDbInterface.full_name(LevelEnum.production)
-
-    with pytest.raises(NotImplementedError):
         bad_db.get_repo(null_db_id)
 
     with pytest.raises(NotImplementedError):
@@ -182,12 +179,6 @@ def test_bad_handler():
 
     with pytest.raises(KeyError):
         bad_handler.bad_resolve_templated()
-
-    with pytest.raises(NotImplementedError):
-        bad_handler.get_insert_fields_hook(LevelEnum.production, bad_db, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_handler.post_insert_hook(LevelEnum.production, bad_db, {})
 
     with pytest.raises(NotImplementedError):
         bad_handler.prepare_hook(LevelEnum.production, bad_db, null_db_id, None)

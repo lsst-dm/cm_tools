@@ -143,6 +143,7 @@ def make_butler_chain_command(butler_repo: str, data, itr) -> str:
 
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
+
     def check_url(self, url, current_status: StatusEnum) -> StatusEnum:
         """Return the status of the script being checked"""
         return check_status_from_yaml(url, current_status)

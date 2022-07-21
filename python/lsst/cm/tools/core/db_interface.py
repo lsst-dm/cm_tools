@@ -35,6 +35,7 @@ class ScriptBase:
     This will require the derived class to implement
     a `check_status` method to check on the status of the script.
     """
+
     def check_status(self, conn) -> StatusEnum:
         raise NotImplementedError()
 
@@ -76,6 +77,24 @@ class CMTableBase:
         """
         raise NotImplementedError()
 
+    @classmethod
+    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+        """Do any additional actions after insert any entry
+
+        Parameters
+        ----------
+        handler : Handler
+            The callback handler
+
+        insert_fields: dict[str, Any]
+            The values we just inserted
+
+        Keywords
+        --------
+        These can be used to help populate the fields in question
+        """
+        raise NotImplementedError()
+
 
 class DbInterface:
     """Base class for database interface
@@ -91,27 +110,6 @@ class DbInterface:
     Internally, the DbInterface will use DbId to select entries for the
     requested operation.
     """
-
-    @classmethod
-    def full_name(cls, level: LevelEnum, **kwargs) -> str:
-        """Utility function to return a full name
-        associated to a database entry
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specifies which table we are refering to
-
-        Keywords
-        --------
-        These are used to build the full name, see class notes.
-
-        Returns
-        -------
-        fullname : str
-            Unique string desribing this database entry
-        """
-        raise NotImplementedError()
 
     def get_repo(self, db_id: DbId) -> str:
         """Return the data repository for a given campaign
@@ -398,9 +396,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def insert(
-        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs
-    ) -> dict[str, Any]:
+    def insert(self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs) -> dict[str, Any]:
         """Insert a new database entry at a particular level
 
         Parameters

@@ -73,7 +73,10 @@ recurse_option = MWOptionDecorator("--recurse", help="Recurvisely execute comman
 level_option = MWOptionDecorator(
     "--level",
     default="workflow",
-    type=click.Choice(choices=list(LevelEnum.__members__.keys()), case_sensitive=True,),
+    type=click.Choice(
+        choices=list(LevelEnum.__members__.keys()),
+        case_sensitive=True,
+    ),
     help="Which database table to manipulate.",
 )
 

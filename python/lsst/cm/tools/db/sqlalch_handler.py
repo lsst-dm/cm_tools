@@ -21,7 +21,7 @@
 
 import os
 from collections import OrderedDict
-from typing import Any, Iterable
+from typing import Iterable
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
@@ -45,36 +45,17 @@ class SQLAlchemyHandler(Handler):  # noqa
     are specific to the SQLAlchemy based DB struture.
     """
 
-    default_config = dict(
-        coll_in_template="/prod/{fullname}_input",
-        coll_out_template="/prod/{fullname}_output",
-    )
-
-    coll_template_names = dict(coll_in="coll_in_template", coll_out="coll_out_template",)
+    default_config = {}
 
     step_dict: OrderedDict[str, type] = OrderedDict([])
 
-    def post_insert_hook(
+    def prepare_hook(
         self,
         level: LevelEnum,
         dbi: DbInterface,
-        insert_fields: dict[str, Any],
+        db_id: DbId,
+        data,
         **kwargs,
-    ) -> None:
-        func_dict = {
-            LevelEnum.production: None,
-            LevelEnum.campaign: self._post_insert_campaign,
-            LevelEnum.step: None,
-            LevelEnum.group: self._post_insert_group,
-            LevelEnum.workflow: None,
-        }
-        the_func = func_dict[level]
-        if the_func is None:
-            return
-        the_func(dbi, insert_fields, **kwargs)
-
-    def prepare_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, **kwargs,
     ) -> list[DbId]:
         db_id_list = []
         assert level != LevelEnum.production
@@ -83,8 +64,8 @@ class SQLAlchemyHandler(Handler):  # noqa
         prod_base_url = dbi.get_prod_base(db_id)
         full_path = os.path.join(prod_base_url, data.fullname)
         safe_makedirs(full_path)
-        update_kwargs = {}
         db_id_list.append(db_id)
+        update_kwargs = {}
         script_id = self.prepare_script_hook(level, dbi, db_id, data)
         if script_id is not None:
             update_kwargs["prepare_script"] = script_id
@@ -95,37 +76,6 @@ class SQLAlchemyHandler(Handler):  # noqa
             update_kwargs["run_script"] = self.workflow_script_hook(dbi, db_id, data, **kwargs)
         dbi.update(level, db_id, **update_kwargs)
         return db_id_list
-
-    def _post_insert_campaign(
-        self, dbi: DbInterface, insert_fields: dict[str, Any], **kwargs,
-    ) -> None:
-        """Campaign specific version of post_insert_hook()"""
-        kwcopy = kwargs.copy()
-        previous_step_id = None
-        coll_source = insert_fields.get("coll_in")
-        parent_db_id = dbi.get_db_id(LevelEnum.campaign, **kwcopy)
-        for step_name in self.step_dict.keys():
-            kwcopy.update(step_name=step_name)
-            kwcopy.update(previous_step_id=previous_step_id)
-            kwcopy.update(coll_source=coll_source)
-            step_insert = dbi.insert(LevelEnum.step, parent_db_id, self, **kwcopy)
-            step_id = parent_db_id.extend(LevelEnum.step, step_insert["id"])
-            coll_source = step_insert.get("coll_out")
-            if previous_step_id is not None:
-                dbi.add_prerequisite(step_id, parent_db_id.extend(LevelEnum.step, previous_step_id))
-            previous_step_id = dbi.get_row_id(LevelEnum.step, **kwcopy)
-
-    def _post_insert_group(
-        self, dbi: DbInterface, insert_fields: dict[str, Any], **kwargs,
-    ) -> None:
-        """Group specific version of post_insert_hook()"""
-        kwcopy = kwargs.copy()
-        kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
-        coll_in = insert_fields.get("coll_in")
-        kwcopy.update(coll_source=coll_in)
-        parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
-        dbi.insert(LevelEnum.workflow, parent_db_id, self, **kwcopy)
-        dbi.prepare(LevelEnum.workflow, parent_db_id)
 
     def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
         script_id = data.run_script
