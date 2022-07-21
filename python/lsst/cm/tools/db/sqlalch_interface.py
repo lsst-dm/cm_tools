@@ -122,7 +122,7 @@ class SQLAlchemyInterface(DbInterface):
         if update_fields:
             db.update_values(self._conn, level, db_id, **update_fields)
 
-    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 1) -> None:
+    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
         if recurse:
             child_level = level.child()
             if child_level is not None:
