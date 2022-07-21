@@ -26,7 +26,7 @@ from time import sleep
 from typing import Any, Optional, TextIO
 
 import numpy as np
-from lsst.cm.tools.core.db_interface import DbInterface
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
@@ -308,7 +308,7 @@ class SQLAlchemyInterface(DbInterface):
         return self.count(level, None)
 
     @staticmethod
-    def _extract_child_status(itr: Iterable, status_name: str) -> np.ndarray:
+    def _extract_child_status(itr: Iterable) -> np.ndarray:
         """Return the status of all children in an array"""
         return np.array([x.status.value for x in itr])
 
@@ -318,7 +318,7 @@ class SQLAlchemyInterface(DbInterface):
         """Check the status of childern of a given row
         and return a status accordingly"""
         itr = self.get_iterable(level.child(), db_id)
-        child_status = self._extract_child_status(itr, "status")
+        child_status = self._extract_child_status(itr)
         if child_status.size and (child_status >= StatusEnum.accepted.value).all():
             handler = data.get_handler()
             itr = self.get_iterable(level.child(), db_id)

@@ -126,7 +126,7 @@ class ExampleHandler(SQLAlchemyHandler):
         write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
         return script_id
 
-    def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> int:
+    def workflow_script_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> Optional[int]:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = dbi.get_repo(db_id)

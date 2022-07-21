@@ -373,17 +373,11 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def add_script(
-        self,
-        script_url: Optional[str] = None,
-        log_url: Optional[str] = None,
-        checker: Optional[str] = None,
-        status: Optional[StatusEnum] = StatusEnum.ready,
-    ) -> int:
+    def add_script(self, **kwargs) -> int:
         """Insert a new row with details about a script
 
-        Parameters
-        ----------
+        Keywords
+        --------
         script_url: Optional[str]
             The location of the script
 

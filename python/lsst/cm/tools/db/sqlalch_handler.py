@@ -92,7 +92,7 @@ class SQLAlchemyHandler(Handler):  # noqa
         if level == LevelEnum.step:
             db_id_list += self._make_groups(dbi, db_id, data)
         elif level == LevelEnum.workflow:
-            update_kwargs["run_script"] = self.workflow_hook(dbi, db_id, data, **kwargs)
+            update_kwargs["run_script"] = self.workflow_script_hook(dbi, db_id, data, **kwargs)
         dbi.update(level, db_id, **update_kwargs)
         return db_id_list
 

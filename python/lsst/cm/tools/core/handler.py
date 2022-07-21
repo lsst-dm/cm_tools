@@ -214,6 +214,27 @@ class Handler:
         """
         raise NotImplementedError()
 
+    def workflow_script_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> Optional[int]:
+        """Write the script to run a workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        db_id : DbId
+            Database ID for this entry
+
+        data : ???
+            The data associated to this entry
+
+        Returns
+        -------
+        script_id : int
+            The ID of the script
+        """
+        raise NotImplementedError()
+
     def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
         """Launch a particular workflow
 
