@@ -26,7 +26,7 @@ from time import sleep
 from typing import Any, Optional, TextIO
 
 import numpy as np
-from lsst.cm.tools.core.db_interface import DbInterface, DependencyBase, ScriptBase
+from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, DependencyBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
@@ -54,11 +54,6 @@ class SQLAlchemyInterface(DbInterface):
 
     def connection(self):
         return self._conn
-
-    def get_repo(self, db_id: DbId) -> str:
-        table = top.get_table(LevelEnum.campaign)
-        sel = table.get_row_query(db_id, [table.butler_repo])
-        return common.return_first_column(self, sel)
 
     def get_prod_base(self, db_id: DbId) -> str:
         table = top.get_table(LevelEnum.campaign)
@@ -178,22 +173,20 @@ class SQLAlchemyInterface(DbInterface):
         parent_db_id: DbId,
         handler: Handler,
         **kwargs,
-    ) -> dict[str, Any]:
+    ) -> CMTableBase:
         kwcopy = kwargs.copy()
         if level.value > LevelEnum.campaign.value:
             kwcopy["prod_base_url"] = self.get_prod_base(parent_db_id)
         table = top.get_table(level)
         insert_fields = table.get_insert_fields(handler, parent_db_id, **kwcopy)
-        table.insert_values(self, **insert_fields)
-        insert_fields["id"] = self._current_id(level)
-        table.post_insert(self, handler, insert_fields, **kwargs)
-        return insert_fields
+        new_entry = table.insert_values(self, **insert_fields)
+        table.post_insert(self, handler, new_entry, **kwargs)
+        return new_entry
 
     def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
         assert level != LevelEnum.production
         itr = self.get_iterable(level, db_id)
         kwcopy = kwargs.copy()
-        kwcopy["prod_base_url"] = self.get_prod_base(db_id)
         db_id_list = []
 
         for row_ in itr:
@@ -306,9 +299,6 @@ class SQLAlchemyInterface(DbInterface):
         sel = top.get_id_match_query(level, parent_id, match_name)
         return common.return_first_column(self, sel)
 
-    def _current_id(self, level: LevelEnum) -> int:
-        return self.count(level, None)
-
     @staticmethod
     def _extract_child_status(itr: Iterable) -> np.ndarray:
         """Return the status of all children in an array"""
@@ -342,8 +332,8 @@ class SQLAlchemyInterface(DbInterface):
         script_status = self._check_script(script_id)
         status_map = {
             StatusEnum.failed: StatusEnum.failed,
-            StatusEnum.ready: StatusEnum.waiting,
-            StatusEnum.running: StatusEnum.waiting,
+            StatusEnum.ready: StatusEnum.preparing,
+            StatusEnum.running: StatusEnum.preparing,
             StatusEnum.completed: StatusEnum.ready,
         }
         return status_map[script_status]

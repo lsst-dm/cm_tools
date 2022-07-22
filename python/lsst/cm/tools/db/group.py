@@ -21,6 +21,7 @@
 
 from typing import Any
 
+from lsst.cm.tools.core.db_interface import CMTableBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db import common
@@ -31,7 +32,7 @@ from lsst.cm.tools.db.step import Step
 from sqlalchemy import Integer  # type: ignore
 from sqlalchemy import Column, Enum, ForeignKey, String  # type: ignore
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite
+from sqlalchemy.orm import composite, relationship
 
 
 class Group(common.Base, common.CMTable):
@@ -56,12 +57,24 @@ class Group(common.Base, common.CMTable):
     coll_out = Column(String)  # Output data collection
     status = Column(Enum(StatusEnum))  # Status flag
     db_id = composite(DbId, p_id, c_id, s_id, id)
+    p_ = relationship("Production", foreign_keys=[p_id])
+    c_ = relationship("Campaign", foreign_keys=[c_id])
+    s_ = relationship("Step", foreign_keys=[s_id])
+
     match_keys = [p_id, c_id, s_id, id]
     update_fields = common.update_field_list + common.update_common_fields
 
     @hybrid_property
     def fullname(self):
         return self.p_name + "/" + self.c_name + "/" + self.s_name + "/" + self.name
+
+    @hybrid_property
+    def butler_repo(self):
+        return self.c_.butler_repo
+
+    @hybrid_property
+    def prod_base_url(self):
+        return self.c_.prod_base_url
 
     @classmethod
     def get_parent_key(cls):
@@ -95,11 +108,10 @@ class Group(common.Base, common.CMTable):
         return insert_fields
 
     @classmethod
-    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
         kwcopy = kwargs.copy()
         kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
-        coll_in = insert_fields.get("coll_in")
-        kwcopy.update(coll_source=coll_in)
+        kwcopy.update(coll_source=new_entry.coll_in)
         parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
         dbi.insert(LevelEnum.workflow, parent_db_id, handler, **kwcopy)
         dbi.prepare(LevelEnum.workflow, parent_db_id)

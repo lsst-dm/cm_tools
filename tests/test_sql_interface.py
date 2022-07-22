@@ -115,7 +115,7 @@ def test_full_example():
 
     prod = iface.get_data(LevelEnum.production, check_p_id)
     assert prod.db_id.to_tuple() == (1, None, None, None, None)
-    assert prod.name == 'example'
+    assert prod.name == "example"
 
     check_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
     assert check_c_id.to_tuple() == (1, 1, None, None, None)

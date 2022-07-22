@@ -30,7 +30,7 @@ from lsst.cm.tools.db.script import Script
 from sqlalchemy import Integer  # type: ignore
 from sqlalchemy import Column, Enum, ForeignKey, String  # type: ignore
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite
+from sqlalchemy.orm import composite, relationship
 
 
 class Step(common.Base, common.CMTable):
@@ -54,12 +54,23 @@ class Step(common.Base, common.CMTable):
     status = Column(Enum(StatusEnum))  # Status flag
     previous_step_id = Column(Integer)
     db_id = composite(DbId, p_id, c_id, id)
+    p_ = relationship("Production", foreign_keys=[p_id])
+    c_ = relationship("Campaign", foreign_keys=[c_id])
+
     match_keys = [p_id, c_id, id]
     update_fields = common.update_field_list + common.update_common_fields
 
     @hybrid_property
     def fullname(self):
         return self.p_name + "/" + self.c_name + "/" + self.name
+
+    @hybrid_property
+    def butler_repo(self):
+        return self.c_.butler_repo
+
+    @hybrid_property
+    def prod_base_url(self):
+        return self.c_.prod_base_url
 
     @classmethod
     def get_parent_key(cls):
@@ -76,7 +87,8 @@ class Step(common.Base, common.CMTable):
             c_name=handler.get_kwarg_value("campaign_name", **kwargs),
             p_id=parent_db_id.p_id,
             c_id=parent_db_id.c_id,
-            data_query=handler.get_config_var("data_query", "", **kwargs),
+            coll_source=handler.get_kwarg_value("coll_source", **kwargs),
+            data_query=handler.get_kwarg_value("data_query", **kwargs),
             status=StatusEnum.waiting,
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,

@@ -23,6 +23,7 @@ import os
 
 import yaml
 from lsst.cm.tools.core.checker import Checker
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
 
 
@@ -99,7 +100,7 @@ def make_butler_associate_command(butler_repo: str, data) -> str:
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
     data_query = data.data_query
     if data_query:
-        command += f" --where {data_query}"
+        command += f" --where \"{data_query}\""
     return command
 
 
@@ -141,9 +142,48 @@ def make_butler_chain_command(butler_repo: str, data, itr) -> str:
     return command
 
 
+def make_bps_command(config_url: str) -> str:
+    """Build and return a butler chain-collection command
+
+    Parameters
+    ----------
+    config_url : str
+        The configuration file
+
+    Returns
+    -------
+    command : str
+        The requested command
+    """
+    return f"bps submit {os.path.abspath(config_url)}"
+
+
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
     def check_url(self, url, current_status: StatusEnum) -> StatusEnum:
         """Return the status of the script being checked"""
         return check_status_from_yaml(url, current_status)
+
+
+def add_command_script(dbi: DbInterface, command, script_data, mode, **kwargs) -> ScriptBase:
+    script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
+    prepend = kwargs.get("prepend")
+    append = kwargs.get("append")
+    with open(script.script_url, "wt", encoding="utf-8") as fout:
+        if prepend:
+            fout.write(prepend)
+        fout.write(command)
+        fout.write("\n")
+        if append:
+            fout.write(append)
+        if mode == "callback_stamp":
+            fout.write(f'echo "status: completed" > {os.path.abspath(script.log_url)}\n')
+        elif mode == "callback_cm":
+            fout.write(f"cm set_script_status --script {script.id} --status completed\n")
+
+    if kwargs.get("fake_stamp"):
+        write_status_to_yaml(script.log_url, StatusEnum.completed)
+    if kwargs.get("fake_callback"):
+        pass
+    return script

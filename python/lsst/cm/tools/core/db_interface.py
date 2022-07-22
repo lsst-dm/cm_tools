@@ -102,7 +102,7 @@ class CMTableBase:
         raise NotImplementedError()
 
     @classmethod
-    def post_insert(cls, dbi, handler, insert_fields: dict[str, Any], **kwargs):
+    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
         """Do any additional actions after insert any entry
 
         Parameters
@@ -110,8 +110,8 @@ class CMTableBase:
         handler : Handler
             The callback handler
 
-        insert_fields: dict[str, Any]
-            The values we just inserted
+        new_entry: CBTableBase
+            The entry we just inserted
 
         Keywords
         --------
@@ -137,21 +137,6 @@ class DbInterface:
 
     def connection(self):
         """Return the database connection object"""
-        raise NotImplementedError()
-
-    def get_repo(self, db_id: DbId) -> str:
-        """Return the data repository for a given campaign
-
-        Parameters
-        ----------
-        db_id : DbId
-            The database ID used to identify the campaign
-
-        Returns
-        -------
-        repo : str
-            Url for the data repository
-        """
         raise NotImplementedError()
 
     def get_prod_base(self, db_id: DbId) -> str:
@@ -421,7 +406,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def insert(self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs) -> dict[str, Any]:
+    def insert(self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs) -> CMTableBase:
         """Insert a new database entry at a particular level
 
         Parameters
@@ -440,8 +425,8 @@ class DbInterface:
 
         Returns
         -------
-        insert_fields : dict[str, Any]:
-            The keys and values being inserted into the new entry
+        new_entry : CMTableBase
+            The new entry
         """
         raise NotImplementedError()
 

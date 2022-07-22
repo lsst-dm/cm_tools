@@ -33,7 +33,7 @@ from lsst.cm.tools.db.step import Step
 from sqlalchemy import Integer  # type: ignore
 from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, String  # type: ignore
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite
+from sqlalchemy.orm import composite, relationship
 
 
 class Workflow(common.Base, common.CMTable):
@@ -70,6 +70,11 @@ class Workflow(common.Base, common.CMTable):
     workflow_cputime = Column(Float)
     run_script = Column(Integer, ForeignKey(Script.id))
     db_id = composite(DbId, p_id, c_id, s_id, g_id, id)
+    p_ = relationship("Production", foreign_keys=[p_id])
+    c_ = relationship("Campaign", foreign_keys=[c_id])
+    s_ = relationship("Step", foreign_keys=[s_id])
+    g_ = relationship("Group", foreign_keys=[g_id])
+
     match_keys = [p_id, c_id, s_id, g_id, id]
     update_fields = (
         common.update_field_list
@@ -89,6 +94,14 @@ class Workflow(common.Base, common.CMTable):
     @hybrid_property
     def fullname(self):
         return self.p_name + "/" + self.c_name + "/" + self.s_name + "/" + self.g_name + "/" + self.name
+
+    @hybrid_property
+    def butler_repo(self):
+        return self.c_.butler_repo
+
+    @hybrid_property
+    def prod_base_url(self):
+        return self.c_.prod_base_url
 
     @classmethod
     def get_parent_key(cls):

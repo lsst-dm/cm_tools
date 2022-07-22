@@ -27,6 +27,8 @@ from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.script_utils import (
     YamlChecker,
+    add_command_script,
+    make_bps_command,
     make_butler_associate_command,
     make_butler_chain_command,
     write_status_to_yaml,
@@ -79,15 +81,15 @@ class ExampleHandler(SQLAlchemyHandler):
     default_config = SQLAlchemyHandler.default_config.copy()
 
     default_config.update(
-        prepare_script_url_template="{prod_base_url}/{fullname}/prepare.sh",
-        prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
-        collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
-        collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
-        run_script_url_template="bps",
-        run_log_url_template="{prod_base_url}/{fullname}/run.log",
-        run_config_url_template="{prod_base_url}/{fullname}/bps.yaml",
-        coll_in_template="{prod_base_url}/{fullname}_input",
-        coll_out_template="{prod_base_url}/{fullname}_output",
+        prepare_script_url_template="{prod_base_url}/{fullname}/01_prepare.sh",
+        prepare_log_url_template="{prod_base_url}/{fullname}/01_prepare.log",
+        run_script_url_template="{prod_base_url}/{fullname}/02_run.sh",
+        run_log_url_template="{prod_base_url}/{fullname}/02_run.log",
+        run_config_url_template="{prod_base_url}/{fullname}/02_run_bps.yaml",
+        collect_script_url_template="{prod_base_url}/{fullname}/03_collect.sh",
+        collect_log_url_template="{prod_base_url}/{fullname}/03_collect.log",
+        coll_in_template="prod/{fullname}_input",
+        coll_out_template="prod/{fullname}_output",
     )
 
     step_dict = OrderedDict(
@@ -118,40 +120,37 @@ class ExampleHandler(SQLAlchemyHandler):
     yaml_checker_class = YamlChecker().get_checker_class_name()
 
     def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
-        return self.resolve_templated_strings(self.coll_template_names, insert_fields, **kwargs)
+        return self.resolve_templated_strings(self.coll_template_names, **insert_fields, **kwargs)
 
-    def prepare_script_hook(
-        self, level: LevelEnum, dbi: DbInterface, data
-    ) -> Optional[ScriptBase]:
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data) -> Optional[ScriptBase]:
         assert level.value >= LevelEnum.campaign.value
         if level == LevelEnum.workflow:
             return None
-        butler_repo = dbi.get_repo(data.db_id)
         script_data = self.resolve_templated_strings(
             self.prepare_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(data.db_id),
+            prod_base_url=data.prod_base_url,
             fullname=data.fullname,
         )
-        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script.script_url, "wt", encoding="utf-8") as fout:
-            fout.write(make_butler_associate_command(butler_repo, data))
-            fout.write("\n")
-        write_status_to_yaml(script.log_url, StatusEnum.completed)
-        return script
+        command = make_butler_associate_command(data.butler_repo, data)
+        return add_command_script(
+            dbi,
+            command,
+            script_data,
+            "callback_stamp",
+            checker=self.yaml_checker_class,
+            fake_stamp=True,
+        )
 
     def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
-        butler_repo = dbi.get_repo(data.db_id)
+        butler_repo = data.butler_repo
         script_data = self.resolve_templated_strings(
             self.run_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(data.db_id),
+            prod_base_url=data.prod_base_url,
             fullname=data.fullname,
         )
         outpath = script_data["config_url"]
-        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
         import yaml
 
         with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
@@ -170,7 +169,9 @@ class ExampleHandler(SQLAlchemyHandler):
         workflow_config["payload"] = payload
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
-        return script
+
+        command = make_bps_command(outpath)
+        return add_command_script(dbi, command, script_data, "fake_stamp", checker=self.yaml_checker_class)
 
     def fake_run_hook(
         self,
@@ -188,19 +189,20 @@ class ExampleHandler(SQLAlchemyHandler):
         assert level.value >= LevelEnum.campaign.value
         if level == LevelEnum.campaign:
             return None
-        butler_repo = dbi.get_repo(data.db_id)
         script_data = self.resolve_templated_strings(
             self.collect_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(data.db_id),
+            prod_base_url=data.prod_base_url,
             fullname=data.fullname,
         )
-        script = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script.script_url, "wt", encoding="utf-8") as fout:
-            fout.write(make_butler_chain_command(butler_repo, data, itr))
-            fout.write("\n")
-        write_status_to_yaml(script.log_url, StatusEnum.completed)
-        return script
+        command = make_butler_chain_command(data.butler_repo, data, itr)
+        return add_command_script(
+            dbi,
+            command,
+            script_data,
+            "callback_stamp",
+            checker=self.yaml_checker_class,
+            fake_stamp=True,
+        )
 
     def accept_hook(self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data) -> None:
         return

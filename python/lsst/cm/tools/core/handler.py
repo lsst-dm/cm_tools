@@ -115,9 +115,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def prepare_script_hook(
-        self, level: LevelEnum, dbi: DbInterface, data
-    ) -> Optional[ScriptBase]:
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data) -> Optional[ScriptBase]:
         """Called to set up a script need to prepare an entry for execution
 
         Parameters
@@ -341,7 +339,7 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def resolve_templated_string(self, template_name: str, insert_fields: dict, **kwargs) -> str:
+    def resolve_templated_string(self, template_name: str, **kwargs) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
@@ -349,13 +347,9 @@ class Handler:
         template_name : str
             The name of the template requested, must be in self.config
 
-        insert_fields : dict
-            Fields used for most recent database insertion,
-            can be used in formatting
-
         Keywords
         --------
-        Keywords are also used in formating
+        These can be used in the formating
 
         Returns
         -------
@@ -368,17 +362,14 @@ class Handler:
             The formatting failed
         """
         template_string = self.config.get(template_name, self.default_config.get(template_name))
-        format_vars = kwargs.copy()
-        format_vars.update(**insert_fields)
-        format_vars.update(**self.config)
+        format_vars = self.config.copy()
+        format_vars.update(**kwargs)
         try:
             return template_string.format(**format_vars)
         except KeyError as msg:
             raise KeyError(f"Failed to format {template_string} with {str(format_vars)}") from msg
 
-    def resolve_templated_strings(
-        self, template_names: dict[str, str], insert_fields: dict, **kwargs
-    ) -> dict[str, Any]:
+    def resolve_templated_strings(self, template_names: dict[str, str], **kwargs) -> dict[str, Any]:
         """Utility function resolve a list of templated names
 
         Parameters
@@ -387,13 +378,9 @@ class Handler:
             Keys are the output keys, values are he names
             of the template requested, which must be in self.config
 
-        insert_fields : dict
-            Fields used for most recent database insertion,
-            can be used in formatting
-
         Keywords
         --------
-        Keywords are also used in formating
+        These can be used in the formating
 
         Returns
         -------
@@ -405,7 +392,4 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        return {
-            key_: self.resolve_templated_string(val_, insert_fields, **kwargs)
-            for key_, val_ in template_names.items()
-        }
+        return {key_: self.resolve_templated_string(val_, **kwargs) for key_, val_ in template_names.items()}

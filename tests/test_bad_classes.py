@@ -103,9 +103,6 @@ def test_bad_db_interface():
         bad_db.connection()
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_repo(null_db_id)
-
-    with pytest.raises(NotImplementedError):
         bad_db.get_prod_base(null_db_id)
 
     with pytest.raises(NotImplementedError):
@@ -211,7 +208,7 @@ def test_bad_handler():
 
         def bad_resolve_templated(self):
             self.config["bad_template"] = "{missing}"
-            self.resolve_templated_string("bad_template", {})
+            self.resolve_templated_string("bad_template")
 
     bad_db = BadDbInterface()
     null_db_id = DbId()

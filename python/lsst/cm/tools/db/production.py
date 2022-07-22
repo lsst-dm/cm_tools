@@ -52,7 +52,7 @@ class Production(common.Base, common.CMTable):
         return None
 
     def __repr__(self):
-        return f"Production {self.name} {self.db_id}: {self.handler} {self.config_yaml}"
+        return f"Production {self.fullname} {self.db_id}: {self.handler} {self.config_yaml}"
 
     @classmethod
     def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:

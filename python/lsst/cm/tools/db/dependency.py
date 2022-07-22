@@ -84,5 +84,5 @@ class Dependency(DependencyBase, common.Base):
         level = db_id.level()
         sel = select(Dependency).where(Dependency.depend_keys[level.value] == db_id[level])
         itr = common.return_iterable(dbi, sel)
-        db_id_list = [row_.db_id for row_ in itr]
+        db_id_list = [row_.db_id for row_ in itr if row_.db_id.level() == level]
         return db_id_list

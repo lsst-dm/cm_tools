@@ -1,7 +1,7 @@
 workflow_template_yaml: "examples/example_template.yaml"
 sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
-coll_source: '/prod/raw/all'
-command_tmpl: 'bps'
+campaign_coll_source: '/prod/raw/all'
+campaign_data_query: "instrument = 'HSC' and exposure < 500"
 pipeline_yaml:
     step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
     step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"

@@ -105,7 +105,7 @@ class CMTable(CMTableBase):
         raise NotImplementedError()
 
     @classmethod
-    def post_insert(cls, dbi: DbInterface, handler, insert_fields: dict[str, Any], **kwargs):
+    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs):
         return None
 
     @classmethod
