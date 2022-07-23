@@ -111,6 +111,7 @@ class Group(common.Base, common.CMTable):
     def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
         kwcopy = kwargs.copy()
         kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
+        kwcopy.pop('data_query')
         kwcopy.update(coll_source=new_entry.coll_in)
         parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
         dbi.insert(LevelEnum.workflow, parent_db_id, handler, **kwcopy)
