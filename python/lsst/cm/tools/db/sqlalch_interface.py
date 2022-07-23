@@ -199,6 +199,10 @@ class SQLAlchemyInterface(DbInterface):
             kwcopy.update(config_yaml=row_.config_yaml)
             db_id_list += row_.prepare(self, handler, **kwcopy)
         self.check(level, db_id, recurse=True, counter=2)
+
+        child_level = level.child()
+        if child_level is not None:
+            self.prepare(child_level, db_id, **kwargs)
         return db_id_list
 
     def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
