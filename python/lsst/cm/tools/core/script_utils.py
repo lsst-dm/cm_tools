@@ -79,7 +79,7 @@ def make_butler_associate_command(butler_repo: str, data) -> str:
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
     data_query = data.data_query
     if data_query:
-        command += f" --where \"{data_query}\""
+        command += f' --where "{data_query}"'
     return command
 
 
