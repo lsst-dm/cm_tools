@@ -122,6 +122,8 @@ class Workflow(common.Base, common.CMTable):
             c_id=parent_db_id.c_id,
             s_id=parent_db_id.s_id,
             g_id=parent_db_id.g_id,
+            data_query=handler.get_config_var("data_query", "", **kwargs),
+            coll_source=handler.get_config_var("coll_source", "", **kwargs),
             status=StatusEnum.waiting,
             handler=handler.get_handler_class_name(),
             config_yaml=handler.config_url,
