@@ -1,6 +1,6 @@
 import sys
 
-import click  # type: ignore
+import click
 from lsst.cm.tools.cli.opt.options import (
     butler_option,
     campaign_option,

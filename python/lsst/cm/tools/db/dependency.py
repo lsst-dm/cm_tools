@@ -9,8 +9,7 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, ForeignKey, func, select  # type: ignore
+from sqlalchemy import Column, ForeignKey, Integer, func, select
 from sqlalchemy.orm import composite
 
 

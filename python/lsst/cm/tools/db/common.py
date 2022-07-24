@@ -5,7 +5,7 @@ from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, safe_makedirs
-from sqlalchemy import and_, func, select, update  # type: ignore
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import declarative_base
 
 update_field_list = ["handler", "config_yaml"]

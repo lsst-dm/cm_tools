@@ -8,7 +8,7 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
-from sqlalchemy import Table, create_engine  # type: ignore
+from sqlalchemy import Table, create_engine
 
 
 def create_db(engine) -> None:
@@ -24,7 +24,7 @@ def create_db(engine) -> None:
 
 def build_engine(db_url, **kwargs):
     """Return the sqlalchemy engine, building the database if needed"""
-    from sqlalchemy_utils import database_exists  # type: ignore
+    from sqlalchemy_utils import database_exists
 
     kwcopy = kwargs.copy()
     create = kwcopy.pop("create", False)

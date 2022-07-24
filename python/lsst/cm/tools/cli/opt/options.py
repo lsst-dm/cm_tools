@@ -1,6 +1,6 @@
 from functools import partial
 
-import click  # type: ignore
+import click
 from lsst.cm.tools.core.utils import LevelEnum
 
 

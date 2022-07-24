@@ -160,7 +160,7 @@ class ExampleHandler(SQLAlchemyHandler):
     ) -> None:
         script_id = data.run_script
         script = dbi.get_script(script_id)
-        write_status_to_yaml(script.log_url, status)  # type: ignore
+        write_status_to_yaml(script.log_url, status)
 
     def collect_script_hook(
         self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data

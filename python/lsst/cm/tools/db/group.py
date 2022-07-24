@@ -8,8 +8,7 @@ from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.step import Step
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, Enum, ForeignKey, String  # type: ignore
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import composite, relationship
 

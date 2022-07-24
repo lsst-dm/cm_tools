@@ -9,7 +9,7 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 # import datetime
 
 
-class SQLAlchemyHandler(Handler):  # noqa
+class SQLAlchemyHandler(Handler):
     """SQLAlchemy based Handler
 
     This contains the implementation details that

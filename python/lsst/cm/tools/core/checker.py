@@ -39,7 +39,7 @@ class Checker:
         cached_checker = Checker.checker_cache.get(class_name)
         if cached_checker is None:
             checker_class = doImport(class_name)
-            cached_checker = checker_class()  # type: ignore
+            cached_checker = checker_class()
             Checker.checker_cache[class_name] = cached_checker
         return cached_checker
 

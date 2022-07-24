@@ -2,8 +2,7 @@ from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
 from lsst.cm.tools.db import common
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, Enum, String, func, select, update  # type: ignore
+from sqlalchemy import Column, Enum, Integer, String, func, select, update
 
 
 class Script(common.Base, ScriptBase):

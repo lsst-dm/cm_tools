@@ -3,8 +3,7 @@ from typing import Any
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum
 from lsst.cm.tools.db import common
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, String  # type: ignore
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import composite
 
