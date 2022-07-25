@@ -1,27 +1,6 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 from collections import OrderedDict
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.grouper import Grouper
@@ -119,7 +98,7 @@ class ExampleHandler(SQLAlchemyHandler):
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
 
-    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
+    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs: Any) -> dict[str, str]:
         return self.resolve_templated_strings(self.coll_template_names, **insert_fields, **kwargs)
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data) -> Optional[ScriptBase]:
@@ -141,7 +120,7 @@ class ExampleHandler(SQLAlchemyHandler):
             fake_stamp=True,
         )
 
-    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
+    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs: Any) -> Optional[ScriptBase]:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = data.butler_repo
@@ -181,7 +160,7 @@ class ExampleHandler(SQLAlchemyHandler):
     ) -> None:
         script_id = data.run_script
         script = dbi.get_script(script_id)
-        write_status_to_yaml(script.log_url, status)  # type: ignore
+        write_status_to_yaml(script.log_url, status)
 
     def collect_script_hook(
         self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data

@@ -1,27 +1,7 @@
-# This file is part of cm_tools.
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import sys
+from typing import Any
 
-import click  # type: ignore
+import click
 from lsst.cm.tools.cli.opt.options import (
     butler_option,
     campaign_option,
@@ -62,7 +42,7 @@ __all__ = [
 @click.command("create")
 @db_option()
 @echo_option()
-def cm_create(**kwargs):
+def cm_create(**kwargs: Any) -> None:
     SQLAlchemyInterface(db_url=kwargs.get("db"), echo=kwargs.get("echo"), create=True)
 
 
@@ -79,7 +59,7 @@ def cm_create(**kwargs):
 @config_option()
 @db_option()
 @echo_option()
-def cm_insert(**kwargs):
+def cm_insert(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     config_yaml = all_args.pop("config_yaml")
@@ -100,7 +80,7 @@ def cm_insert(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-def cm_print(**kwargs):
+def cm_print(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -112,7 +92,7 @@ def cm_print(**kwargs):
 @level_option()
 @db_option()
 @echo_option()
-def cm_print_table(**kwargs):
+def cm_print_table(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -128,7 +108,7 @@ def cm_print_table(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-def cm_count(**kwargs):
+def cm_count(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -145,7 +125,7 @@ def cm_count(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-def cm_prepare(**kwargs):
+def cm_prepare(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -171,7 +151,7 @@ def cm_prepare(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-def cm_queue(**kwargs):
+def cm_queue(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -189,7 +169,7 @@ def cm_queue(**kwargs):
 @db_option()
 @echo_option()
 @max_running_option()
-def cm_launch(**kwargs):
+def cm_launch(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -208,7 +188,7 @@ def cm_launch(**kwargs):
 @db_option()
 @echo_option()
 @recurse_option()
-def cm_check(**kwargs):
+def cm_check(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -227,7 +207,7 @@ def cm_check(**kwargs):
 @db_option()
 @echo_option()
 @recurse_option()
-def cm_accept(**kwargs):
+def cm_accept(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -245,7 +225,7 @@ def cm_accept(**kwargs):
 @workflow_option()
 @db_option()
 @echo_option()
-def cm_reject(**kwargs):
+def cm_reject(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -263,7 +243,7 @@ def cm_reject(**kwargs):
 @db_option()
 @echo_option()
 @max_running_option()
-def cm_fake_run(**kwargs):
+def cm_fake_run(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
@@ -277,7 +257,7 @@ def cm_fake_run(**kwargs):
 @db_option()
 @echo_option()
 @max_running_option()
-def cm_daemon(**kwargs):
+def cm_daemon(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     max_running = all_args.pop("max_running")
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))

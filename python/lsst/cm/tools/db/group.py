@@ -1,24 +1,3 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import CMTableBase
@@ -29,8 +8,7 @@ from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.step import Step
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, Enum, ForeignKey, String  # type: ignore
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import composite, relationship
 
@@ -84,7 +62,7 @@ class Group(common.Base, common.CMTable):
         return f"Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs: Any) -> dict[str, Any]:
         insert_fields = dict(
             name=handler.get_kwarg_value("group_name", **kwargs),
             p_name=handler.get_kwarg_value("production_name", **kwargs),
@@ -108,10 +86,10 @@ class Group(common.Base, common.CMTable):
         return insert_fields
 
     @classmethod
-    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
+    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
         kwcopy = kwargs.copy()
         kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
-        kwcopy.pop('data_query')
+        kwcopy.pop("data_query")
         kwcopy.update(coll_source=new_entry.coll_in)
         parent_db_id = dbi.get_db_id(LevelEnum.group, **kwcopy)
         dbi.insert(LevelEnum.workflow, parent_db_id, handler, **kwcopy)

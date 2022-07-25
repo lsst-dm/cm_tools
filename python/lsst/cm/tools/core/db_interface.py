@@ -1,25 +1,4 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import Any, Optional, TextIO
@@ -44,7 +23,7 @@ class ScriptBase:
         raise NotImplementedError()
 
     @classmethod
-    def add_script(cls, dbi: DbInterface, **kwargs) -> ScriptBase:
+    def add_script(cls, dbi: DbInterface, **kwargs: Any) -> ScriptBase:
         raise NotImplementedError()
 
     @classmethod
@@ -79,7 +58,7 @@ class CMTableBase:
         raise NotImplementedError()
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def get_insert_fields(cls, handler: Handler, parent_db_id: DbId, **kwargs: Any) -> dict[str, Any]:
         """Return fields need to populate a new entry in this table
 
         Parameters
@@ -102,7 +81,7 @@ class CMTableBase:
         raise NotImplementedError()
 
     @classmethod
-    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
+    def post_insert(cls, dbi: DbInterface, handler: Handler, new_entry: CMTableBase, **kwargs: Any) -> None:
         """Do any additional actions after insert any entry
 
         Parameters
@@ -154,7 +133,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
+    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
         """Return an id that identifies one or more database entries
 
         Parameters
@@ -174,7 +153,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_row_id(self, level: LevelEnum, **kwargs) -> int:
+    def get_row_id(self, level: LevelEnum, **kwargs: Any) -> int:
         """Return the primary key of a particular row in the database
 
         Parameters
@@ -294,7 +273,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
+    def update(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
         """Update a particular database entry
 
         Parameters
@@ -381,7 +360,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def add_script(self, **kwargs) -> ScriptBase:
+    def add_script(self, **kwargs: Any) -> ScriptBase:
         """Insert a new row with details about a script
 
         Keywords
@@ -406,7 +385,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def insert(self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs) -> CMTableBase:
+    def insert(self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs: Any) -> CMTableBase:
         """Insert a new database entry at a particular level
 
         Parameters
@@ -430,7 +409,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
+    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
         """Prepare a database entry for execution
 
         Parameters

@@ -1,24 +1,3 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 import sys
 from collections.abc import Iterable
@@ -30,8 +9,6 @@ from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, Dependency
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-
-# from lsst.cm.tools.db import db
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.script import Script
@@ -40,19 +17,19 @@ from sqlalchemy.orm import Session
 
 class SQLAlchemyInterface(DbInterface):
     @staticmethod
-    def _copy_fields(fields: list[str], **kwargs) -> dict[str, Any]:
+    def _copy_fields(fields: list[str], **kwargs: Any) -> dict[str, Any]:
         ret_dict = {}
         for field_ in fields:
             if field_ in kwargs:
                 ret_dict[field_] = kwargs.get(field_)
         return ret_dict
 
-    def __init__(self, db_url: str, **kwargs):
+    def __init__(self, db_url: str, **kwargs: Any):
         self._engine = top.build_engine(db_url, **kwargs)
         self._conn = Session(self._engine, future=True)
         DbInterface.__init__(self)
 
-    def connection(self):
+    def connection(self) -> Session:
         return self._conn
 
     def get_prod_base(self, db_id: DbId) -> str:
@@ -60,7 +37,7 @@ class SQLAlchemyInterface(DbInterface):
         sel = table.get_row_query(db_id, [table.prod_base_url])
         return common.return_first_column(self, sel)
 
-    def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
+    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
         if level is None:
             return DbId()
         p_id = self._get_id(LevelEnum.production, None, kwargs.get("production_name"))
@@ -101,7 +78,7 @@ class SQLAlchemyInterface(DbInterface):
         counter = top.get_count_query(level, db_id)
         return common.return_count(self, counter)
 
-    def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
+    def update(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
         table = top.get_table(level)
         update_fields = self._copy_fields(table.update_fields, **kwargs)
         if update_fields:
@@ -163,7 +140,7 @@ class SQLAlchemyInterface(DbInterface):
     def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
         return Dependency.add_prerequisite(self, depend_id, prereq_id)
 
-    def add_script(self, **kwargs) -> ScriptBase:
+    def add_script(self, **kwargs: Any) -> ScriptBase:
         kwargs.setdefault("status", StatusEnum.ready)
         return Script.add_script(self, **kwargs)
 
@@ -183,7 +160,7 @@ class SQLAlchemyInterface(DbInterface):
         table.post_insert(self, handler, new_entry, **kwargs)
         return new_entry
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
+    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
         assert level != LevelEnum.production
         itr = self.get_iterable(level, db_id)
         kwcopy = kwargs.copy()
@@ -238,7 +215,7 @@ class SQLAlchemyInterface(DbInterface):
     def accept(self, level: LevelEnum, db_id: DbId, recurse: bool = False) -> list[DbId]:
         db_id_list = []
         if recurse:
-            recurse_level = LevelEnum.workflow
+            recurse_level: Optional[LevelEnum] = LevelEnum.workflow
             while recurse_level.value > level.value:
                 db_id_list += self.accept(recurse_level, db_id)
                 recurse_level = recurse_level.parent()

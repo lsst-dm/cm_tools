@@ -1,25 +1,5 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import sys
+from typing import Any
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
@@ -30,7 +10,7 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.common import CMTable
 
 
-def test_bad_script():
+def test_bad_script() -> None:
     class BadScript(ScriptBase):
         pass
 
@@ -50,7 +30,7 @@ def test_bad_script():
         bad_script.get_script(bad_db, 0)
 
 
-def test_bad_dependency():
+def test_bad_dependency() -> None:
     class BadDependency(DependencyBase):
         pass
 
@@ -68,7 +48,7 @@ def test_bad_dependency():
         bad_dep.get_prerequisites(bad_db, null_db_id)
 
 
-def test_bad_cm_table():
+def test_bad_cm_table() -> None:
     class BadCMTableBase(CMTableBase):
         pass
 
@@ -92,7 +72,7 @@ def test_bad_cm_table():
         CMTable.get_parent_key()
 
 
-def test_bad_db_interface():
+def test_bad_db_interface() -> None:
     class BadDbInterface(DbInterface):
         pass
 
@@ -172,7 +152,7 @@ def test_bad_db_interface():
         bad_db.daemon(null_db_id)
 
 
-def test_bad_grouper():
+def test_bad_grouper() -> None:
     class BadDbInterface(DbInterface):
         pass
 
@@ -187,7 +167,7 @@ def test_bad_grouper():
         bad_grouper({}, bad_db, null_db_id, None)
 
 
-def test_bad_checker():
+def test_bad_checker() -> None:
     class BadChecker(Checker):
         pass
 
@@ -197,16 +177,16 @@ def test_bad_checker():
         bad_checker.check_url(None, StatusEnum.ready)
 
 
-def test_bad_handler():
+def test_bad_handler() -> None:
     class BadDbInterface(DbInterface):
         pass
 
     class BadHandler(Handler):
         @classmethod
-        def bad_get_kwarg(cls):
+        def bad_get_kwarg(cls) -> Any:
             return cls.get_kwarg_value("bad")
 
-        def bad_resolve_templated(self):
+        def bad_resolve_templated(self) -> None:
             self.config["bad_template"] = "{missing}"
             self.resolve_templated_string("bad_template")
 

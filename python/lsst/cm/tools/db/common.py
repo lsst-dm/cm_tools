@@ -1,24 +1,3 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 from typing import Any, Iterable, Optional, TextIO
 
@@ -26,7 +5,7 @@ from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, safe_makedirs
-from sqlalchemy import and_, func, select, update  # type: ignore
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import declarative_base
 
 update_field_list = ["handler", "config_yaml"]
@@ -56,7 +35,7 @@ class CMTable(CMTableBase):
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
 
-    def prepare(self, dbi: DbInterface, handler, **kwargs):
+    def prepare(self, dbi: DbInterface, handler, **kwargs: Any):
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -105,8 +84,8 @@ class CMTable(CMTableBase):
         raise NotImplementedError()
 
     @classmethod
-    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs):
-        return None
+    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
+        pass
 
     @classmethod
     def get_count_query(cls, db_id: Optional[DbId]):
@@ -163,7 +142,7 @@ class CMTable(CMTableBase):
         return sel
 
     @classmethod
-    def insert_values(cls, dbi: DbInterface, **kwargs):
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any):
         """Inserts a new row at a given level with values given in kwargs"""
         counter = func.count(cls.id)
         conn = dbi.connection()
@@ -174,7 +153,7 @@ class CMTable(CMTableBase):
         return new_entry
 
     @classmethod
-    def update_values(cls, dbi: DbInterface, db_id: DbId, **kwargs):
+    def update_values(cls, dbi: DbInterface, db_id: DbId, **kwargs: Any):
         """Updates a given row with values given in kwargs"""
         stmt = update(cls).where(cls.id == db_id[cls.level]).values(**kwargs)
         conn = dbi.connection()

@@ -1,33 +1,14 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
+from typing import Any, Iterable
 
 import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.db.common import CMTable
 
 
-def write_status_to_yaml(log_url, status: StatusEnum) -> None:
+def write_status_to_yaml(log_url: str, status: StatusEnum) -> None:
     """Write a one line file with just a status flag
 
     E.g. the file might just contain, `status: completed`
@@ -65,7 +46,7 @@ def check_status_from_yaml(log_url: str, current_status: StatusEnum) -> StatusEn
     return StatusEnum[fields["status"]]
 
 
-def make_butler_associate_command(butler_repo: str, data) -> str:
+def make_butler_associate_command(butler_repo: str, data: CMTable) -> str:
     """Build and return a butler associate command
 
     Parameters
@@ -100,11 +81,11 @@ def make_butler_associate_command(butler_repo: str, data) -> str:
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
     data_query = data.data_query
     if data_query:
-        command += f" --where \"{data_query}\""
+        command += f' --where "{data_query}"'
     return command
 
 
-def make_butler_chain_command(butler_repo: str, data, itr) -> str:
+def make_butler_chain_command(butler_repo: str, data: CMTable, itr: Iterable) -> str:
     """Build and return a butler chain-collection command
 
     Parameters
@@ -161,12 +142,14 @@ def make_bps_command(config_url: str) -> str:
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, url, current_status: StatusEnum) -> StatusEnum:
+    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
         """Return the status of the script being checked"""
         return check_status_from_yaml(url, current_status)
 
 
-def add_command_script(dbi: DbInterface, command, script_data, mode, **kwargs) -> ScriptBase:
+def add_command_script(
+    dbi: DbInterface, command: str, script_data: dict[str, Any], mode: str, **kwargs: Any
+) -> ScriptBase:
     script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")

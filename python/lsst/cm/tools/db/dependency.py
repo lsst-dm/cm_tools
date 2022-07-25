@@ -1,24 +1,3 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 from __future__ import annotations
 
 from lsst.cm.tools.core.db_interface import DbInterface, DependencyBase
@@ -30,8 +9,7 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
-from sqlalchemy import Integer  # type: ignore
-from sqlalchemy import Column, ForeignKey, func, select  # type: ignore
+from sqlalchemy import Column, ForeignKey, Integer, func, select
 from sqlalchemy.orm import composite
 
 
@@ -53,7 +31,7 @@ class Dependency(DependencyBase, common.Base):
     depend_db_id = composite(DbId, depend_p_id, depend_c_id, depend_s_id, depend_g_id, depend_w_id)
     depend_keys = [depend_p_id, depend_c_id, depend_s_id, depend_g_id, depend_w_id]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Dependency {self.db_id}: {self.depend_db_id}"
 
     @classmethod

@@ -1,4 +1,4 @@
-def find_version():
+def find_version() -> str:
     # setuptools_scm should install a
     # file _version alongside this one.
     from . import _version
