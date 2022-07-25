@@ -31,7 +31,7 @@ class Dependency(DependencyBase, common.Base):
     depend_db_id = composite(DbId, depend_p_id, depend_c_id, depend_s_id, depend_g_id, depend_w_id)
     depend_keys = [depend_p_id, depend_c_id, depend_s_id, depend_g_id, depend_w_id]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Dependency {self.db_id}: {self.depend_db_id}"
 
     @classmethod

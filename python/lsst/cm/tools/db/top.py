@@ -22,7 +22,7 @@ def create_db(engine) -> None:
     common.Base.metadata.create_all(engine)
 
 
-def build_engine(db_url, **kwargs):
+def build_engine(db_url, **kwargs: Any):
     """Return the sqlalchemy engine, building the database if needed"""
     from sqlalchemy_utils import database_exists
 

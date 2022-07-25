@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Any, List, Optional
 
 import click
 from lsst.cm.tools.core.utils import LevelEnum
@@ -9,29 +10,29 @@ class MWOptionDecorator:
     and allows inspection of the shared option.
     """
 
-    def __init__(self, *param_decls, **kwargs):
+    def __init__(self, *param_decls: Any, **kwargs: Any) -> None:
         self.partialOpt = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
         opt = click.Option(param_decls, **kwargs)
         self._name = opt.name
         self._opts = opt.opts
 
-    def name(self):
+    def name(self) -> Optional[str]:
         """Get the name that will be passed to the command function for this
         option."""
         return self._name
 
-    def opts(self):
+    def opts(self) -> List[str]:
         """Get the flags that will be used for this option on the command
         line."""
         return self._opts
 
     @property
-    def help(self):
+    def help(self) -> str:
         """Get the help text for this option. Returns an empty string if no
         help was defined."""
         return self.partialOpt.keywords.get("help", "")
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         return self.partialOpt(*args, **kwargs)
 
 
@@ -39,7 +40,7 @@ class OptionGroup:
     """Base class for an option group decorator. Requires the option group
     subclass to have a property called `decorator`."""
 
-    def __call__(self, f):
+    def __call__(self, f) -> Any:
         for decorator in reversed(self.decorators):
             f = decorator(f)
         return f
@@ -91,7 +92,7 @@ workflow_option = MWOptionDecorator("--workflow_name", type=int, help="Workflow 
 
 
 class IdOptions(OptionGroup):
-    def __init__(self):
+    def __init__(self) -> None:
         self.decorators = []
         self.decorators.append(production_option)
         self.decorators.append(campaign_option)

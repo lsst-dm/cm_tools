@@ -62,7 +62,7 @@ class Group(common.Base, common.CMTable):
         return f"Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs: Any) -> dict[str, Any]:
         insert_fields = dict(
             name=handler.get_kwarg_value("group_name", **kwargs),
             p_name=handler.get_kwarg_value("production_name", **kwargs),
@@ -86,7 +86,7 @@ class Group(common.Base, common.CMTable):
         return insert_fields
 
     @classmethod
-    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
+    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
         kwcopy = kwargs.copy()
         kwcopy["workflow_idx"] = kwcopy.get("workflow_idx", 0)
         kwcopy.pop("data_query")

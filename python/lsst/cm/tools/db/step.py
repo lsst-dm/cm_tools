@@ -58,7 +58,7 @@ class Step(common.Base, common.CMTable):
         return f"Step {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs: Any) -> dict[str, Any]:
         insert_fields = dict(
             name=handler.get_kwarg_value("step_name", **kwargs),
             p_name=handler.get_kwarg_value("production_name", **kwargs),

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Iterable
+from typing import Any, Iterable
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
@@ -20,7 +20,7 @@ class SQLAlchemyHandler(Handler):
 
     step_dict: OrderedDict[str, type] = OrderedDict([])
 
-    def _group_iterator(self, dbi: DbInterface, parent_data_id: DbId, data, **kwargs) -> Iterable:
+    def _group_iterator(self, dbi: DbInterface, parent_data_id: DbId, data, **kwargs: Any) -> Iterable:
         step_name = str(kwargs.get("step_name"))
         try:
             grouper_class = self.step_dict[step_name]

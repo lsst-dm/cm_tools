@@ -10,7 +10,7 @@ from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
-def test_full_example():
+def test_full_example() -> None:
 
     try:
         os.unlink("test.db")
@@ -133,7 +133,7 @@ def test_full_example():
     os.unlink("test.db")
 
 
-def test_failed_workflows():
+def test_failed_workflows() -> None:
 
     try:
         os.unlink("fail.db")
@@ -208,13 +208,13 @@ def test_failed_workflows():
         os.unlink("fail.db")
 
 
-def test_bad_db():
+def test_bad_db() -> None:
 
     with pytest.raises(RuntimeError):
         SQLAlchemyInterface("sqlite:///bad.db", echo=False)
 
 
-def test_table_repr():
+def test_table_repr() -> None:
 
     depend = Dependency()
     assert repr(depend)

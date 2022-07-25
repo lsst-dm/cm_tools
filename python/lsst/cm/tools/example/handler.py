@@ -1,6 +1,6 @@
 import os
 from collections import OrderedDict
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.grouper import Grouper
@@ -98,7 +98,7 @@ class ExampleHandler(SQLAlchemyHandler):
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
 
-    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
+    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs: Any) -> dict[str, str]:
         return self.resolve_templated_strings(self.coll_template_names, **insert_fields, **kwargs)
 
     def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data) -> Optional[ScriptBase]:
@@ -120,7 +120,7 @@ class ExampleHandler(SQLAlchemyHandler):
             fake_stamp=True,
         )
 
-    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
+    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs: Any) -> Optional[ScriptBase]:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = data.butler_repo

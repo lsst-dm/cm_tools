@@ -1,4 +1,4 @@
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional

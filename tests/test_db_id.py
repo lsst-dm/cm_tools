@@ -2,7 +2,7 @@ from lsst.cm.tools.core.db_interface import DbId
 from lsst.cm.tools.core.utils import LevelEnum
 
 
-def test_db_id():
+def test_db_id() -> None:
 
     db_top_id = DbId()
     assert db_top_id.to_tuple() == (None, None, None, None, None)

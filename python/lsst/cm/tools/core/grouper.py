@@ -1,6 +1,6 @@
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 from lsst.cm.tools.core.dbid import DbId
 
@@ -17,14 +17,14 @@ class Grouper:
     to insert for the associated group entry.
     """
 
-    def __init__(self):
-        self.config = None
-        self.dbi = None
-        self.parent_db_id = None
+    def __init__(self) -> None:
+        self.config: Optional[dict[str, Any]] = None
+        self.dbi: Optional[DbInterface] = None
+        self.parent_db_id: Optional[DbId] = None
         self.data = None
 
     def __call__(
-        self, config: dict[str, Any], dbi: DbInterface, parent_db_id: DbId, data, **kwargs
+        self, config: dict[str, Any], dbi: DbInterface, parent_db_id: DbId, data: Any, **kwargs: Any
     ) -> Iterable:
         """Return an Iterable over the groups we should make
 

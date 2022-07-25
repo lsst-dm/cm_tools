@@ -1,3 +1,5 @@
+from typing import Any
+
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
@@ -15,7 +17,7 @@ class Script(common.Base, ScriptBase):
     checker = Column(String)  # Checker class
     status = Column(Enum(StatusEnum))  # Status flag
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Script {self.id}: {self.checker} {self.log_url} {self.status.name}"
 
     def check_status(self, dbi: DbInterface) -> StatusEnum:
@@ -31,7 +33,7 @@ class Script(common.Base, ScriptBase):
         return new_status
 
     @classmethod
-    def add_script(cls, dbi: DbInterface, **kwargs) -> ScriptBase:
+    def add_script(cls, dbi: DbInterface, **kwargs: Any) -> ScriptBase:
         """Insert a new row with details about a script"""
         counter = func.count(cls.id)
         next_id = common.return_count(dbi, counter) + 1

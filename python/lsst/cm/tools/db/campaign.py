@@ -48,7 +48,7 @@ class Campaign(common.Base, common.CMTable):
         return f"Campaign {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs: Any) -> dict[str, Any]:
         if "butler_repo" not in kwargs:
             raise KeyError("butler_repo must be specified with inserting a campaign")
         if "prod_base_url" not in kwargs:
@@ -73,7 +73,7 @@ class Campaign(common.Base, common.CMTable):
         return insert_fields
 
     @classmethod
-    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs):
+    def post_insert(cls, dbi, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
         kwcopy = kwargs.copy()
         previous_step_id = None
         coll_source = new_entry.coll_in

@@ -35,7 +35,7 @@ class CMTable(CMTableBase):
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
 
-    def prepare(self, dbi: DbInterface, handler, **kwargs):
+    def prepare(self, dbi: DbInterface, handler, **kwargs: Any):
         """Called when preparing a database entry for execution
 
         Can be used to prepare additional entries, for example,
@@ -84,8 +84,8 @@ class CMTable(CMTableBase):
         raise NotImplementedError()
 
     @classmethod
-    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs):
-        return None
+    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
+        pass
 
     @classmethod
     def get_count_query(cls, db_id: Optional[DbId]):
@@ -142,7 +142,7 @@ class CMTable(CMTableBase):
         return sel
 
     @classmethod
-    def insert_values(cls, dbi: DbInterface, **kwargs):
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any):
         """Inserts a new row at a given level with values given in kwargs"""
         counter = func.count(cls.id)
         conn = dbi.connection()
@@ -153,7 +153,7 @@ class CMTable(CMTableBase):
         return new_entry
 
     @classmethod
-    def update_values(cls, dbi: DbInterface, db_id: DbId, **kwargs):
+    def update_values(cls, dbi: DbInterface, db_id: DbId, **kwargs: Any):
         """Updates a given row with values given in kwargs"""
         stmt = update(cls).where(cls.id == db_id[cls.level]).values(**kwargs)
         conn = dbi.connection()

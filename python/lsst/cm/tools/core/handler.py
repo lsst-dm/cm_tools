@@ -1,5 +1,6 @@
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
 
+import types
 from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 import yaml
@@ -10,6 +11,7 @@ from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
+    from lsst.cm.tools.db.common import CMTable
 
 
 class Handler:
@@ -25,12 +27,12 @@ class Handler:
 
     handler_cache: dict[str, Handler] = {}
 
-    def __init__(self):
-        self._config_url = None
-        self._config = {}
+    def __init__(self) -> None:
+        self._config_url: Optional[str] = None
+        self._config: dict[str, Any] = {}
 
     @property
-    def config_url(self):
+    def config_url(self) -> Optional[str]:
         """Return the url of the file with the handler configuration"""
         return self._config_url
 
@@ -61,6 +63,8 @@ class Handler:
         cached_handler = Handler.handler_cache.get(class_name)
         if cached_handler is None:
             handler_class = doImport(class_name)
+            if isinstance(handler_class, types.ModuleType):
+                raise (TypeError())
             cached_handler = handler_class()
             Handler.handler_cache[class_name] = cached_handler
         cached_handler.update_config(config_url)
@@ -75,7 +79,7 @@ class Handler:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs) -> dict[str, str]:
+    def coll_name_hook(self, level: LevelEnum, insert_fields: dict, **kwargs: Any) -> dict[str, str]:
         """Called to get the name of the input and output collections
 
         Parameters
@@ -94,7 +98,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data) -> Optional[ScriptBase]:
+    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, data: CMTable) -> Optional[ScriptBase]:
         """Called to set up a script need to prepare an entry for execution
 
         Parameters
@@ -115,7 +119,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def workflow_script_hook(self, dbi: DbInterface, data, **kwargs) -> Optional[ScriptBase]:
+    def workflow_script_hook(self, dbi: DbInterface, data: CMTable, **kwargs: Any) -> Optional[ScriptBase]:
         """Write the script to run a workflow
 
         Parameters
@@ -133,7 +137,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def check_workflow_status_hook(self, dbi: DbInterface, data) -> dict[str, Any]:
+    def check_workflow_status_hook(self, dbi: DbInterface, data: CMTable) -> dict[str, Any]:
         """Check the status of a particular workflow
 
         Parameters
@@ -152,7 +156,7 @@ class Handler:
         raise NotImplementedError()
 
     def collect_script_hook(
-        self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data
+        self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data: CMTable
     ) -> Optional[ScriptBase]:
         """Called when all the childern of a particular entry are finished
 
@@ -172,7 +176,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def accept_hook(self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data) -> None:
+    def accept_hook(self, level: LevelEnum, dbi: DbInterface, itr: Iterable, data: CMTable) -> None:
         """Called when a particular entry is accepted
 
         Parameters
@@ -188,7 +192,7 @@ class Handler:
         """
         raise NotImplementedError()
 
-    def reject_hook(self, level: LevelEnum, dbi: DbInterface, data) -> None:
+    def reject_hook(self, level: LevelEnum, dbi: DbInterface, data: CMTable) -> None:
         """Called when a particular entry is rejected
 
         Parameters
@@ -207,7 +211,7 @@ class Handler:
     def fake_run_hook(
         self,
         dbi: DbInterface,
-        data,
+        data: CMTable,
         status: StatusEnum = StatusEnum.completed,
     ) -> None:
         """Pretend to run workflows, this is for testing
@@ -263,7 +267,7 @@ class Handler:
             return
         self._read_config(config_url)
 
-    def get_config_var(self, varname: str, default: Any, **kwargs) -> Any:
+    def get_config_var(self, varname: str, default: Any, **kwargs: Any) -> Any:
         """Utility function to get a configuration parameter value
 
         Parameters
@@ -293,7 +297,7 @@ class Handler:
         return kwargs.get(varname, self.config.get(varname, default))
 
     @staticmethod
-    def get_kwarg_value(key: str, **kwargs) -> Any:
+    def get_kwarg_value(key: str, **kwargs: Any) -> Any:
         """Utility function to get a keyword value
 
         Provides a more useful error message if the keyword is not present
@@ -318,7 +322,7 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def resolve_templated_string(self, template_name: str, **kwargs) -> str:
+    def resolve_templated_string(self, template_name: str, **kwargs: Any) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
@@ -348,7 +352,7 @@ class Handler:
         except KeyError as msg:
             raise KeyError(f"Failed to format {template_string} with {str(format_vars)}") from msg
 
-    def resolve_templated_strings(self, template_names: dict[str, str], **kwargs) -> dict[str, Any]:
+    def resolve_templated_strings(self, template_names: dict[str, str], **kwargs: Any) -> dict[str, Any]:
         """Utility function resolve a list of templated names
 
         Parameters

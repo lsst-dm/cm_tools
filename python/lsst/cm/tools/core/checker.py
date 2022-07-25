@@ -1,4 +1,6 @@
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
+
+import types
 
 from lsst.cm.tools.core.utils import StatusEnum
 from lsst.utils import doImport
@@ -15,11 +17,11 @@ class Checker:
     of a file at the URL, or querying a server at that URL.
     """
 
-    checker_cache = {}
+    checker_cache: dict[str, Checker] = {}
 
     @staticmethod
     def get_checker(class_name: str) -> Checker:
-        """Create and return a handler
+        """Create and return a status checker
 
         Parameters
         ----------
@@ -39,6 +41,8 @@ class Checker:
         cached_checker = Checker.checker_cache.get(class_name)
         if cached_checker is None:
             checker_class = doImport(class_name)
+            if isinstance(checker_class, types.ModuleType):
+                raise (TypeError())
             cached_checker = checker_class()
             Checker.checker_cache[class_name] = cached_checker
         return cached_checker
@@ -47,6 +51,6 @@ class Checker:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def check_url(self, url, current_status: StatusEnum) -> StatusEnum:
+    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
         """Return the status of the script being checked"""
         raise NotImplementedError()

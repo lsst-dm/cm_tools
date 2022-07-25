@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
@@ -9,7 +10,7 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.common import CMTable
 
 
-def test_bad_script():
+def test_bad_script() -> None:
     class BadScript(ScriptBase):
         pass
 
@@ -29,7 +30,7 @@ def test_bad_script():
         bad_script.get_script(bad_db, 0)
 
 
-def test_bad_dependency():
+def test_bad_dependency() -> None:
     class BadDependency(DependencyBase):
         pass
 
@@ -47,7 +48,7 @@ def test_bad_dependency():
         bad_dep.get_prerequisites(bad_db, null_db_id)
 
 
-def test_bad_cm_table():
+def test_bad_cm_table() -> None:
     class BadCMTableBase(CMTableBase):
         pass
 
@@ -71,7 +72,7 @@ def test_bad_cm_table():
         CMTable.get_parent_key()
 
 
-def test_bad_db_interface():
+def test_bad_db_interface() -> None:
     class BadDbInterface(DbInterface):
         pass
 
@@ -151,7 +152,7 @@ def test_bad_db_interface():
         bad_db.daemon(null_db_id)
 
 
-def test_bad_grouper():
+def test_bad_grouper() -> None:
     class BadDbInterface(DbInterface):
         pass
 
@@ -166,7 +167,7 @@ def test_bad_grouper():
         bad_grouper({}, bad_db, null_db_id, None)
 
 
-def test_bad_checker():
+def test_bad_checker() -> None:
     class BadChecker(Checker):
         pass
 
@@ -176,16 +177,16 @@ def test_bad_checker():
         bad_checker.check_url(None, StatusEnum.ready)
 
 
-def test_bad_handler():
+def test_bad_handler() -> None:
     class BadDbInterface(DbInterface):
         pass
 
     class BadHandler(Handler):
         @classmethod
-        def bad_get_kwarg(cls):
+        def bad_get_kwarg(cls) -> Any:
             return cls.get_kwarg_value("bad")
 
-        def bad_resolve_templated(self):
+        def bad_resolve_templated(self) -> None:
             self.config["bad_template"] = "{missing}"
             self.resolve_templated_string("bad_template")
 

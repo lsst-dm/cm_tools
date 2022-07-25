@@ -1,12 +1,14 @@
 import os
+from typing import Any, Iterable
 
 import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.db.common import CMTable
 
 
-def write_status_to_yaml(log_url, status: StatusEnum) -> None:
+def write_status_to_yaml(log_url: str, status: StatusEnum) -> None:
     """Write a one line file with just a status flag
 
     E.g. the file might just contain, `status: completed`
@@ -44,7 +46,7 @@ def check_status_from_yaml(log_url: str, current_status: StatusEnum) -> StatusEn
     return StatusEnum[fields["status"]]
 
 
-def make_butler_associate_command(butler_repo: str, data) -> str:
+def make_butler_associate_command(butler_repo: str, data: CMTable) -> str:
     """Build and return a butler associate command
 
     Parameters
@@ -83,7 +85,7 @@ def make_butler_associate_command(butler_repo: str, data) -> str:
     return command
 
 
-def make_butler_chain_command(butler_repo: str, data, itr) -> str:
+def make_butler_chain_command(butler_repo: str, data: CMTable, itr: Iterable) -> str:
     """Build and return a butler chain-collection command
 
     Parameters
@@ -140,12 +142,14 @@ def make_bps_command(config_url: str) -> str:
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, url, current_status: StatusEnum) -> StatusEnum:
+    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
         """Return the status of the script being checked"""
         return check_status_from_yaml(url, current_status)
 
 
-def add_command_script(dbi: DbInterface, command, script_data, mode, **kwargs) -> ScriptBase:
+def add_command_script(
+    dbi: DbInterface, command: str, script_data: dict[str, Any], mode: str, **kwargs: Any
+) -> ScriptBase:
     script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
