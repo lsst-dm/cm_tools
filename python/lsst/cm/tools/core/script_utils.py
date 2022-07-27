@@ -4,7 +4,7 @@ from typing import Any, Iterable
 import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
-from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum, safe_makedirs
 from lsst.cm.tools.db.common import CMTable
 
 
@@ -123,6 +123,33 @@ def make_butler_chain_command(butler_repo: str, data: CMTable, itr: Iterable) ->
     return command
 
 
+def make_butler_remove_collection_command(butler_repo: str, data: Any) -> str:
+    """Build and return a butler remove-collection command
+
+    Parameters
+    ----------
+    butler_repo : str
+        The butler repo being used
+
+    data :
+        The database entry we are making the command for
+
+    Returns
+    -------
+    command : str
+        The requested butler command
+
+
+    Notes
+    -----
+    coll_out : str
+        This collection will be removed
+    """
+    coll_out = data.coll_out
+    command = f"butler remove-collection {butler_repo} {coll_out}"
+    return command
+
+
 def make_bps_command(config_url: str) -> str:
     """Build and return a butler chain-collection command
 
@@ -147,12 +174,11 @@ class YamlChecker(Checker):
         return check_status_from_yaml(url, current_status)
 
 
-def add_command_script(
-    dbi: DbInterface, command: str, script_data: dict[str, Any], mode: str, **kwargs: Any
-) -> ScriptBase:
-    script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
+def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
+
+    safe_makedirs(os.path.dirname(script.script_url))
     with open(script.script_url, "wt", encoding="utf-8") as fout:
         if prepend:
             fout.write(prepend)
@@ -160,13 +186,20 @@ def add_command_script(
         fout.write("\n")
         if append:
             fout.write(append)
-        if mode == "callback_stamp":
+        if script.script_method == ScriptMethod.bash_stamp:
             fout.write(f'echo "status: completed" > {os.path.abspath(script.log_url)}\n')
-        elif mode == "callback_cm":
+        elif script.script_method == ScriptMethod.bash_callback:
             fout.write(f"cm set_script_status --script {script.id} --status completed\n")
 
     if kwargs.get("fake_stamp"):
         write_status_to_yaml(script.log_url, StatusEnum.completed)
     if kwargs.get("fake_callback"):
         pass
+
+
+def add_command_script(
+    dbi: DbInterface, command: str, script_data: dict[str, Any], **kwargs: Any
+) -> ScriptBase:
+    script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
+    write_command_script(script, command, **kwargs)
     return script

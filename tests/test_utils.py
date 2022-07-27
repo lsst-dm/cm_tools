@@ -8,7 +8,7 @@ def test_level_enum() -> None:
             assert level.parent() is None
         else:
             assert level.parent().value == level.value - 1
-        if level == LevelEnum.workflow:
+        if level == LevelEnum.group:
             assert level.child() is None
         else:
             assert level.child().value == level.value + 1
@@ -17,4 +17,4 @@ def test_level_enum() -> None:
 def test_status_enum() -> None:
     for key_ in list(StatusEnum.__members__.keys()):
         status = StatusEnum[key_]
-        assert status.ignore() == (status.value < 0)
+        assert status.bad() == (status.value < 0)

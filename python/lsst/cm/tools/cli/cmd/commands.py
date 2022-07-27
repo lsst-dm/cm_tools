@@ -14,12 +14,12 @@ from lsst.cm.tools.cli.opt.options import (
     max_running_option,
     prod_base_option,
     production_option,
-    recurse_option,
     step_option,
+    table_option,
     workflow_option,
 )
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 __all__ = [
@@ -55,20 +55,25 @@ def cm_create(**kwargs: Any) -> None:
 @butler_option()
 @prod_base_option()
 @workflow_option()
-@handler_option(required=True)
+@handler_option()
 @config_option()
 @db_option()
 @echo_option()
 def cm_insert(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
-    config_yaml = all_args.pop("config_yaml")
-    assert config_yaml is not None
-    handler_class = all_args.pop("handler")
-    the_handler = Handler.get_handler(handler_class, config_yaml)
     the_level = LevelEnum[all_args.pop("level")]
-    the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.insert(the_level, the_db_id, the_handler, **all_args)
+    config_yaml = all_args.pop("config_yaml")
+    handler_class = all_args.pop("handler")
+    if the_level != LevelEnum.production:
+        assert config_yaml is not None
+        assert handler_class is not None
+        the_handler = Handler.get_handler(handler_class, config_yaml)
+        the_db_id = iface.get_db_id(the_level, **all_args)
+    else:
+        the_db_id = None
+        the_handler = None
+    iface.insert(the_db_id, the_handler, **all_args)
 
 
 @click.command("print")
@@ -89,14 +94,14 @@ def cm_print(**kwargs: Any) -> None:
 
 
 @click.command("print_table")
-@level_option()
+@table_option()
 @db_option()
 @echo_option()
 def cm_print_table(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
-    the_level = LevelEnum[all_args.pop("level")]
-    iface.print_table(sys.stdout, the_level)
+    which_table = TableEnum[all_args.pop("table")]
+    iface.print_table(sys.stdout, which_table)
 
 
 @click.command("count")
@@ -187,14 +192,13 @@ def cm_launch(**kwargs: Any) -> None:
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 def cm_check(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    recurse_value = all_args.pop("recurse")
-    iface.check(the_level, the_db_id, recurse_value)
+
+    iface.check(the_level, the_db_id)
 
 
 @click.command("accept")
@@ -206,14 +210,12 @@ def cm_check(**kwargs: Any) -> None:
 @workflow_option()
 @db_option()
 @echo_option()
-@recurse_option()
 def cm_accept(**kwargs: Any) -> None:
     all_args = kwargs.copy()
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    recurse_value = all_args.pop("recurse")
-    iface.accept(the_level, the_db_id, recurse_value)
+    iface.accept(the_level, the_db_id)
 
 
 @click.command("reject")
@@ -248,7 +250,7 @@ def cm_fake_run(**kwargs: Any) -> None:
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.fake_run(the_db_id, StatusEnum.completed)
+    iface.fake_run(the_level, the_db_id, StatusEnum.completed)
 
 
 @click.command("daemon")

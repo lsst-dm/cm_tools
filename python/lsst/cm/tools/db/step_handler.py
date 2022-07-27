@@ -1,0 +1,127 @@
+# This file is part of cm_tools
+#
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import os
+from collections import OrderedDict
+from typing import Any, Iterable, Optional
+
+from lsst.cm.tools.core.db_interface import DbInterface
+from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
+from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
+from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.group import Group
+from lsst.cm.tools.db.handler_utils import (
+    accept_children,
+    accept_entry,
+    check_entries,
+    check_entry,
+    prepare_entry,
+    reject_entry,
+    validate_children,
+    validate_entry,
+)
+from lsst.cm.tools.db.step import Step
+
+
+class StepHandler(EntryHandlerBase):
+
+    fullname_template = os.path.join("{production_name}", "{campaign_name}", "{step_name}")
+
+    step_dict: OrderedDict[str, type] = OrderedDict([])
+
+    group_handler_class: Optional[str]
+
+    level = LevelEnum.step
+
+    def insert(self, dbi: DbInterface, parent: Campaign, **kwargs: Any) -> Step:
+        insert_fields = dict(
+            name=self.get_kwarg_value("step_name", **kwargs),
+            fullname=self.get_fullname(**kwargs),
+            p_id=parent.p_.id,
+            c_id=parent.id,
+            data_query=kwargs.get("data_query"),
+            coll_source=kwargs.get("coll_source"),
+            input_type=InputType.tagged,
+            output_type=OutputType.chained,
+            status=StatusEnum.waiting,
+            handler=self.get_handler_class_name(),
+            config_yaml=self.config_url,
+        )
+        extra_fields = dict(
+            prod_base_url=parent.prod_base_url,
+        )
+        coll_names = self.coll_names(insert_fields, **extra_fields)
+        insert_fields.update(**coll_names)
+        return Step.insert_values(dbi, **insert_fields)
+
+    def prepare(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        if entry.status != StatusEnum.waiting:
+            return db_id_list
+        update_kwargs = prepare_entry(dbi, self, entry)
+        self.make_groups(dbi, entry)
+        Step.update_values(dbi, entry.id, **update_kwargs)
+        for group_ in entry.g_:
+            status = group_.status
+            if status != StatusEnum.waiting:
+                continue
+            if not group_.check_prerequistes(dbi):
+                continue
+            group_handler = group_.get_handler()
+            db_id_list.append(group_.db_id)
+            group_handler.prepare(dbi, group_)
+        return db_id_list
+
+    def make_groups(self, dbi: DbInterface, entry: Step) -> dict[str, Group]:
+        out_dict = {}
+        insert_fields = dict(
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.name,
+            coll_source=entry.coll_in,
+        )
+        group_handler = Handler.get_handler(self.group_handler_class, entry.config_yaml)
+        for group_kwargs in self._group_iterator(dbi, entry, **insert_fields):
+            insert_fields.update(**group_kwargs)
+            out_dict[group_kwargs["group_name"]] = group_handler.insert(dbi, entry, **insert_fields)
+        return out_dict
+
+    def _group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
+        raise NotImplementedError()
+
+    def check(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list = check_entries(dbi, entry.g_)
+        db_id_list += check_entry(dbi, entry)
+        return db_id_list
+
+    def validate(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list = validate_children(dbi, entry.g_)
+        db_id_list += validate_entry(dbi, entry)
+        return db_id_list
+
+    def accept(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list = accept_children(dbi, entry.g_)
+        db_id_list += accept_entry(dbi, entry)
+        return db_id_list
+
+    def reject(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        return reject_entry(dbi, entry)

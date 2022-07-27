@@ -42,7 +42,7 @@ class Checker:
         if cached_checker is None:
             checker_class = doImport(class_name)
             if isinstance(checker_class, types.ModuleType):
-                raise (TypeError())
+                raise TypeError()
             cached_checker = checker_class()
             Checker.checker_cache[class_name] = cached_checker
         return cached_checker

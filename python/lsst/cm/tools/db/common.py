@@ -1,96 +1,121 @@
-import os
 from typing import Any, Iterable, Optional, TextIO
 
+from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, safe_makedirs
+from lsst.cm.tools.core.rollback import Rollback
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import declarative_base
 
 update_field_list = ["handler", "config_yaml"]
 update_common_fields = [
-    "prepare_script",
-    "collect_script",
     "data_query",
     "coll_source",
     "coll_in",
     "coll_out",
+    "input_type",
+    "output_type",
     "status",
+    "superseeded",
+]
+update_script_fields = [
+    "prepare_id",
+    "collect_id",
 ]
 
 
-class CMTable(CMTableBase):
+class SQLTableMixin:
+
+    depend_: Iterable
+    id: Optional[int] = None
+
+    def __init__(self, **kwargs: Any):
+        pass
+
+    @classmethod
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
+        """Inserts a new row at a given level with values given in kwargs"""
+        counter = func.count(cls.id)
+        conn = dbi.connection()
+        next_id = return_count(conn, counter) + 1
+        new_entry = cls(id=next_id, **kwargs)
+        conn.add(new_entry)
+        conn.commit()
+        return new_entry
+
+    @classmethod
+    def get(cls, dbi: DbInterface, row_id: int) -> Any:
+        """Get a particular script by id"""
+        sel = select(cls).where(cls.id == row_id)
+        return return_single_row(dbi, sel)[0]
+
+    @classmethod
+    def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> Any:
+        """Updates a given row with values given in kwargs"""
+        stmt = update(cls).where(cls.id == row_id).values(**kwargs)
+        conn = dbi.connection()
+        upd_result = conn.execute(stmt)
+        check_result(upd_result)
+        conn.commit()
+
+    def check_prerequistes(self, dbi: DbInterface) -> bool:
+        for dep_ in self.depend_:
+            entry = dbi.get_entry(dep_.db_id.level(), dep_.db_id)
+            if entry.status.value < StatusEnum.accepted.value:
+                return False
+        return True
+
+
+class SQLScriptMixin(SQLTableMixin):
+
+    status: StatusEnum
+
+    @classmethod
+    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+        current_status = entry.status
+        checker = Checker.get_checker(entry.checker)
+        new_status = checker.check_url(entry.log_url, entry.status)
+        if new_status != current_status:
+            stmt = update(cls).where(cls.id == entry.id).values(status=new_status)
+            conn = dbi.connection()
+            upd_result = conn.execute(stmt)
+            check_result(upd_result)
+            conn.commit()
+        return new_status
+
+    @classmethod
+    def rollback_script(cls, dbi: DbInterface, entry: Any) -> None:
+        """Rollback a script"""
+        rollback_handler = Rollback.get_rollback(entry.rollback)
+        rollback_handler.rollback(entry)
+        cls.update_values(dbi, entry.id, superseeded=True)
+
+    @classmethod
+    def get_rows_with_status_query(cls, status: StatusEnum) -> Any:
+        """Returns the selection for all rows with a particular status"""
+        sel = select([cls.id]).where(cls.status == status)
+        return sel
+
+
+class CMTable(SQLTableMixin, CMTableBase):
 
     level = LevelEnum.production
-    id = None
-    name = None
-    handler = None
-    config_yaml = None
-    status = None
-    db_id = None
-    fullname = None
-    match_keys = []
+
+    name: Optional[str]
+    handler: Optional[str]
+    config_yaml: Optional[str]
+    match_keys: list[str] = []
+    parent_id: Optional[Any]
 
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
 
-    def prepare(self, dbi: DbInterface, handler, **kwargs: Any):
-        """Called when preparing a database entry for execution
-
-        Can be used to prepare additional entries, for example,
-        the children of this entry.
-
-        Can also be used to do any actions associated to preparing this entry,
-        e.g., making TAGGED Butler collections
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        handler : Handler
-            Callback handler
-
-        Returns
-        -------
-        entries : list[DbId]
-            The entries that were prepared
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        db_id_list = []
-        prod_base_url = dbi.get_prod_base(self.db_id)
-        full_path = os.path.join(prod_base_url, self.fullname)
-        safe_makedirs(full_path)
-        db_id_list.append(self.db_id)
-        update_kwargs = {}
-        script = handler.prepare_script_hook(self.level, dbi, self)
-        if script is not None:
-            update_kwargs["prepare_script"] = script.id
-        update_kwargs["status"] = StatusEnum.preparing
-        if self.level == LevelEnum.step:
-            db_id_list += handler.make_groups(dbi, self.db_id, self)
-        elif self.level == LevelEnum.workflow:
-            run_script = handler.workflow_script_hook(dbi, self, **kwargs)
-            update_kwargs["run_script"] = run_script.id
-        self.update_values(dbi, self.db_id, **update_kwargs)
-        return db_id_list
-
     @classmethod
-    def get_parent_key(cls):
-        raise NotImplementedError()
-
-    @classmethod
-    def post_insert(cls, dbi: DbInterface, handler, new_entry: CMTableBase, **kwargs: Any) -> None:
-        pass
-
-    @classmethod
-    def get_count_query(cls, db_id: Optional[DbId]):
+    def get_count_query(cls, db_id: Optional[DbId]) -> Any:
         """Return the query to count rows matching an id"""
-        count_key = cls.get_parent_key()
+        count_key = cls.parent_id
         if count_key is None:
             return func.count(cls.id)
         if db_id is not None:
@@ -98,24 +123,18 @@ class CMTable(CMTableBase):
         return func.count(count_key)
 
     @classmethod
-    def get_row_query(cls, db_id: DbId, columns=None):
+    def get_row_query(cls, db_id: DbId, columns: list[Any]) -> Any:
         """Returns the selection a single row given db_id"""
-        if columns is None:
+        if not columns:
             sel = select(cls).where(cls.id == db_id[cls.level])
         else:
             sel = select(columns).where(cls.id == db_id[cls.level])
         return sel
 
     @classmethod
-    def get_rows_with_status_query(cls, status: StatusEnum):
-        """Returns the selection for all rows with a particular status"""
-        sel = select([cls.id]).where(cls.status == status)
-        return sel
-
-    @classmethod
-    def get_id_match_query(cls, parent_id: Optional[int], match_name: Any):
+    def get_id_match_query(cls, parent_id: Optional[int], match_name: Any) -> Any:
         """Returns the selection to match a particular ID"""
-        parent_field = cls.get_parent_key()
+        parent_field = cls.parent_id
         if parent_field is None:
             sel = select([cls.id]).where(cls.name == match_name)
         else:
@@ -123,10 +142,10 @@ class CMTable(CMTableBase):
         return sel
 
     @classmethod
-    def get_match_query(cls, db_id: DbId):
+    def get_match_query(cls, db_id: DbId) -> Any:
         """Returns the selection all rows given db_id at a given level"""
         if db_id is None:
-            id_tuple = ()
+            id_tuple: tuple = ()
         else:
             id_tuple = db_id.to_tuple()[0 : cls.level.value + 1]
         parent_key = None
@@ -141,36 +160,16 @@ class CMTable(CMTableBase):
             sel = select(cls).where(parent_key == row_id)
         return sel
 
-    @classmethod
-    def insert_values(cls, dbi: DbInterface, **kwargs: Any):
-        """Inserts a new row at a given level with values given in kwargs"""
-        counter = func.count(cls.id)
-        conn = dbi.connection()
-        next_id = return_count(conn, counter) + 1
-        new_entry = cls(id=next_id, **kwargs)
-        conn.add(new_entry)
-        conn.commit()
-        return new_entry
-
-    @classmethod
-    def update_values(cls, dbi: DbInterface, db_id: DbId, **kwargs: Any):
-        """Updates a given row with values given in kwargs"""
-        stmt = update(cls).where(cls.id == db_id[cls.level]).values(**kwargs)
-        conn = dbi.connection()
-        upd_result = conn.execute(stmt)
-        check_result(upd_result)
-        conn.commit()
-
 
 Base = declarative_base()
 
 
-def check_result(result) -> None:
+def check_result(result: Any) -> None:
     """Placeholder function to check on SQL query results"""
     assert result
 
 
-def return_count(dbi: DbInterface, count) -> int:
+def return_count(dbi: DbInterface, count: Any) -> int:
     """Returns the number of rows mathcing a selection"""
     conn = dbi.connection()
     count_result = conn.execute(count)
@@ -178,17 +177,16 @@ def return_count(dbi: DbInterface, count) -> int:
     return count_result.scalar()
 
 
-def return_select_count(dbi: DbInterface, sel) -> int:
+def return_select_count(dbi: DbInterface, sel: Any) -> int:
     """Counts an iterable matching a selection"""
     conn = dbi.connection()
-    itr = return_iterable(conn, sel)
-    n_sel = 0
-    for _ in itr:
-        n_sel += 1
-    return n_sel
+    count = func.count(sel)
+    count_result = conn.execute(count)
+    check_result(count_result)
+    return count_result.scalar()
 
 
-def return_first_column(dbi: DbInterface, sel) -> Optional[int]:
+def return_first_column(dbi: DbInterface, sel: Any) -> Optional[int]:
     """Returns the first column in the first row matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)
@@ -199,7 +197,7 @@ def return_first_column(dbi: DbInterface, sel) -> Optional[int]:
         return None
 
 
-def return_single_row(dbi: DbInterface, sel):
+def return_single_row(dbi: DbInterface, sel: Any) -> Any:
     """Returns the first row matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)
@@ -207,7 +205,7 @@ def return_single_row(dbi: DbInterface, sel):
     return sel_result.all()[0]
 
 
-def return_iterable(dbi: DbInterface, sel) -> Iterable:
+def return_iterable(dbi: DbInterface, sel: Any) -> Iterable:
     """Returns an iterable matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)
@@ -216,7 +214,7 @@ def return_iterable(dbi: DbInterface, sel) -> Iterable:
         yield x_[0]
 
 
-def print_select(dbi: DbInterface, stream: TextIO, sel) -> None:
+def print_select(dbi: DbInterface, stream: TextIO, sel: Any) -> None:
     """Prints all the rows matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)

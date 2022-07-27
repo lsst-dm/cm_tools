@@ -1,8 +1,8 @@
 from functools import partial
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Reversible
 
 import click
-from lsst.cm.tools.core.utils import LevelEnum
+from lsst.cm.tools.core.utils import LevelEnum, TableEnum
 
 
 class MWOptionDecorator:
@@ -32,7 +32,7 @@ class MWOptionDecorator:
         help was defined."""
         return self.partialOpt.keywords.get("help", "")
 
-    def __call__(self, *args: Any, **kwargs: Any):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.partialOpt(*args, **kwargs)
 
 
@@ -40,7 +40,9 @@ class OptionGroup:
     """Base class for an option group decorator. Requires the option group
     subclass to have a property called `decorator`."""
 
-    def __call__(self, f) -> Any:
+    decorators: Reversible
+
+    def __call__(self, f: Any) -> Any:
         for decorator in reversed(self.decorators):
             f = decorator(f)
         return f
@@ -52,9 +54,19 @@ recurse_option = MWOptionDecorator("--recurse", help="Recurvisely execute comman
 
 level_option = MWOptionDecorator(
     "--level",
-    default="workflow",
+    default="group",
     type=click.Choice(
         choices=list(LevelEnum.__members__.keys()),
+        case_sensitive=True,
+    ),
+    help="Which level to match.",
+)
+
+table_option = MWOptionDecorator(
+    "--table",
+    default="workflow",
+    type=click.Choice(
+        choices=list(TableEnum.__members__.keys()),
         case_sensitive=True,
     ),
     help="Which database table to manipulate.",
