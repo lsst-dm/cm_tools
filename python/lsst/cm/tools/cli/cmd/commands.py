@@ -27,6 +27,7 @@ __all__ = [
     "cm_insert",
     "cm_print",
     "cm_print_table",
+    "cm_print_tree",
     "cm_count",
     "cm_prepare",
     "cm_queue",
@@ -76,13 +77,28 @@ def cm_insert(**kwargs: Any) -> None:
     iface.insert(the_db_id, the_handler, **all_args)
 
 
+@click.command("print_tree")
+@level_option()
+@production_option()
+@campaign_option()
+@step_option()
+@group_option()
+@db_option()
+@echo_option()
+def cm_print_tree(**kwargs: Any) -> None:
+    all_args = kwargs.copy()
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
+    the_level = LevelEnum[all_args.pop("level")]
+    the_db_id = iface.get_db_id(the_level, **all_args)
+    iface.print_tree(sys.stdout, the_level, the_db_id)
+
+
 @click.command("print")
 @level_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_print(**kwargs: Any) -> None:
@@ -110,7 +126,6 @@ def cm_print_table(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_count(**kwargs: Any) -> None:
@@ -127,7 +142,6 @@ def cm_count(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_prepare(**kwargs: Any) -> None:
@@ -140,7 +154,6 @@ def cm_prepare(**kwargs: Any) -> None:
         "campaign_name",
         "step_name",
         "group_name",
-        "workflow_name",
     ]
     for arg_ in id_args:
         all_args.pop(arg_)
@@ -153,7 +166,6 @@ def cm_prepare(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_queue(**kwargs: Any) -> None:
@@ -170,7 +182,6 @@ def cm_queue(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 @max_running_option()
@@ -189,7 +200,6 @@ def cm_launch(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_check(**kwargs: Any) -> None:
@@ -207,7 +217,6 @@ def cm_check(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_accept(**kwargs: Any) -> None:
@@ -224,7 +233,6 @@ def cm_accept(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 def cm_reject(**kwargs: Any) -> None:
@@ -241,7 +249,6 @@ def cm_reject(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
-@workflow_option()
 @db_option()
 @echo_option()
 @max_running_option()

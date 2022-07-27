@@ -31,9 +31,6 @@ class SQLTableMixin:
     depend_: Iterable
     id: Optional[int] = None
 
-    def __init__(self, **kwargs: Any):
-        pass
-
     @classmethod
     def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
         """Inserts a new row at a given level with values given in kwargs"""
@@ -44,12 +41,6 @@ class SQLTableMixin:
         conn.add(new_entry)
         conn.commit()
         return new_entry
-
-    @classmethod
-    def get(cls, dbi: DbInterface, row_id: int) -> Any:
-        """Get a particular script by id"""
-        sel = select(cls).where(cls.id == row_id)
-        return return_single_row(dbi, sel)[0]
 
     @classmethod
     def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> Any:
@@ -89,7 +80,7 @@ class SQLScriptMixin(SQLTableMixin):
     def rollback_script(cls, dbi: DbInterface, entry: Any) -> None:
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(entry.rollback)
-        rollback_handler.rollback(entry)
+        rollback_handler.rollback_script(entry)
         cls.update_values(dbi, entry.id, superseeded=True)
 
     @classmethod
@@ -203,15 +194,6 @@ def return_single_row(dbi: DbInterface, sel: Any) -> Any:
     sel_result = conn.execute(sel)
     check_result(sel_result)
     return sel_result.all()[0]
-
-
-def return_iterable(dbi: DbInterface, sel: Any) -> Iterable:
-    """Returns an iterable matching a selection"""
-    conn = dbi.connection()
-    sel_result = conn.execute(sel)
-    check_result(sel_result)
-    for x_ in sel_result:
-        yield x_[0]
 
 
 def print_select(dbi: DbInterface, stream: TextIO, sel: Any) -> None:

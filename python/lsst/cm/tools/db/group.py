@@ -1,4 +1,4 @@
-from typing import Any, Iterable
+from typing import Any, Iterable, TextIO
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
@@ -56,3 +56,10 @@ class Group(common.Base, common.CMTable):
 
     def __repr__(self) -> str:
         return f"Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
+
+    def print_tree(self, stream: TextIO) -> None:
+        stream.write(f"    {self}\n")
+        for script in self.scripts_:
+            stream.write(f"      -{script}\n")
+        for workflow in self.w_:
+            stream.write(f"      {workflow}")

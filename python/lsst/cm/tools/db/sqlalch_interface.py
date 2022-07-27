@@ -69,6 +69,10 @@ class SQLAlchemyInterface(DbInterface):
         sel = select(table)
         common.print_select(self, stream, sel)
 
+    def print_tree(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        entry.print_tree(stream)
+
     def count(self, which_table: TableEnum, db_id: Optional[DbId]) -> int:
         table = top.get_table(which_table)
         counter = table.get_count_query(db_id)
@@ -116,7 +120,8 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.prepare(self, entry)
-        self.check(level, db_id)
+        if db_id_list:
+            self.check(level, db_id)
         return db_id_list
 
     def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
@@ -128,6 +133,8 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             db_id_list.append(workflow_.db_id)
             Workflow.update_values(self, workflow_.id, status=StatusEnum.pending)
+        if db_id_list:
+            self.check(level, db_id)
         return db_id_list
 
     def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
@@ -171,15 +178,27 @@ class SQLAlchemyInterface(DbInterface):
         self.check(level, db_id)
         return db_id_list
 
-    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
+    def rollback(self, level: LevelEnum, db_id: DbId, to_status: StatusEnum) -> list[DbId]:
         entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        db_id_list = handler.rollback(self, entry, to_status)
+        return db_id_list
+
+    def fake_run(
+        self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
+    ) -> list[DbId]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[DbId] = []
         for workflow_ in entry.w_:
             old_status = entry.status
-            if old_status not in [StatusEnum.pending, StatusEnum.running]:
+            if old_status not in [StatusEnum.prepared, StatusEnum.pending, StatusEnum.running]:
                 continue
             handler = workflow_.get_handler()
             handler.fake_run_hook(self, workflow_, status)
-        self.check(level, db_id)
+            db_id_list.append(workflow_.g_.db_id)
+        if db_id_list:
+            self.check(level, db_id)
+        return db_id_list
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
         i_iter = n_iter

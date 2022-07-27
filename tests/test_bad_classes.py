@@ -11,8 +11,8 @@ from lsst.cm.tools.core.db_interface import (
     ScriptBase,
     WorkflowBase,
 )
-from lsst.cm.tools.core.grouper import Grouper
 from lsst.cm.tools.core.handler import Handler
+from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 
 
@@ -134,6 +134,9 @@ def test_bad_db_interface() -> None:
         bad_db.add_prerequisite(null_db_id, null_db_id)
 
     with pytest.raises(NotImplementedError):
+        bad_db.add_workflow()
+
+    with pytest.raises(NotImplementedError):
         bad_db.add_script()
 
     with pytest.raises(NotImplementedError):
@@ -149,31 +152,22 @@ def test_bad_db_interface() -> None:
         bad_db.launch_workflows(LevelEnum.production, null_db_id, 100)
 
     with pytest.raises(NotImplementedError):
+        bad_db.validate(LevelEnum.production, null_db_id)
+
+    with pytest.raises(NotImplementedError):
         bad_db.accept(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.reject(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
+        bad_db.rollback(LevelEnum.production, null_db_id, StatusEnum.waiting)
+
+    with pytest.raises(NotImplementedError):
         bad_db.fake_run(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.daemon(null_db_id)
-
-
-def test_bad_grouper() -> None:
-    class BadDbInterface(DbInterface):
-        pass
-
-    class BadGrouper(Grouper):
-        pass
-
-    bad_db = BadDbInterface()
-    null_db_id = DbId()
-    bad_grouper = BadGrouper()
-
-    with pytest.raises(NotImplementedError):
-        bad_grouper({}, bad_db, null_db_id, None)
 
 
 def test_bad_checker() -> None:
@@ -184,6 +178,19 @@ def test_bad_checker() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_checker.check_url(None, StatusEnum.ready)
+
+    with pytest.raises(TypeError):
+        Checker.get_checker("lsst.cm.tools.core")
+
+
+def test_bad_rollback() -> None:
+    class BadRollback(Rollback):
+        pass
+
+    bad_rollback = BadRollback()
+
+    with pytest.raises(NotImplementedError):
+        bad_rollback.rollback_script(None)
 
 
 def test_bad_handler() -> None:

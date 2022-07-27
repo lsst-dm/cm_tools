@@ -332,6 +332,20 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
+    def collect(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Check this entry and any children
+
+        Parameters
+        ----------
+
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
     def validate(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         """Validate this entry and any children
 
@@ -415,7 +429,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def collect_script_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> list[ScriptBase]:
+    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         """Called when all the childern of a particular entry are finished
 
         Parameters
@@ -423,11 +437,21 @@ class EntryHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        itr : Iterable
-            Iterator over children of the entry we are updating
-
         data : ???
             The data associated to this entry
+        """
+        raise NotImplementedError()
+
+    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        """Called to validate an entry once the results have been collected
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
         """
         raise NotImplementedError()
 
@@ -445,6 +469,19 @@ class EntryHandlerBase(Handler):
         raise NotImplementedError()
 
     def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+        """Called when a particular entry is rejected
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        data : ???
+            The data associated to this entry
+        """
+        raise NotImplementedError()
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> None:
         """Called when a particular entry is rejected
 
         Parameters

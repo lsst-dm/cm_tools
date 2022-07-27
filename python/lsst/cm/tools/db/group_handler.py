@@ -30,8 +30,11 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.handler_utils import (
     accept_entry,
     check_entry,
+    collect_entry,
     prepare_entry,
     reject_entry,
+    rollback_entry,
+    rollback_workflows,
     validate_entry,
 )
 from lsst.cm.tools.db.step import Step
@@ -72,11 +75,9 @@ class GroupHandler(EntryHandlerBase):
         return Group.insert_values(dbi, **insert_fields)
 
     def prepare(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        if entry.status != StatusEnum.waiting:
+        db_id_list = prepare_entry(dbi, self, entry)
+        if not db_id_list:
             return db_id_list
-        update_kwargs = prepare_entry(dbi, self, entry)
-        Group.update_values(dbi, entry.id, **update_kwargs)
         workflow_handler = self.make_workflow_handler()
         workflow_handler.workflow_script_hook(
             dbi,
@@ -87,14 +88,18 @@ class GroupHandler(EntryHandlerBase):
             step_name=entry.s_.name,
             group_name=entry.name,
         )
-        return [entry.db_id]
+        return db_id_list
 
     def check(self, dbi: DbInterface, entry: Group) -> list[DbId]:
         db_id_list = check_entry(dbi, entry)
         return db_id_list
 
+    def collect(self, dbi: DbInterface, entry: Group) -> list[DbId]:
+        db_id_list = collect_entry(dbi, self, entry)
+        return db_id_list
+
     def validate(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = validate_entry(dbi, entry)
+        db_id_list = validate_entry(dbi, self, entry)
         return db_id_list
 
     def accept(self, dbi: DbInterface, entry: Group) -> list[DbId]:
@@ -106,3 +111,10 @@ class GroupHandler(EntryHandlerBase):
 
     def make_workflow_handler(self) -> WorkflowHandler:
         raise NotImplementedError()
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        return rollback_entry(dbi, self, entry, to_status)
+
+    def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        rollback_workflows(dbi, entry)
+        return [entry.db_id]

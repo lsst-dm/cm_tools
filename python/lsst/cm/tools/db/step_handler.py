@@ -34,8 +34,12 @@ from lsst.cm.tools.db.handler_utils import (
     accept_entry,
     check_entries,
     check_entry,
+    collect_children,
+    collect_entry,
     prepare_entry,
     reject_entry,
+    rollback_children,
+    rollback_entry,
     validate_children,
     validate_entry,
 )
@@ -74,21 +78,20 @@ class StepHandler(EntryHandlerBase):
         return Step.insert_values(dbi, **insert_fields)
 
     def prepare(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        if entry.status != StatusEnum.waiting:
+        db_id_list = prepare_entry(dbi, self, entry)
+        if not db_id_list:
             return db_id_list
-        update_kwargs = prepare_entry(dbi, self, entry)
         self.make_groups(dbi, entry)
-        Step.update_values(dbi, entry.id, **update_kwargs)
+        db_id_list.append(entry.db_id)
         for group_ in entry.g_:
             status = group_.status
-            if status != StatusEnum.waiting:
-                continue
-            if not group_.check_prerequistes(dbi):
+            if status == StatusEnum.waiting:
+                if not group_.check_prerequistes(dbi):
+                    continue
+            elif status != StatusEnum.ready:
                 continue
             group_handler = group_.get_handler()
-            db_id_list.append(group_.db_id)
-            group_handler.prepare(dbi, group_)
+            db_id_list += group_handler.prepare(dbi, group_)
         return db_id_list
 
     def make_groups(self, dbi: DbInterface, entry: Step) -> dict[str, Group]:
@@ -113,9 +116,14 @@ class StepHandler(EntryHandlerBase):
         db_id_list += check_entry(dbi, entry)
         return db_id_list
 
+    def collect(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list = collect_children(dbi, entry.g_)
+        db_id_list += collect_entry(dbi, self, entry)
+        return db_id_list
+
     def validate(self, dbi: DbInterface, entry: Step) -> list[DbId]:
         db_id_list = validate_children(dbi, entry.g_)
-        db_id_list += validate_entry(dbi, entry)
+        db_id_list += validate_entry(dbi, self, entry)
         return db_id_list
 
     def accept(self, dbi: DbInterface, entry: Step) -> list[DbId]:
@@ -125,3 +133,10 @@ class StepHandler(EntryHandlerBase):
 
     def reject(self, dbi: DbInterface, entry: Step) -> list[DbId]:
         return reject_entry(dbi, entry)
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        return rollback_entry(dbi, self, entry, to_status)
+
+    def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        db_id_list = rollback_children(dbi, entry.g_, to_status)
+        return db_id_list

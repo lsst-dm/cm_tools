@@ -11,17 +11,18 @@ if TYPE_CHECKING:  # pragma: no cover
 class StatusEnum(enum.Enum):
     failed = -2  # Processing failed
     rejected = -1  # Marked as rejected
-    waiting = 0  # Inputs are not ready
-    preparing = 1  # Inputs are being prepared
-    ready = 2  # Inputs are ready
-    pending = 3  # Jobs are queued for submission
-    running = 4  # Jobs are running
-    collectable = 5  # Jobs have finshed running, can collect results
-    collecting = 6  # Jobs have finshed running, collecting results
-    completed = 7  # Completed, awaiting review
-    validating = 8  # Running validation scripts
-    reviewable = 9  # Ready to review
-    accepted = 10  # Completed, reviewed and accepted
+    waiting = 0  # Prerequisites not ready
+    ready = 1  # Ready to run
+    preparing = 2  # Inputs are being prepared
+    prepared = 3  # Inputs have been prepared
+    pending = 4  # Jobs are queued for submission
+    running = 5  # Jobs are running
+    collectable = 6  # Jobs have finshed running, can collect results
+    collecting = 7  # Jobs have finshed running, collecting results
+    completed = 8  # Completed, awaiting review
+    validating = 9  # Running validation scripts
+    reviewable = 10  # Ready to review
+    accepted = 11  # Completed, reviewed and accepted
 
     def bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""

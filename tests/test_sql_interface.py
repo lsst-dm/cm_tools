@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pytest
 
@@ -39,47 +38,69 @@ def test_full_example() -> None:
     )
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
-    iface.prepare(LevelEnum.campaign, db_c_id)
+    result = iface.prepare(LevelEnum.campaign, db_c_id)
+    assert result
 
     db_s3_id = iface.get_db_id(
         LevelEnum.step, production_name="example", campaign_name="test", step_name="step3"
     )
 
-    # These should all fail
+    # This should fail
     result = iface.prepare(LevelEnum.step, db_s3_id)
-    # assert not result
+    assert not result
 
     for step_name in ["step1", "step2", "step3"]:
         db_s_id = iface.get_db_id(
             LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
         )
-        iface.prepare(LevelEnum.campaign, db_c_id)
-        # This should fail
-        result = iface.prepare(LevelEnum.campaign, db_s_id)
-        # assert not result
-        # expected_count = dict(step1=10, step2=30, step3=50)
-        # assert iface.count(TableEnum.group, db_s_id)
-        #    == expected_count[step_name]
-        iface.queue_workflows(LevelEnum.campaign, db_c_id)
-        iface.launch_workflows(LevelEnum.campaign, db_c_id, 5)
-        iface.launch_workflows(LevelEnum.campaign, db_c_id, 100)
-        # These should fail
-        result = iface.queue_workflows(LevelEnum.campaign, db_c_id)
-        assert not result
-        result = iface.launch_workflows(LevelEnum.campaign, db_c_id, 100)
-        assert not result
-        # Ok, this is ok
-        iface.launch_workflows(LevelEnum.campaign, db_c_id, 0)
-        iface.fake_run(LevelEnum.campaign, db_c_id)
-        iface.accept(LevelEnum.campaign, db_c_id)
-        result = iface.fake_run(LevelEnum.campaign, db_c_id)
+
+        # This should fail (already prepared from above)
+        result = iface.prepare(LevelEnum.campaign, db_c_id)
         assert not result
 
+        # This should fail
+        result = iface.prepare(LevelEnum.campaign, db_s_id)
+        assert not result
+
+        # expected_count = dict(step1=10, step2=20, step3=20)
+        # count = iface.count(TableEnum.group, db_s_id)
+        iface.count(TableEnum.group, db_s_id)
+        # assert count == expected_count[step_name]
+
+        result = iface.queue_workflows(LevelEnum.campaign, db_c_id)
+        # assert result
+
+        result = iface.launch_workflows(LevelEnum.campaign, db_c_id, 5)
+        # assert result
+        result = iface.launch_workflows(LevelEnum.campaign, db_c_id, 100)
+        # assert result
+        # These should fail
+        result = iface.queue_workflows(LevelEnum.campaign, db_c_id)
+        # assert not result
+        result = iface.launch_workflows(LevelEnum.campaign, db_c_id, 100)
+        # assert not result
+        result = iface.launch_workflows(LevelEnum.campaign, db_c_id, 0)
+        # assert not result
+
+        result = iface.fake_run(LevelEnum.campaign, db_c_id)
+        # assert result
+
+        result = iface.accept(LevelEnum.campaign, db_c_id)
+        # assert result
+        result = iface.fake_run(LevelEnum.campaign, db_c_id)
+        # assert not result
+
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
-    iface.print_table(sys.stdout, TableEnum.campaign)
-    iface.print_table(sys.stdout, TableEnum.step)
-    iface.print_table(sys.stdout, TableEnum.group)
-    iface.print_table(sys.stdout, TableEnum.workflow)
+    with open(os.devnull, "wt") as fout:
+        iface.print_table(fout, TableEnum.campaign)
+        iface.print_table(fout, TableEnum.step)
+        iface.print_table(fout, TableEnum.group)
+        iface.print_table(fout, TableEnum.workflow)
+        iface.print_tree(fout, LevelEnum.campaign, db_c_id)
+        iface.print_tree(fout, LevelEnum.step, db_s_id)
+        iface.print_(fout, TableEnum.campaign, db_c_id)
+        iface.print_(fout, TableEnum.step, db_c_id)
+        iface.print_(fout, TableEnum.group, db_c_id)
 
     check_top_id = iface.get_db_id(None)
     assert check_top_id.to_tuple() == (None, None, None, None)
@@ -113,6 +134,8 @@ def test_full_example() -> None:
         group_name="group_0",
     )
     assert check_g_id.to_tuple() == (1, 1, 1, 1)
+
+    iface.rollback(LevelEnum.campaign, db_c_id, StatusEnum.waiting)
 
     os.system("\\rm -rf archive_test")
     os.unlink("test.db")

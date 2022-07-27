@@ -191,8 +191,9 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
         elif script.script_method == ScriptMethod.bash_callback:
             fout.write(f"cm set_script_status --script {script.id} --status completed\n")
 
-    if kwargs.get("fake_stamp"):
-        write_status_to_yaml(script.log_url, StatusEnum.completed)
+    fake_stamp = kwargs.get("fake_stamp")
+    if fake_stamp:
+        write_status_to_yaml(script.log_url, fake_stamp)
     if kwargs.get("fake_callback"):
         pass
 

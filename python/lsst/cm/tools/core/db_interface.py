@@ -421,13 +421,34 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def rollback(self, level: LevelEnum, db_id: DbId, to_status: StatusEnum) -> list[DbId]:
+        """Roll-backl entries at a particular level
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are rolling back
+
+        to_status: StatusEnum
+            The status we are rolling back to
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were rolled back
+        """
+        raise NotImplementedError()
+
     def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
         """Pretend to run workflows, this is for testing
 
         Parameters
         ----------
         level: LevelEnum
-            Selects which database table to search
+           Selects which database table to search
 
         db_id : DbId
             Specifies the entries we are running

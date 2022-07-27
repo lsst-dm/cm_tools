@@ -69,5 +69,11 @@ class Rollback:
         return get_full_type_name(self)
 
     def rollback_script(self, script: ScriptBase) -> None:
-        """Rullback the script in question"""
+        """Rollback the script in question"""
         raise NotImplementedError()
+
+
+class FakeRollback(Rollback):
+    def rollback_script(self, script: ScriptBase) -> None:
+        """Rollback the script in question"""
+        print(f"Rolling back {script.db_id}.{script.name}")

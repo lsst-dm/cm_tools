@@ -57,6 +57,7 @@ class WorkflowHandler(Handler):
             status=StatusEnum.ready,
             script_method=ScriptMethod.bash_stamp,
             checker=kwargs.get("checker"),
+            rollback=kwargs.get("rollback"),
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,
         )

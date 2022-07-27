@@ -34,8 +34,8 @@ prepare_script_status_map = {
     StatusEnum.failed: StatusEnum.failed,
     StatusEnum.ready: StatusEnum.preparing,
     StatusEnum.running: StatusEnum.preparing,
-    StatusEnum.completed: StatusEnum.ready,
-    StatusEnum.accepted: StatusEnum.ready,
+    StatusEnum.completed: StatusEnum.prepared,
+    StatusEnum.accepted: StatusEnum.prepared,
 }
 
 collect_script_status_map = {
@@ -43,7 +43,7 @@ collect_script_status_map = {
     StatusEnum.ready: StatusEnum.collecting,
     StatusEnum.running: StatusEnum.collecting,
     StatusEnum.completed: StatusEnum.completed,
-    StatusEnum.accepted: StatusEnum.accepted,
+    StatusEnum.accepted: StatusEnum.completed,
 }
 
 
@@ -62,7 +62,7 @@ workflow_status_map = {
     StatusEnum.ready: StatusEnum.running,
     StatusEnum.pending: StatusEnum.running,
     StatusEnum.running: StatusEnum.running,
-    StatusEnum.completed: StatusEnum.collecting,
+    StatusEnum.completed: StatusEnum.collectable,
 }
 
 
@@ -88,12 +88,6 @@ def check_children(entry: Any, itr: Iterable) -> StatusEnum:
     if child_status.size and (child_status >= StatusEnum.accepted.value).all():
         return StatusEnum.collectable
     return StatusEnum(max(entry.status.value, child_status.min()))
-
-
-def collect_children(dbi: DbInterface, entry: Any) -> Script:
-    """Make the script to collect output from children"""
-    handler = entry.get_handler()
-    return handler.collect_script_hook(dbi, entry.scripts_, entry)
 
 
 def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) -> StatusEnum:
@@ -161,17 +155,6 @@ def check_workflows_for_entry(dbi: DbInterface, entry: Any) -> StatusEnum:
     return workflow_status_map[workflow_status]
 
 
-def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> dict[str, StatusEnum]:
-    full_path = os.path.join(entry.prod_base_url, entry.fullname)
-    safe_makedirs(full_path)
-    prepare_scripts = handler.prepare_script_hook(dbi, entry)
-    if prepare_scripts:
-        status = StatusEnum.preparing
-    else:
-        status = StatusEnum.ready
-    return dict(status=status)
-
-
 def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
     current_status = entry.status
     new_status = current_status
@@ -189,11 +172,13 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         handler = entry.get_handler()
         if current_status == StatusEnum.waiting:
             if entry.check_prerequistes(dbi):
-                handler.prepare(dbi, entry)
-                new_status = StatusEnum.preparing
+                new_status = StatusEnum.ready
+        elif current_status == StatusEnum.ready:
+            handler.prepare(dbi, entry)
+            new_status = StatusEnum.preparing
         elif current_status == StatusEnum.preparing:
             new_status = check_prepare_scripts(dbi, entry)
-        elif current_status in [StatusEnum.ready, StatusEnum.pending, StatusEnum.running]:
+        elif current_status in [StatusEnum.prepared, StatusEnum.pending, StatusEnum.running]:
             if entry.level == LevelEnum.group:
                 new_status = check_workflows_for_entry(dbi, entry)
             elif entry.level == LevelEnum.step:
@@ -201,7 +186,7 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
             elif entry.level == LevelEnum.campaign:
                 new_status = check_children(entry, entry.s_)
         elif current_status == StatusEnum.collectable:
-            collect_children(dbi, entry)
+            handler.collect(dbi, entry)
             new_status = StatusEnum.collecting
         elif current_status == StatusEnum.collecting:
             new_status = check_collect_scripts(dbi, entry)
@@ -216,6 +201,8 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
             current_status = new_status
         else:
             can_continue = False
+        if current_status in [StatusEnum.reviewable, StatusEnum.accepted]:
+            can_continue = False
     return db_id_list
 
 
@@ -226,41 +213,64 @@ def check_entries(dbi: DbInterface, itr: Iterable) -> list[DbId]:
     return db_id_list
 
 
-def validate_scripts(dbi: DbInterface, scripts: Iterable) -> list[DbId]:
-    for script in scripts:
-        if script.script_type != ScriptType.validate:
-            continue
-        if script.superseeded:
-            continue
-        if script.status.bad():
-            continue
-        script.check_status(dbi)
-    scripts_status = extract_scripts_status(scripts, ScriptType.validate)
-    if not scripts_status.size:
-        # No scripts to check, return completed
-        return StatusEnum.accepted
-    if (scripts_status >= StatusEnum.accepted.value).all():
-        return StatusEnum.accepted
-    return StatusEnum[min(scripts_status)]
+def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    if entry.status == StatusEnum.waiting:
+        if not entry.check_prerequistes(dbi):
+            return []
+    elif entry.status != StatusEnum.ready:
+        return []
+    full_path = os.path.join(entry.prod_base_url, entry.fullname)
+    safe_makedirs(full_path)
+    prepare_scripts = handler.prepare_script_hook(dbi, entry)
+    if prepare_scripts:
+        status = StatusEnum.preparing
+    else:
+        status = StatusEnum.prepared
+    entry.update_values(dbi, entry.id, status=status)
+    return [entry.db_id]
 
 
-def validate_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
+def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    if entry.status != StatusEnum.collectable:
+        return []
+    collect_scripts = handler.collect_script_hook(dbi, entry)
+    if collect_scripts:
+        status = StatusEnum.collecting
+    else:
+        status = StatusEnum.completed
+    entry.update_values(dbi, entry.id, status=status)
+    return [entry.db_id]
+
+
+def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
     db_id_list: list[DbId] = []
-    if entry.status != StatusEnum.completed:
-        return db_id_list
-    orig_status = entry.status
-    status = validate_scripts(dbi, entry.scripts_)
-    new_status = validate_script_status_map[status]
-    if new_status != orig_status:
-        db_id_list.append(entry.db_id)
-        entry.update_values(dbi, entry.id, status=new_status)
+    for child in children:
+        if child.status != StatusEnum.collectable:
+            continue
+        handler = child.get_handler()
+        db_id_list += collect_entry(dbi, handler, child)
     return db_id_list
+
+
+def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    if entry.status != StatusEnum.completed:
+        return []
+    validate_scripts = handler.validate_script_hook(dbi, entry)
+    if validate_scripts:
+        status = StatusEnum.validating
+    else:
+        status = StatusEnum.accepted
+    entry.update_values(dbi, entry.id, status=status)
+    return [entry.db_id]
 
 
 def validate_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
     db_id_list: list[DbId] = []
     for child in children:
-        db_id_list += validate_entry(dbi, child)
+        if child.status != StatusEnum.completed:
+            continue
+        handler = child.get_handler()
+        db_id_list += validate_entry(dbi, handler, child)
     return db_id_list
 
 
@@ -268,7 +278,7 @@ def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     for script in scripts:
         if script.status != StatusEnum.completed:
             continue
-        script.udpate_values(dbi, script.id, status=StatusEnum.accepted)
+        script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 
 def accept_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
@@ -276,7 +286,7 @@ def accept_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
     if entry.status != StatusEnum.reviewable:
         return db_id_list
     accept_scripts(dbi, entry.scripts_)
-    db_id_list += entry.db_id
+    db_id_list += [entry.db_id]
     entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
     return db_id_list
 
@@ -293,3 +303,44 @@ def reject_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         return []
     entry.update_values(dbi, entry.id, status=StatusEnum.rejected)
     return [entry.db_id]
+
+
+def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType):
+    for script in entry.scripts_:
+        if script.script_type == script_type:
+            Script.rollback_script(dbi, script)
+
+
+def rollback_workflows(dbi: DbInterface, entry: Any):
+    for workflow in entry.w_:
+        Workflow.rollback_script(dbi, workflow)
+
+
+def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) -> list[DbId]:
+    db_id_list: list[DbId] = []
+    for entry in itr:
+        if entry.status.value <= to_status.value:
+            continue
+        handler = entry.get_handler()
+        db_id_list += rollback_entry(dbi, handler, entry, to_status)
+    return db_id_list
+
+
+def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: StatusEnum) -> list[DbId]:
+    status_val = entry.status.value
+    db_id_list: list[DbId] = []
+    if status_val <= to_status.value:
+        return db_id_list
+    while status_val >= to_status.value:
+        if status_val == StatusEnum.completed.value:
+            rollback_scripts(dbi, entry, ScriptType.validate)
+        elif status_val == StatusEnum.collectable.value:
+            rollback_scripts(dbi, entry, ScriptType.collect)
+        elif status_val == StatusEnum.prepared.value:
+            db_id_list += handler.rollback_run(dbi, entry, to_status)
+        elif status_val == StatusEnum.ready.value:
+            rollback_scripts(dbi, entry, ScriptType.prepare)
+        db_id_list.append(entry.db_id)
+        status_val -= 1
+    entry.update_values(dbi, entry.id, status=to_status)
+    return db_id_list

@@ -33,8 +33,12 @@ from lsst.cm.tools.db.handler_utils import (
     accept_entry,
     check_entries,
     check_entry,
+    collect_children,
+    collect_entry,
     prepare_entry,
     reject_entry,
+    rollback_children,
+    rollback_entry,
     validate_children,
     validate_entry,
 )
@@ -65,7 +69,7 @@ class CampaignHandler(EntryHandlerBase):
             input_type=InputType.tagged,
             output_type=OutputType.chained,
             p_id=parent.id,
-            status=StatusEnum.waiting,
+            status=StatusEnum.ready,
             butler_repo=kwargs["butler_repo"],
             prod_base_url=kwargs["prod_base_url"],
             handler=self.get_handler_class_name(),
@@ -103,20 +107,18 @@ class CampaignHandler(EntryHandlerBase):
         return out_dict
 
     def prepare(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = []
-        if entry.status != StatusEnum.waiting:
-            update_kwargs = prepare_entry(dbi, self, entry)
-            Campaign.update_values(dbi, entry.id, **update_kwargs)
-            db_id_list.append(entry.db_id)
+        db_id_list = prepare_entry(dbi, self, entry)
+        if not db_id_list:
+            return db_id_list
         for step_ in entry.s_:
             status = step_.status
-            if status != StatusEnum.waiting:
-                continue
-            if not step_.check_prerequistes(dbi):
+            if status == StatusEnum.waiting:
+                if not step_.check_prerequistes(dbi):
+                    continue
+            elif status != StatusEnum.ready:
                 continue
             step_handler = step_.get_handler()
-            db_id_list.append(step_.db_id)
-            step_handler.prepare(dbi, step_)
+            db_id_list += step_handler.prepare(dbi, step_)
         return db_id_list
 
     def check(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
@@ -125,10 +127,16 @@ class CampaignHandler(EntryHandlerBase):
         db_id_list += check_entry(dbi, entry)
         return db_id_list
 
+    def collect(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
+        db_id_list = collect_children(dbi, entry.g_)
+        db_id_list += collect_children(dbi, entry.s_)
+        db_id_list += collect_entry(dbi, self, entry)
+        return db_id_list
+
     def validate(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
         db_id_list = validate_children(dbi, entry.g_)
         db_id_list += validate_children(dbi, entry.s_)
-        db_id_list += validate_entry(dbi, entry)
+        db_id_list += validate_entry(dbi, self, entry)
         return db_id_list
 
     def accept(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
@@ -139,3 +147,11 @@ class CampaignHandler(EntryHandlerBase):
 
     def reject(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
         return reject_entry(dbi, entry)
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        return rollback_entry(dbi, self, entry, to_status)
+
+    def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        db_id_list = rollback_children(dbi, entry.g_, to_status)
+        db_id_list += rollback_children(dbi, entry.s_, to_status)
+        return db_id_list
