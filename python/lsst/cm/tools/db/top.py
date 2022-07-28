@@ -5,6 +5,7 @@ from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.group import Group
+from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.step import Step
@@ -42,6 +43,7 @@ def get_table_for_level(level: LevelEnum) -> Table:
         LevelEnum.campaign: Campaign,
         LevelEnum.step: Step,
         LevelEnum.group: Group,
+        LevelEnum.workflow: Workflow,
     }
     return all_tables[level]
 
@@ -55,6 +57,7 @@ def get_table(which_table: TableEnum) -> Table:
         TableEnum.group: Group,
         TableEnum.workflow: Workflow,
         TableEnum.script: Script,
+        TableEnum.job: Job,
         TableEnum.dependency: Dependency,
     }
     return all_tables[which_table]

@@ -44,6 +44,7 @@ class Step(common.Base, common.CMTable):
     g_: Iterable = relationship("Group", back_populates="s_")
     w_: Iterable = relationship("Workflow", back_populates="s_")
     scripts_: Iterable = relationship("Script", back_populates="s_")
+    jobs_: Iterable = relationship("Job", back_populates="s_")
     depend_: Iterable = relationship("Dependency", back_populates="s_")
 
     match_keys = [p_id, c_id, id]
@@ -73,3 +74,6 @@ class Step(common.Base, common.CMTable):
     def children(self) -> Iterable:
         for group in self.g_:
             yield group
+
+    def sub_iterators(self) -> list[Iterable]:
+        return [self.w_, self.g_]

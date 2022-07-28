@@ -19,34 +19,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-from typing import Any
+from __future__ import annotations
 
-from lsst.cm.tools.core.db_interface import DbInterface
-from lsst.cm.tools.core.handler import WorkflowHandlerBase
-from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
-from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
+import os
+from typing import Any, Iterable
+
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
+from lsst.cm.tools.db.handler_utils import prepare_entry
+from lsst.cm.tools.db.job_handler import JobHandler
 from lsst.cm.tools.db.workflow import Workflow
 
 
-class WorkflowHandler(WorkflowHandlerBase):
+class WorkflowHandler(EntryHandler):
     """Campaign level callback handler
 
     Provides interface functions.
 
     Derived classes will have to:
 
-    1. implement the `write_workflow_hook` function to write the
+    1. implement the `write_job_hook` function to write the
     configuration and shell scripts to run the workflow
-    2. define the `Checker` and `Rollback` classes
     """
-
-    run_script_url_template_names = dict(
-        script_url="script_url_template",
-        log_url="log_url_template",
-        config_url="config_url_template",
-    )
 
     fullname_template = os.path.join(
         "{production_name}",
@@ -55,14 +52,13 @@ class WorkflowHandler(WorkflowHandlerBase):
         "{group_name}_w{workflow_idx}",
     )
 
-    checker_class_name = YamlChecker().get_checker_class_name()
-    rollback_class_name = FakeRollback().get_rollback_class_name()
+    level = LevelEnum.workflow
 
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
-        workflow_idx = self.get_kwarg_value("workflow_idx", **kwargs)
+        workflow_idx = len(parent.w_)
         insert_fields = dict(
             name="%02i" % workflow_idx,
-            fullname=self.get_fullname(**kwargs),
+            fullname=self.get_fullname(workflow_idx=workflow_idx, **kwargs),
             p_id=parent.p_.id,
             c_id=parent.c_.id,
             s_id=parent.s_.id,
@@ -72,31 +68,58 @@ class WorkflowHandler(WorkflowHandlerBase):
             coll_in=parent.coll_in,
             coll_out=parent.coll_out,
             status=StatusEnum.ready,
-            script_method=ScriptMethod.bash_stamp,
-            checker=kwargs.get("checker", self.checker_class_name),
-            rollback=kwargs.get("rollback", self.rollback_class_name),
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,
         )
-        script_data = self.resolve_templated_strings(
-            self.run_script_url_template_names,
-            prod_base_url=parent.prod_base_url,
-            fullname=parent.fullname,
-            idx=workflow_idx,
-            name="run",
-        )
-        insert_fields.update(**script_data)
         workflow = Workflow.insert_values(dbi, **insert_fields)
-        self.write_workflow_hook(dbi, parent, workflow, **insert_fields)
+        return workflow
 
-    def launch(self, dbi: DbInterface, workflow: Workflow) -> None:
-        submit_command = f"{workflow.script_url} {workflow.config_url}"
-        # workflow_start = datetime.now()
-        print(f"Submitting workflow {str(workflow.db_id)} with {submit_command}")
-        update_fields = dict(status=StatusEnum.running)
-        Workflow.update_values(dbi, workflow.id, **update_fields)
+    def prepare(self, dbi: DbInterface, entry: Group) -> list[DbId]:
+        db_id_list = prepare_entry(dbi, self, entry)
+        if not db_id_list:
+            return db_id_list
+        job_handler = self.make_job_handler()
+        job_handler.insert(
+            dbi,
+            entry,
+            name="run",
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.s_.name,
+            group_name=entry.name,
+        )
+        return db_id_list
 
-    def fake_run_hook(
-        self, dbi: DbInterface, workflow: Workflow, status: StatusEnum = StatusEnum.completed
-    ) -> None:
-        write_status_to_yaml(workflow.log_url, status)
+    def make_job_handler(self) -> JobHandler:
+        raise NotImplementedError()
+
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        assert dbi
+        assert entry
+        return []
+
+    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        assert dbi
+        assert entry
+        return []
+
+    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        assert dbi
+        assert entry
+        return []
+
+    def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:
+        pass
+
+    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+        pass
+
+    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
+        current_status = entry.status
+        db_id_list: list[DbId] = []
+        if current_status != StatusEnum.prepared:
+            return db_id_list
+        for job in entry.jobs_:
+            job.update_values(dbi, job.id, status=StatusEnum.ready)
+            db_id_list.append(job.w_.db_id)
+        return db_id_list

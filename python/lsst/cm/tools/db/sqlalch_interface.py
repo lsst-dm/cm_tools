@@ -8,8 +8,8 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
+from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
-from lsst.cm.tools.db.workflow import Workflow
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -86,33 +86,36 @@ class SQLAlchemyInterface(DbInterface):
             self.check(level, db_id)
         return db_id_list
 
-    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        handler.check(self, entry)
         db_id_list = []
-        for workflow_ in entry.w_:
-            status = workflow_.status
+        for job_ in entry.jobs_:
+            status = job_.status
             if status != StatusEnum.ready:
                 continue
-            db_id_list.append(workflow_.db_id)
-            Workflow.update_values(self, workflow_.id, status=StatusEnum.pending)
+            db_id_list.append(job_.db_id)
+            Job.update_values(self, job_.id, status=StatusEnum.prepared)
         if db_id_list:
             self.check(level, db_id)
         return db_id_list
 
-    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
+    def launch_jobs(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
         db_id_list: list[DbId] = []
-        n_running = self._count_workflows_at_status(StatusEnum.running)
+        entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        handler.check(self, entry)
+        n_running = self._count_jobs_at_status(StatusEnum.running)
         if n_running >= max_running:
             return db_id_list
-        entry = self.get_entry(level, db_id)
-        for workflow_ in entry.w_:
-            status = workflow_.status
-            if status != StatusEnum.pending:
+        for job_ in entry.jobs_:
+            status = job_.status
+            if status != StatusEnum.prepared:
                 continue
-            one_id = workflow_.db_id
-            db_id_list.append(one_id)
-            handler = workflow_.get_handler()
-            handler.launch(self, workflow_)
+            db_id_list.append(job_.db_id)
+            handler = job_.get_handler()
+            handler.launch(self, job_)
             n_running += 1
             if n_running >= max_running:
                 break
@@ -144,13 +147,13 @@ class SQLAlchemyInterface(DbInterface):
     ) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         db_id_list: list[DbId] = []
-        for workflow_ in entry.w_:
-            old_status = entry.status
-            if old_status not in [StatusEnum.prepared, StatusEnum.pending, StatusEnum.running]:
+        for job_ in entry.jobs_:
+            old_status = job_.status
+            if old_status not in [StatusEnum.prepared, StatusEnum.running]:
                 continue
-            handler = workflow_.get_handler()
-            handler.fake_run_hook(self, workflow_, status)
-            db_id_list.append(workflow_.g_.db_id)
+            handler = job_.get_handler()
+            handler.fake_run_hook(self, job_, status)
+            db_id_list.append(job_.w_.db_id)
         if db_id_list:
             self.check(level, db_id)
         return db_id_list
@@ -161,8 +164,8 @@ class SQLAlchemyInterface(DbInterface):
             if os.path.exists("daemon.stop"):  # pragma: no cover
                 break
             self.prepare(LevelEnum.campaign, db_id)
-            self.queue_workflows(LevelEnum.campaign, db_id)
-            self.launch_workflows(LevelEnum.campaign, db_id, max_running)
+            self.queue_jobs(LevelEnum.campaign, db_id)
+            self.launch_jobs(LevelEnum.campaign, db_id, max_running)
             self.accept(LevelEnum.campaign, db_id)
             self.print_table(sys.stdout, TableEnum.step)
             self.print_table(sys.stdout, TableEnum.group)
@@ -170,8 +173,8 @@ class SQLAlchemyInterface(DbInterface):
             i_iter -= 1
             sleep(sleep_time)
 
-    def _count_workflows_at_status(self, status: StatusEnum) -> int:
-        table = top.get_table(TableEnum.workflow)
+    def _count_jobs_at_status(self, status: StatusEnum) -> int:
+        table = top.get_table(TableEnum.job)
         sel = table.get_rows_with_status_query(status)
         return common.return_select_count(self, sel)
 

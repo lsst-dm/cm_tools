@@ -8,7 +8,7 @@ def test_level_enum() -> None:
             assert level.parent() is None
         else:
             assert level.parent().value == level.value - 1
-        if level == LevelEnum.group:
+        if level == LevelEnum.workflow:
             assert level.child() is None
         else:
             assert level.child().value == level.value + 1

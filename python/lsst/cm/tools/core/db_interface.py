@@ -54,11 +54,16 @@ class TableBase:
 
 
 class ScriptBase(TableBase):
-    """Interface class for database entries describing Scripts
+    """Interface class for database entries describing Scripts and Jobs
+
+    Scripts are command that run locally, but potentially
+    asynchronously.
+
+    Jobs are commands that run on a batch system
 
     This will require the derived class to implement
     a `check_status` method to check on the status of the script
-    and a `rollback_sript` method to clean up failed scripts
+    and a `rollback_script` method to clean up failed scripts
     """
 
     script_url = ""
@@ -105,52 +110,13 @@ class ScriptBase(TableBase):
         raise NotImplementedError()
 
 
-class WorkflowBase(TableBase):
-    """Interface class for database entries describing Workflows
+class JobBase(ScriptBase):
+    """Interface class for database entries describing Jobs
 
     This will require the derived class to implement
-    a `check_status` method to check on the status of the workflow
-    and a `rollback_sript` method to clean up failed workflows
+    a `check_status` method to check on the status of the script
+    and a `rollback_job` method to clean up failed jobs
     """
-
-    @classmethod
-    def check_status(cls, dbi: DbInterface, entry: WorkflowBase) -> StatusEnum:
-        """Check the status of a Workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database
-
-        entry : WorkflowBase
-            The entry in question
-
-        Returns
-        -------
-        status : StatusEnum
-            Status of the script in question
-        """
-        raise NotImplementedError()
-
-    @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: WorkflowBase) -> None:
-        """Called when a particular entry is rejected
-
-        Calling this function will result in the script
-        being marked as `superseeded`, and be ignored by further processing.
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        entry : Any
-            The entry associated to the workflow
-
-        script : WorkflowBase
-            The workflow we are rolling back
-        """
-        raise NotImplementedError()
 
 
 class DependencyBase:
@@ -345,8 +311,8 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Queue all the ready workflows matching the selection
+    def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        """Queue all the ready jobs matching the selection
 
         Parameters
         ----------
@@ -363,8 +329,8 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
-        """Launch all the pending workflows matching the selection
+    def launch_jobs(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
+        """Launch all the pending jobs matching the selection
 
         Parameters
         ----------
@@ -375,7 +341,7 @@ class DbInterface:
             Specifies the entries we are queuing
 
         max_running: int
-            Maximum number of running workflows
+            Maximum number of running jobs
 
         Returns
         -------

@@ -156,7 +156,7 @@ def cm_queue(**kwargs: Any) -> None:
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.queue_workflows(the_level, the_db_id)
+    iface.queue_jobs(the_level, the_db_id)
 
 
 @click.command("launch")
@@ -174,7 +174,7 @@ def cm_launch(**kwargs: Any) -> None:
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
     max_running = all_args.pop("max_running")
-    iface.launch_workflows(the_level, the_db_id, max_running)
+    iface.launch_jobs(the_level, the_db_id, max_running)
 
 
 @click.command("check")

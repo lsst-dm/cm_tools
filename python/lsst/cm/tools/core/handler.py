@@ -10,7 +10,7 @@ from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase, WorkflowBase
+    from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
     from lsst.cm.tools.db.common import CMTable
 
 
@@ -290,16 +290,34 @@ class ScriptHandlerBase(Handler):
         """
         raise NotImplementedError()
 
+    def run(self, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
+        """Run the script
 
-class WorkflowHandlerBase(Handler):
-    """Handler class for dealing with workflows
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
 
-    The workflows can take quite some time to run.
-    This class defines the hooks used to manage them.
+        script: ScriptBase
+            The database entry for the script
+
+        Returns
+        -------
+        status: StatusEnum
+            Status of the script
+        """
+        raise NotImplementedError()
+
+
+class JobHandlerBase(Handler):
+    """Handler class for dealing with jobs
+
+    By jobs we mean processing jobs that run
+    on batch systems
     """
 
-    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> WorkflowBase:
-        """Insert a new database entry
+    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> JobBase:
+        """Insert a new script
 
         Parameters
         ----------
@@ -315,14 +333,12 @@ class WorkflowHandlerBase(Handler):
 
         Returns
         -------
-        new_entry : WorkflowBase
+        new_entry : JobBase
             The new entry
         """
         raise NotImplementedError()
 
-    def write_workflow_hook(
-        self, dbi: DbInterface, parent: Any, workflow: WorkflowBase, **kwargs: Any
-    ) -> None:
+    def write_job_hook(self, dbi: DbInterface, parent: Any, job: JobBase, **kwargs: Any) -> None:
         """Write the script to run a workflow
 
         Parameters
@@ -330,47 +346,52 @@ class WorkflowHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        parent : Any
-            The parent entry the workflow is associated with
+        parent: Any
+            The parent entry the script is associated with
 
-        workflow : WorkflowBase
-            The newly inserted workflow
+        job: JobBase
+            The database entry for the job
 
         Keywords
         --------
-        These can we used in writing the script
-        """
-        raise NotImplementedError()
-
-    def launch(self, dbi: DbInterface, workflow: WorkflowBase) -> None:
-        """Launch a workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        workflow : WorkflowBase
-            The workflow in question
+        These can we used in writing the job
         """
         raise NotImplementedError()
 
     def fake_run_hook(
-        self, dbi: DbInterface, workflow: WorkflowBase, status: StatusEnum = StatusEnum.completed
+        self, dbi: DbInterface, job: JobBase, status: StatusEnum = StatusEnum.completed
     ) -> None:
         """Used for testing, falsely writes a log file that claims
-        workflow is completed
+        job is completed
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
 
-        workflow: WorkflowBase
-            The database entry for the workflow
+        job: JobBase
+            The database entry for the script
 
         status: StatusEnum
             The status to set
+        """
+        raise NotImplementedError()
+
+    def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
+        """Launched the job
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        job: JobBase
+            The database entry for the script
+
+        Returns
+        -------
+        status: StatusEnum
+            Status of the job
         """
         raise NotImplementedError()
 
@@ -417,6 +438,27 @@ class EntryHandlerBase(Handler):
 
     def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         """Prepare an entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def run(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Run an entry and any children
+
+        This actually just allow the children to run batch jobs.
+        It will not actually launch the jobs.
 
         Parameters
         ----------
@@ -597,6 +639,24 @@ class EntryHandlerBase(Handler):
         -------
         scripts : list[ScriptBase]
             The newly made scripts
+        """
+        raise NotImplementedError()
+
+    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
+        """Called to allow batch jobs to be run
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+
+        Returns
+        -------
+        job : list[JobBase]
+            The jobs that can be run
         """
         raise NotImplementedError()
 

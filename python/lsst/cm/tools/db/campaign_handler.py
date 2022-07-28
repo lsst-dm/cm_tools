@@ -25,31 +25,19 @@ from typing import Any, Optional
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
+from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.dependency import Dependency
-from lsst.cm.tools.db.handler_utils import (
-    accept_children,
-    accept_entry,
-    check_entries,
-    check_entry,
-    collect_children,
-    collect_entry,
-    prepare_entry,
-    reject_entry,
-    rollback_children,
-    rollback_entry,
-    validate_children,
-    validate_entry,
-)
+from lsst.cm.tools.db.entry_handler import EntryHandler
+from lsst.cm.tools.db.handler_utils import prepare_entry
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 
 # import datetime
 
 
-class CampaignHandler(EntryHandlerBase):
+class CampaignHandler(EntryHandler):
     """Campaign level callback handler
 
     Provides interface functions.
@@ -127,39 +115,4 @@ class CampaignHandler(EntryHandlerBase):
                     continue
             step_handler = step_.get_handler()
             db_id_list += step_handler.prepare(dbi, step_)
-        return db_id_list
-
-    def check(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = check_entries(dbi, entry.g_)
-        db_id_list += check_entries(dbi, entry.s_)
-        db_id_list += check_entry(dbi, entry)
-        return db_id_list
-
-    def collect(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = collect_children(dbi, entry.g_)
-        db_id_list += collect_children(dbi, entry.s_)
-        db_id_list += collect_entry(dbi, self, entry)
-        return db_id_list
-
-    def validate(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = validate_children(dbi, entry.g_)
-        db_id_list += validate_children(dbi, entry.s_)
-        db_id_list += validate_entry(dbi, self, entry)
-        return db_id_list
-
-    def accept(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = accept_children(dbi, entry.g_)
-        db_id_list += accept_children(dbi, entry.s_)
-        db_id_list += accept_entry(dbi, entry)
-        return db_id_list
-
-    def reject(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        return reject_entry(dbi, entry)
-
-    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
-        return rollback_entry(dbi, self, entry, to_status)
-
-    def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
-        db_id_list = rollback_children(dbi, entry.g_, to_status)
-        db_id_list += rollback_children(dbi, entry.s_, to_status)
         return db_id_list

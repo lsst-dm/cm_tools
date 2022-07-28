@@ -3,14 +3,15 @@ from collections import OrderedDict
 from typing import Any, Iterable
 
 import yaml
-from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase, WorkflowBase
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
 from lsst.cm.tools.db.campaign_handler import CampaignHandler
-from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.group_handler import GroupHandler
+from lsst.cm.tools.db.job_handler import JobHandler
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.step_handler import StepHandler
+from lsst.cm.tools.db.workflow import Workflow
 from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
@@ -27,19 +28,17 @@ class Example2Config:
     )
 
 
-class Example2WorkflowHander(Example2Config, WorkflowHandler):
+class Example2JobHandler(Example2Config, JobHandler):
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()
 
-    def write_workflow_hook(
-        self, dbi: DbInterface, parent: Group, workflow: WorkflowBase, **kwargs: Any
-    ) -> None:
+    def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = parent.butler_repo
 
-        outpath = workflow.config_url
+        outpath = job.config_url
 
         with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
             workflow_config = yaml.safe_load(fin)
@@ -59,7 +58,15 @@ class Example2WorkflowHander(Example2Config, WorkflowHandler):
             yaml.dump(workflow_config, fout)
 
         command = make_bps_command(outpath)
-        write_command_script(workflow, command)
+        write_command_script(job, command)
+
+
+class Example2WorkflowHander(Example2Config, WorkflowHandler):
+
+    job_handler_class = Example2JobHandler().get_handler_class_name()
+
+    def make_job_handler(self) -> JobHandler:
+        return Handler.get_handler(self.job_handler_class, self.config_url)
 
 
 class Example2EntryHandler(Example2Config):

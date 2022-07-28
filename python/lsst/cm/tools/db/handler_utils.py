@@ -27,6 +27,7 @@ from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum, safe_makedirs
+from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.workflow import Workflow
 
@@ -60,7 +61,7 @@ validate_script_status_map = {
 workflow_status_map = {
     StatusEnum.failed: StatusEnum.failed,
     StatusEnum.ready: StatusEnum.running,
-    StatusEnum.pending: StatusEnum.running,
+    StatusEnum.prepared: StatusEnum.running,
     StatusEnum.running: StatusEnum.running,
     StatusEnum.completed: StatusEnum.collectable,
 }
@@ -76,7 +77,7 @@ def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> np.ndarray
     return np.array([x.status.value for x in itr if (x.script_type == script_type) and not x.superseeded])
 
 
-def extract_workflow_status(itr: Iterable) -> np.ndarray:
+def extract_job_status(itr: Iterable) -> np.ndarray:
     """Return the status of all children in an array"""
     return np.array([x.status.value for x in itr])
 
@@ -85,7 +86,9 @@ def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -
     """Check the status of childern of a given row
     and return a status accordingly"""
     child_status = extract_child_status(entry.children())
-    if child_status.size and (child_status >= StatusEnum.accepted.value).all():
+    if not child_status.size:
+        raise ValueError("Where have the children gone?")
+    if (child_status >= StatusEnum.accepted.value).all():
         return StatusEnum.collectable
     status_val = min(max_status.value, max(min_status.value, child_status.min()))
     return StatusEnum(status_val)
@@ -112,17 +115,19 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
     return StatusEnum.ready
 
 
-def check_workflows(dbi: DbInterface, workflows: Iterable) -> StatusEnum:
-    for workflow in workflows:
-        Workflow.check_status(dbi, workflow)
-    workflow_status = extract_workflow_status(workflows)
-    assert workflow_status.size
-    if (workflow_status >= StatusEnum.completed.value).all():
+def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
+    for job in jobs:
+        Job.check_status(dbi, job)
+    job_status = extract_job_status(jobs)
+    assert job_status.size
+    if (job_status >= StatusEnum.completed.value).all():
         return StatusEnum.completed
-    if (workflow_status < 0).any():
+    if (job_status < 0).any():
         return StatusEnum.failed
-    if (workflow_status >= StatusEnum.running.value).any():
+    if (job_status >= StatusEnum.running.value).any():
         return StatusEnum.running
+    if (job_status >= StatusEnum.prepared.value).any():
+        return StatusEnum.prepared
     return StatusEnum.ready
 
 
@@ -144,9 +149,9 @@ def check_validation_scripts(dbi: DbInterface, entry: Any) -> StatusEnum:
     return validate_script_status_map[script_status]
 
 
-def check_workflows_for_entry(dbi: DbInterface, entry: Any) -> StatusEnum:
+def check_running_jobs(dbi: DbInterface, workflow: Workflow) -> StatusEnum:
     """Check the status the workflow for one entry"""
-    workflow_status = check_workflows(dbi, entry.w_)
+    workflow_status = check_jobs(dbi, workflow.jobs_)
     return workflow_status_map[workflow_status]
 
 
@@ -173,11 +178,14 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
             new_status = StatusEnum.preparing
         elif current_status == StatusEnum.preparing:
             new_status = check_prepare_scripts(dbi, entry)
-        elif current_status in [StatusEnum.prepared, StatusEnum.pending, StatusEnum.running]:
-            if entry.level == LevelEnum.group:
-                new_status = check_workflows_for_entry(dbi, entry)
+        elif current_status == StatusEnum.prepared:
+            handler.run(dbi, entry)
+            new_status = StatusEnum.running
+        elif current_status == StatusEnum.running:
+            if entry.level == LevelEnum.workflow:
+                new_status = check_running_jobs(dbi, entry)
             else:
-                new_status = check_children(entry, StatusEnum.pending, StatusEnum.collectable)
+                new_status = check_children(entry, StatusEnum.running, StatusEnum.collectable)
         elif current_status == StatusEnum.collectable:
             handler.collect(dbi, entry)
             new_status = StatusEnum.collecting
@@ -221,6 +229,20 @@ def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
         status = StatusEnum.prepared
     entry.update_values(dbi, entry.id, status=status)
     return [entry.db_id]
+
+
+def run_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    return handler.run_hook(dbi, entry)
+
+
+def run_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+    db_id_list: list[DbId] = []
+    for child in children:
+        if child.status != StatusEnum.prepared:
+            continue
+        handler = child.get_handler()
+        db_id_list += run_entry(dbi, handler, child)
+    return db_id_list
 
 
 def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:

@@ -5,20 +5,20 @@ import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
-from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum, safe_makedirs
+from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
 from lsst.cm.tools.db.common import CMTable
 
 
-def write_status_to_yaml(log_url: str, status: StatusEnum) -> None:
+def write_status_to_yaml(stamp_url: str, status: StatusEnum) -> None:
     """Write a one line file with just a status flag
 
     E.g. the file might just contain, `status: completed`
     """
-    with open(log_url, "wt", encoding="utf-8") as fout:
+    with open(stamp_url, "wt", encoding="utf-8") as fout:
         fout.write(f"status: {status.name}\n")
 
 
-def check_status_from_yaml(log_url: str, current_status: StatusEnum) -> StatusEnum:
+def check_status_from_yaml(stamp_url: str, current_status: StatusEnum) -> StatusEnum:
     """Read the status from a yaml file
 
     This just treat the file contents as a dict
@@ -26,7 +26,7 @@ def check_status_from_yaml(log_url: str, current_status: StatusEnum) -> StatusEn
 
     Parameters
     ----------
-    log_url : str
+    stamp_url : str
         Path to the file in question
 
     current_status : StatusEnum
@@ -40,9 +40,9 @@ def check_status_from_yaml(log_url: str, current_status: StatusEnum) -> StatusEn
     status : StatusEnum
         The status
     """
-    if not os.path.exists(log_url):
+    if not os.path.exists(stamp_url):
         return current_status
-    with open(log_url, "rt", encoding="utf-8") as fin:
+    with open(stamp_url, "rt", encoding="utf-8") as fin:
         fields = yaml.safe_load(fin)
     return StatusEnum[fields["status"]]
 
@@ -209,33 +209,37 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
         Lines added after the command
         E.g., cleanup
 
-    Returns
-    -------
-    command : str
-        The requested command
+    stamp : StatusEnum
+        This will added an echo command to write to the
+        stamp file used to check the status of the script
+        to the end of the script, i.e., so that the
+        stamp file is written when and if the script completes
 
-    Notes
-    -----
-    if `script.script_method` == ScriptMethod.bash_stamp
-    this will added an echo command to write to the
-    stamp file used to check the status of the script
-    to the end of the script, i.e., so that the
-    stamp file is written when and if the script completes
+    callback : StatusEnum
+        This will add a callback to cm to step the script status
+
+    fake : bool
+        This will only echo the command, no actually run int
     """
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
+    stamp = kwargs.get("stamp")
+    callback = kwargs.get("callback")
+    fake = kwargs.get("fake")
 
     safe_makedirs(os.path.dirname(script.script_url))
     with open(script.script_url, "wt", encoding="utf-8") as fout:
         if prepend:
-            fout.write(prepend)
+            fout.write(f"{prepend}\n")
+        if fake:
+            command = f'echo "{command}"'
         fout.write(command)
         fout.write("\n")
         if append:
-            fout.write(append)
-        if script.script_method == ScriptMethod.bash_stamp:
-            fout.write(f'echo "status: completed" > {os.path.abspath(script.log_url)}\n')
-        elif script.script_method == ScriptMethod.bash_callback:  # pragma: no cover
+            fout.write(f"{append}\n")
+        if stamp:
+            fout.write(f'echo "status: completed" > {os.path.abspath(script.stamp_url)}\n')
+        if callback:  # pragma: no cover
             raise NotImplementedError()
 
 

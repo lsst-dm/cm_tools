@@ -3,16 +3,17 @@ from collections import OrderedDict
 from typing import Any, Iterable
 
 import yaml
-from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase, WorkflowBase
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
 from lsst.cm.tools.core.utils import StatusEnum
 from lsst.cm.tools.db.campaign_handler import CampaignHandler
-from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.group_handler import GroupHandler
+from lsst.cm.tools.db.job_handler import JobHandler
 from lsst.cm.tools.db.script_handler import CollectScriptHandler, PrepareScriptHandler, ValidateScriptHandler
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.step_handler import StepHandler
+from lsst.cm.tools.db.workflow import Workflow
 from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
@@ -29,19 +30,17 @@ class ExampleConfig:
     )
 
 
-class ExampleWorkflowHander(ExampleConfig, WorkflowHandler):
+class ExampleJobHandler(ExampleConfig, JobHandler):
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()
 
-    def write_workflow_hook(
-        self, dbi: DbInterface, parent: Group, workflow: WorkflowBase, **kwargs: Any
-    ) -> None:
+    def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
         butler_repo = parent.butler_repo
 
-        outpath = workflow.config_url
+        outpath = job.config_url
 
         with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
             workflow_config = yaml.safe_load(fin)
@@ -61,7 +60,15 @@ class ExampleWorkflowHander(ExampleConfig, WorkflowHandler):
             yaml.dump(workflow_config, fout)
 
         command = make_bps_command(outpath)
-        write_command_script(workflow, command)
+        write_command_script(job, command)
+
+
+class ExampleWorkflowHander(ExampleConfig, WorkflowHandler):
+
+    job_handler_class = ExampleJobHandler().get_handler_class_name()
+
+    def make_job_handler(self) -> JobHandler:
+        return Handler.get_handler(self.job_handler_class, self.config_url)
 
 
 class ExampleEntryHandler(ExampleConfig):
@@ -82,8 +89,12 @@ class ExampleEntryHandler(ExampleConfig):
             idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
-            fake_run=StatusEnum.completed,
+            stamp=StatusEnum.completed,
+            fake=True,
         )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
         return [script]
 
     def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
@@ -95,8 +106,12 @@ class ExampleEntryHandler(ExampleConfig):
             idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
-            fake_run=StatusEnum.completed,
+            stamp=StatusEnum.completed,
+            fake=True,
         )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
         return [script]
 
     def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
@@ -108,8 +123,12 @@ class ExampleEntryHandler(ExampleConfig):
             idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
-            fake_run=StatusEnum.completed,
+            stamp=StatusEnum.completed,
+            fake=True,
         )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
         return [script]
 
     def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:

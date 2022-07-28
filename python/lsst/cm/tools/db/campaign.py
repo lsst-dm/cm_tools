@@ -45,6 +45,7 @@ class Campaign(common.Base, common.CMTable):
     g_: Iterable = relationship("Group", back_populates="c_")
     w_: Iterable = relationship("Workflow", back_populates="c_")
     scripts_: Iterable = relationship("Script", back_populates="c_")
+    jobs_: Iterable = relationship("Job", back_populates="c_")
     depend_: Iterable = relationship("Dependency", back_populates="c_")
 
     match_keys = [p_id, id]
@@ -66,3 +67,6 @@ class Campaign(common.Base, common.CMTable):
     def children(self) -> Iterable:
         for step in self.s_:
             yield step
+
+    def sub_iterators(self) -> list[Iterable]:
+        return [self.w_, self.g_, self.s_]

@@ -3,15 +3,8 @@ from typing import Any
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import (
-    CMTableBase,
-    DbId,
-    DbInterface,
-    DependencyBase,
-    ScriptBase,
-    WorkflowBase,
-)
-from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, ScriptHandlerBase, WorkflowHandlerBase
+from lsst.cm.tools.core.db_interface import CMTableBase, DbId, DbInterface, DependencyBase, ScriptBase
+from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, ScriptHandlerBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db.group_handler import GroupHandler
@@ -39,28 +32,6 @@ def test_bad_script() -> None:
 
     with pytest.raises(NotImplementedError):
         BadScript.rollback_script(bad_db, None, None)
-
-
-def test_bad_workflow() -> None:
-    class BadWorkflow(WorkflowBase):
-        pass
-
-    class BadDbInterface(DbInterface):
-        pass
-
-    bad_db = BadDbInterface()
-
-    with pytest.raises(NotImplementedError):
-        BadWorkflow.insert_values(bad_db)
-
-    with pytest.raises(NotImplementedError):
-        BadWorkflow.update_values(bad_db, 0)
-
-    with pytest.raises(NotImplementedError):
-        BadWorkflow.check_status(bad_db, None)
-
-    with pytest.raises(NotImplementedError):
-        BadWorkflow.rollback_script(bad_db, None, None)
 
 
 def test_bad_dependency() -> None:
@@ -122,10 +93,10 @@ def test_bad_db_interface() -> None:
         bad_db.prepare(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.queue_workflows(LevelEnum.production, null_db_id)
+        bad_db.queue_jobs(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.launch_workflows(LevelEnum.production, null_db_id, 100)
+        bad_db.launch_jobs(LevelEnum.production, null_db_id, 100)
 
     with pytest.raises(NotImplementedError):
         bad_db.accept(LevelEnum.production, null_db_id)
@@ -213,23 +184,6 @@ def test_bad_handler() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_script_handler.get_coll_out_name(None)
-
-    class BadWorkflowHandler(WorkflowHandlerBase):
-        pass
-
-    bad_workflow_handler = BadWorkflowHandler()
-
-    with pytest.raises(NotImplementedError):
-        bad_workflow_handler.insert(bad_db, None)
-
-    with pytest.raises(NotImplementedError):
-        bad_workflow_handler.launch(bad_db, None)
-
-    with pytest.raises(NotImplementedError):
-        bad_workflow_handler.write_workflow_hook(bad_db, None, None)
-
-    with pytest.raises(NotImplementedError):
-        bad_workflow_handler.fake_run_hook(bad_db, None)
 
     class BadEntryHandler(EntryHandlerBase):
         pass

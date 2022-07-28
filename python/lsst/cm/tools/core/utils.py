@@ -33,45 +33,41 @@ class StatusEnum(enum.Enum):
         If all the prepare scripts have been completed can move to `prepared`
 
     prepared = 3  # Inputs have been prepared
-        -> queue_workflows()
-        This will queue all the selected `prepared` workflows
-        and move to `pending`
+        -> run()
+        This will mark the entry as running and allow
+        for batch job submission
 
-    pending = 4  # Jobs are queued for submission
-        -> launch_workflows()
-        This will launch workflows until the number of running workflows
-        reaches the limit
+    running = 4  # Jobs are running
+        -> check_running()
+        If all the jobs / children are `completed` this can move
+        to `collectable`
 
-    running = 5  # Jobs are running
-        -> check_workflows()
-        If all the workflows are `completed` this can move to `collectable`
-
-    collectable = 6  # Jobs have finshed running, can collect results
+    collectable = 5  # Jobs have finshed running, can collect results
         -> collect()
         This will submit the command to merge the collections from
         all the children, and move to `collecting`
 
-    collecting = 7  # Jobs have finshed running, collecting results
+    collecting = 6  # Jobs have finshed running, collecting results
         -> check_collect_scripts()
         If all the collection scripts have been completed can move
         to `completed`
 
-    completed = 8  # Completed, awaiting review
+    completed = 7  # Completed, awaiting review
         -> validate()
         This will submit validation scripts, and move to `validating`
 
-    validating = 9  # Running validation scripts
+    validating = 8  # Running validation scripts
         -> check_validate_scripts()
         If all the validation scripts are `accepted` this will move to
         `accepted`.
         If all the validation scripts are `completed` or `accepted` this
         will move to `reviewable`
 
-    reviewable = 10  # Ready to review
+    reviewable = 9  # Ready to review
         -> accept()
         This requires outside action to move to `accept`
 
-    accepted = 11  # Completed, reviewed and accepted
+    accepted = 10  # Completed, reviewed and accepted
         Processing is done, can be used down the road
     """
 
@@ -81,14 +77,13 @@ class StatusEnum(enum.Enum):
     ready = 1
     preparing = 2
     prepared = 3
-    pending = 4
-    running = 5
-    collectable = 6
-    collecting = 7
-    completed = 8
-    validating = 9
-    reviewable = 10
-    accepted = 11
+    running = 4
+    collectable = 5
+    collecting = 6
+    completed = 7
+    validating = 8
+    reviewable = 9
+    accepted = 10
 
     def bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""
@@ -111,12 +106,16 @@ class LevelEnum(enum.Enum):
 
     group = 3
         A subset of data that can be processed in paralllel as part of a step
+
+    workflow = 4
+        A single workflow (which might include thousands of tasks)
     """
 
     production = 0
     campaign = 1
     step = 2
     group = 3
+    workflow = 4
 
     def parent(self) -> Optional[LevelEnum]:
         """Return the parent level, or `None` if does not exist"""
@@ -126,7 +125,7 @@ class LevelEnum(enum.Enum):
 
     def child(self) -> Optional[LevelEnum]:
         """Return the child level, or `None` if does not exist"""
-        if self.value == 3:
+        if self.value == 4:
             return None
         return LevelEnum(self.value + 1)
 
@@ -144,7 +143,8 @@ class TableEnum(enum.Enum):
     group = 3
     workflow = 4
     script = 5
-    dependency = 6
+    job = 6
+    dependency = 7
 
 
 class InputType(enum.Enum):
@@ -167,9 +167,7 @@ class ScriptType(enum.Enum):
 
 class ScriptMethod(enum.Enum):
     no_script = 0  # No actual script, just a placeholder
-    bash_stamp = 1  # Bash script that writes a stamp file
-    bash_callback = 2  # Bash script that calls back to cm
-    bash_url = 3  # Bash script that use a URL to check status
+    bash = 1  # Bash script
 
 
 def safe_makedirs(path: StrOrBytesPath) -> None:

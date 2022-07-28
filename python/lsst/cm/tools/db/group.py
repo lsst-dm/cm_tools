@@ -44,6 +44,7 @@ class Group(common.Base, common.CMTable):
     s_: Step = relationship("Step", back_populates="g_")
     w_: Iterable = relationship("Workflow", back_populates="g_")
     scripts_: Iterable = relationship("Script", back_populates="g_")
+    jobs_: Iterable = relationship("Job", back_populates="g_")
     depend_: Iterable = relationship("Dependency", back_populates="g_")
 
     match_keys = [p_id, c_id, s_id, id]
@@ -71,4 +72,8 @@ class Group(common.Base, common.CMTable):
             stream.write(f"      {workflow}")
 
     def children(self) -> Iterable:
-        return []
+        for workflow in self.w_:
+            yield workflow
+
+    def sub_iterators(self) -> list[Iterable]:
+        return [self.w_]

@@ -63,7 +63,7 @@ class SQLScriptMixin(SQLTableMixin):
     def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
         current_status = entry.status
         checker = Checker.get_checker(entry.checker)
-        new_status = checker.check_url(entry.log_url, entry.status)
+        new_status = checker.check_url(entry.stamp_url, entry.status)
         if new_status != current_status:
             stmt = update(cls).where(cls.id == entry.id).values(status=new_status)
             conn = dbi.connection()

@@ -1,24 +1,4 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
@@ -52,7 +32,6 @@ class ScriptHandler(ScriptHandlerBase):
         script_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
         stamp_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
         log_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
-        config_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
     )
 
     script_url_template_names = dict(
@@ -62,14 +41,15 @@ class ScriptHandler(ScriptHandlerBase):
     )
 
     script_type: ScriptType = ScriptType.prepare
-    script_method = ScriptMethod.bash_stamp
+    script_method = ScriptMethod.bash
     checker_class_name = YamlChecker().get_checker_class_name()
     rollback_class_name = FakeRollback().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
         kwcopy = kwargs.copy()
         name = kwcopy.pop("name")
-        idx = kwcopy.pop("idx")
+        prev_scripts = [script for script in parent.scripts_ if script.name == name]
+        idx = len(prev_scripts)
         insert_fields = dict(
             name=name,
             idx=idx,
@@ -98,6 +78,8 @@ class ScriptHandler(ScriptHandlerBase):
         )
         insert_fields.update(**script_data)
         script = Script.insert_values(dbi, **insert_fields)
+        self.write_script_hook(dbi, parent, script, **kwcopy)
+
         fake_run = kwcopy.pop("fake_run", None)
         if fake_run:
             self.fake_run_hook(dbi, script, fake_run)
@@ -107,7 +89,17 @@ class ScriptHandler(ScriptHandlerBase):
     def fake_run_hook(
         self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
     ) -> None:
-        write_status_to_yaml(script.log_url, status)
+        write_status_to_yaml(script.stamp_url, status)
+
+    def run(
+        self,
+        dbi: DbInterface,
+        script: ScriptBase,
+    ) -> StatusEnum:
+        if script.script_method != ScriptMethod.no_script:
+            os.system(f"source {script.script_url}")
+        status = StatusEnum.running
+        return status
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
         raise NotImplementedError()
