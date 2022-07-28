@@ -49,7 +49,8 @@ class WorkflowHandler(EntryHandler):
         "{production_name}",
         "{campaign_name}",
         "{step_name}",
-        "{group_name}_w{workflow_idx}",
+        "{group_name}",
+        "w{workflow_idx}",
     )
 
     level = LevelEnum.workflow
