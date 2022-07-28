@@ -10,6 +10,7 @@ from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
 from sqlalchemy import Table, create_engine
+from sqlalchemy_utils import create_database, database_exists
 
 
 def create_db(engine: Any) -> None:
@@ -17,16 +18,12 @@ def create_db(engine: Any) -> None:
 
     Populates the database with empty tables
     """
-    from sqlalchemy_utils import create_database  # pylint: disable=import-outside-toplevel
-
     create_database(engine.url)
     common.Base.metadata.create_all(engine)
 
 
 def build_engine(db_url: str, **kwargs: Any) -> Any:
     """Return the sqlalchemy engine, building the database if needed"""
-    from sqlalchemy_utils import database_exists
-
     kwcopy = kwargs.copy()
     create = kwcopy.pop("create", False)
     engine = create_engine(db_url, **kwcopy)

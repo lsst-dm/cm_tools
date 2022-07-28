@@ -37,7 +37,7 @@ class ScriptBase(TableBase):
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
         raise NotImplementedError()
 
 
@@ -49,7 +49,7 @@ class WorkflowBase(TableBase):
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
         raise NotImplementedError()
 
 
@@ -134,35 +134,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_script(self, script_id: int) -> ScriptBase:
-        """Return the info about a selected script
-
-        Parameters
-        ----------
-        script_id : int
-            The id for the selected script
-
-        Returns
-        -------
-        script_data :
-        """
-        raise NotImplementedError()
-
-    def get_workflow(self, workflow_id: int) -> WorkflowBase:
-        """Return the info about a selected Workflow
-
-        Parameters
-        ----------
-        workflow_id : int
-            The id for the selected workflow
-
-        Returns
-        -------
-        workflow_data : WorkflowBase
-        """
-        raise NotImplementedError()
-
-    def print_(self, stream: TextIO, which_table: TableEnum, db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         """Print a database entry or entries
 
         Parameters
@@ -241,47 +213,6 @@ class DbInterface:
         db_id : DbId
             Selects which entries to check
 
-        """
-        raise NotImplementedError()
-
-    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
-        """Add a prerequisite to
-
-        Parameters
-        ----------
-        depend_id : DbId
-            The dependent entry
-
-        prereq_id : DbId
-            The prerequiste entry
-        """
-        raise NotImplementedError()
-
-    def add_script(self, **kwargs: Any) -> ScriptBase:
-        """Insert a new row with details about a script
-
-        Keywords
-        --------
-        Keywords are based to the
-
-        Returns
-        -------
-        script : ScriptBase
-            The info for the new script
-        """
-        raise NotImplementedError()
-
-    def add_workflow(self, **kwargs: Any) -> WorkflowBase:
-        """Insert a new row with details about a workflow
-
-        Keywords
-        --------
-        Keywords are based to the
-
-        Returns
-        -------
-        workflow : WorkflowBase
-            The info for the new Workflow
         """
         raise NotImplementedError()
 
@@ -364,24 +295,6 @@ class DbInterface:
         -------
         entries : list[DbId]
             The entries that were launched
-        """
-        raise NotImplementedError()
-
-    def validate(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Validated completed entries at a particular level
-
-        Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        db_id : DbId
-            Specifies the entries we are accepting
-
-        Returns
-        -------
-        entries : list[DbId]
-            The entries that were validated
         """
         raise NotImplementedError()
 

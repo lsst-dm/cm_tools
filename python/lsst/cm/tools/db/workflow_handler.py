@@ -23,16 +23,20 @@ import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
-from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.script_utils import write_status_to_yaml
+from lsst.cm.tools.core.handler import WorkflowHandlerBase
+from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.workflow import Workflow
 
 
-class WorkflowHandler(Handler):
+class WorkflowHandler(WorkflowHandlerBase):
 
-    run_script_url_template_names: str
+    run_script_url_template_names = dict(
+        script_url="script_url_template",
+        log_url="log_url_template",
+        config_url="config_url_template",
+    )
 
     fullname_template = os.path.join(
         "{production_name}",
@@ -40,6 +44,9 @@ class WorkflowHandler(Handler):
         "{step_name}",
         "{group_name}_w{workflow_idx}",
     )
+
+    checker_class_name = YamlChecker().get_checker_class_name()
+    rollback_class_name = FakeRollback().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
         workflow_idx = self.get_kwarg_value("workflow_idx", **kwargs)
@@ -56,8 +63,8 @@ class WorkflowHandler(Handler):
             coll_out=parent.coll_out,
             status=StatusEnum.ready,
             script_method=ScriptMethod.bash_stamp,
-            checker=kwargs.get("checker"),
-            rollback=kwargs.get("rollback"),
+            checker=kwargs.get("checker", self.checker_class_name),
+            rollback=kwargs.get("rollback", self.rollback_class_name),
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,
         )
@@ -69,7 +76,8 @@ class WorkflowHandler(Handler):
             name="run",
         )
         insert_fields.update(**script_data)
-        return Workflow.insert_values(dbi, **insert_fields)
+        workflow = Workflow.insert_values(dbi, **insert_fields)
+        self.write_workflow_hook(dbi, parent, workflow, **insert_fields)
 
     def launch(self, dbi: DbInterface, workflow: Workflow) -> None:
         submit_command = f"{workflow.script_url} {workflow.config_url}"

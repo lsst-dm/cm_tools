@@ -10,20 +10,18 @@ command="cm"
 ${command} create
 ${command} insert --level production --production_name ${p_name}
 ${command} insert --level campaign --production_name ${p_name} --campaign_name ${c_name} --handler ${handler} --config_yaml ${config}
-
 ${command} prepare --level campaign --production_name ${p_name} --campaign_name ${c_name}
+
 ${command} queue --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} launch --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} fake_run --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} accept --level campaign --production_name ${p_name} --campaign_name ${c_name}
 
-${command} prepare --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} queue --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} launch --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} fake_run --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} accept --level campaign --production_name ${p_name} --campaign_name ${c_name}
 
-${command} prepare --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} queue --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} launch --level campaign --production_name ${p_name} --campaign_name ${c_name}
 ${command} fake_run --level campaign --production_name ${p_name} --campaign_name ${c_name}

@@ -231,6 +231,36 @@ class ScriptHandlerBase(Handler):
         """
         raise NotImplementedError()
 
+    def write_script_hook(
+        self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any
+    ) -> ScriptBase:
+        """Write the script to run a workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        Returns
+        -------
+        workflow : WorkflowBase
+            The newly inserted workflow
+        """
+        raise NotImplementedError()
+
+    def fake_run_hook(
+        self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Used for testing
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        """
+        raise NotImplementedError()
+
 
 class WorkflowHandlerBase(Handler):
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> WorkflowBase:
@@ -249,7 +279,9 @@ class WorkflowHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def workflow_script_hook(self, dbi: DbInterface, entry: Any, **kwargs: Any) -> WorkflowBase:
+    def write_workflow_hook(
+        self, dbi: DbInterface, parent: Any, workflow: WorkflowBase, **kwargs: Any
+    ) -> None:
         """Write the script to run a workflow
 
         Parameters
@@ -261,6 +293,17 @@ class WorkflowHandlerBase(Handler):
         -------
         workflow : WorkflowBase
             The newly inserted workflow
+        """
+        raise NotImplementedError()
+
+    def launch(self, dbi: DbInterface, workflow: WorkflowBase) -> None:
+        """Used for testing
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
         """
         raise NotImplementedError()
 
@@ -281,11 +324,13 @@ class EntryHandlerBase(Handler):
     default_config = dict(
         coll_in_template="prod/{fullname}_input",
         coll_out_template="prod/{fullname}_output",
+        coll_validate_template="prod/{fullname}_validate",
     )
 
     coll_template_names = dict(
         coll_in="coll_in_template",
         coll_out="coll_out_template",
+        coll_validate="coll_validate_template",
     )
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> CMTable:

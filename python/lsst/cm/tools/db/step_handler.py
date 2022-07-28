@@ -88,8 +88,6 @@ class StepHandler(EntryHandlerBase):
             if status == StatusEnum.waiting:
                 if not group_.check_prerequistes(dbi):
                     continue
-            elif status != StatusEnum.ready:
-                continue
             group_handler = group_.get_handler()
             db_id_list += group_handler.prepare(dbi, group_)
         return db_id_list
@@ -103,12 +101,12 @@ class StepHandler(EntryHandlerBase):
             coll_source=entry.coll_in,
         )
         group_handler = Handler.get_handler(self.group_handler_class, entry.config_yaml)
-        for group_kwargs in self._group_iterator(dbi, entry, **insert_fields):
+        for group_kwargs in self.group_iterator(dbi, entry, **insert_fields):
             insert_fields.update(**group_kwargs)
             out_dict[group_kwargs["group_name"]] = group_handler.insert(dbi, entry, **insert_fields)
         return out_dict
 
-    def _group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
+    def group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
         raise NotImplementedError()
 
     def check(self, dbi: DbInterface, entry: Step) -> list[DbId]:

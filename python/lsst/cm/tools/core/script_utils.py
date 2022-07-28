@@ -1,9 +1,10 @@
 import os
-from typing import Any, Iterable
+from typing import Any
 
 import yaml
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
+from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
+from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum, safe_makedirs
 from lsst.cm.tools.db.common import CMTable
 
@@ -85,7 +86,7 @@ def make_butler_associate_command(butler_repo: str, data: CMTable) -> str:
     return command
 
 
-def make_butler_chain_command(butler_repo: str, data: CMTable, itr: Iterable) -> str:
+def make_butler_chain_command(butler_repo: str, data: CMTable) -> str:
     """Build and return a butler chain-collection command
 
     Parameters
@@ -117,7 +118,7 @@ def make_butler_chain_command(butler_repo: str, data: CMTable, itr: Iterable) ->
     """
     coll_out = data.coll_out
     command = f"butler chain-collection {butler_repo} {coll_out}"
-    for child in itr:
+    for child in data.children():
         child_coll = child.coll_out
         command += f" {child_coll}"
     return command
@@ -150,6 +151,26 @@ def make_butler_remove_collection_command(butler_repo: str, data: Any) -> str:
     return command
 
 
+def make_validate_command(butler_repo: str, data: Any) -> str:
+    """Build and return command to run validtion
+
+    Parameters
+    ----------
+    butler_repo : str
+        The butler repo being used
+
+    data :
+        The database entry we are making the command for
+
+    Returns
+    -------
+    command : str
+        The requested butler command
+    """
+    command = f"validate {butler_repo} --output {data.coll_validate} {data.coll_out}"
+    return command
+
+
 def make_bps_command(config_url: str) -> str:
     """Build and return a butler chain-collection command
 
@@ -166,14 +187,6 @@ def make_bps_command(config_url: str) -> str:
     return f"bps submit {os.path.abspath(config_url)}"
 
 
-class YamlChecker(Checker):
-    """Simple Checker to look in a yaml file for a status flag"""
-
-    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
-        """Return the status of the script being checked"""
-        return check_status_from_yaml(url, current_status)
-
-
 def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
@@ -188,19 +201,20 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
             fout.write(append)
         if script.script_method == ScriptMethod.bash_stamp:
             fout.write(f'echo "status: completed" > {os.path.abspath(script.log_url)}\n')
-        elif script.script_method == ScriptMethod.bash_callback:
-            fout.write(f"cm set_script_status --script {script.id} --status completed\n")
-
-    fake_stamp = kwargs.get("fake_stamp")
-    if fake_stamp:
-        write_status_to_yaml(script.log_url, fake_stamp)
-    if kwargs.get("fake_callback"):
-        pass
+        elif script.script_method == ScriptMethod.bash_callback:  # pragma: no cover
+            raise NotImplementedError()
 
 
-def add_command_script(
-    dbi: DbInterface, command: str, script_data: dict[str, Any], **kwargs: Any
-) -> ScriptBase:
-    script = dbi.add_script(checker=kwargs.get("checker"), **script_data)
-    write_command_script(script, command, **kwargs)
-    return script
+class YamlChecker(Checker):
+    """Simple Checker to look in a yaml file for a status flag"""
+
+    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
+        """Return the status of the script being checked"""
+        return check_status_from_yaml(url, current_status)
+
+
+class FakeRollback(Rollback):
+    def rollback_script(self, entry: Any, script: TableBase) -> None:
+        """Rollback the script in question"""
+        command = make_butler_remove_collection_command(entry.butler_repo, script)
+        print(f"Rolling back {script.db_id}.{script.name} with {command}")

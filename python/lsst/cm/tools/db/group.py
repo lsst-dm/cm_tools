@@ -27,6 +27,7 @@ class Group(common.Base, common.CMTable):
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
+    coll_validate = Column(String)  # Validate data collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
@@ -40,7 +41,6 @@ class Group(common.Base, common.CMTable):
     depend_: Iterable = relationship("Dependency", back_populates="g_")
 
     match_keys = [p_id, c_id, s_id, id]
-    update_fields = common.update_field_list + common.update_common_fields
 
     @hybrid_property
     def butler_repo(self) -> Any:
@@ -63,3 +63,6 @@ class Group(common.Base, common.CMTable):
             stream.write(f"      -{script}\n")
         for workflow in self.w_:
             stream.write(f"      {workflow}")
+
+    def children(self) -> Iterable:
+        return []

@@ -79,7 +79,7 @@ class GroupHandler(EntryHandlerBase):
         if not db_id_list:
             return db_id_list
         workflow_handler = self.make_workflow_handler()
-        workflow_handler.workflow_script_hook(
+        workflow_handler.insert(
             dbi,
             entry,
             workflow_idx=0,
@@ -116,5 +116,6 @@ class GroupHandler(EntryHandlerBase):
         return rollback_entry(dbi, self, entry, to_status)
 
     def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        assert entry.status.value >= to_status.value
         rollback_workflows(dbi, entry)
         return [entry.db_id]

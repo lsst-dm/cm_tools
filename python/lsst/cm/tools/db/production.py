@@ -17,7 +17,6 @@ class Production(common.Base, common.CMTable):
     c_: Iterable = relationship("Campaign", back_populates="p_")
 
     match_keys = [id]
-    update_fields = common.update_field_list
     parent_id = None
     parent_ = None
 
@@ -30,4 +29,4 @@ class Production(common.Base, common.CMTable):
         return self.name
 
     def __repr__(self) -> str:
-        return f"Production {self.fullname} {self.db_id}: {self.handler} {self.config_yaml}"
+        return f"Production {self.fullname} {self.p_id} {self.db_id}"

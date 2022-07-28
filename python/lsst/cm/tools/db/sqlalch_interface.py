@@ -3,28 +3,18 @@ import sys
 from time import sleep
 from typing import Any, Optional, TextIO
 
-from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, DependencyBase, ScriptBase, WorkflowBase
+from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
-from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.production import Production
-from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.workflow import Workflow
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
 class SQLAlchemyInterface(DbInterface):
-    @staticmethod
-    def _copy_fields(fields: list[str], **kwargs: Any) -> dict[str, Any]:
-        ret_dict = {}
-        for field_ in fields:
-            if field_ in kwargs:
-                ret_dict[field_] = kwargs.get(field_)
-        return ret_dict
-
     def __init__(self, db_url: str, **kwargs: Any):
         self._engine = top.build_engine(db_url, **kwargs)
         self._conn = Session(self._engine, future=True)
@@ -50,17 +40,11 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_entry(self, level: LevelEnum, db_id: DbId) -> CMTableBase:
         table = top.get_table_for_level(level)
-        sel = table.get_row_query(db_id, [])
+        sel = table.get_row_query(db_id)
         return common.return_first_column(self, sel)
 
-    def get_script(self, script_id: int) -> Script:
-        return Script.get_script(self, script_id)
-
-    def get_workflow(self, workflow_id: int) -> Workflow:
-        return Workflow.get_workflow(self, workflow_id)
-
-    def print_(self, stream: TextIO, which_table: TableEnum, db_id: DbId) -> None:
-        table = top.get_table(which_table)
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        table = top.get_table_for_level(level)
         sel = table.get_match_query(db_id)
         common.print_select(self, stream, sel)
 
@@ -73,33 +57,11 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         entry.print_tree(stream)
 
-    def count(self, which_table: TableEnum, db_id: Optional[DbId]) -> int:
-        table = top.get_table(which_table)
-        counter = table.get_count_query(db_id)
-        return common.return_count(self, counter)
-
-    def update(self, level: LevelEnum, row_id: int, **kwargs: Any) -> None:
-        table = top.get_table(level)
-        update_fields = self._copy_fields(table.update_fields, **kwargs)
-        if update_fields:
-            table.update_values(self, row_id, **update_fields)
-
     def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.check(self, entry)
         return db_id_list
-
-    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
-        return Dependency.add_prerequisite(self, depend_id, prereq_id)
-
-    def add_script(self, **kwargs: Any) -> ScriptBase:
-        kwargs.setdefault("status", StatusEnum.ready)
-        return Script.insert_values(self, **kwargs)
-
-    def add_workflow(self, **kwargs: Any) -> WorkflowBase:
-        kwargs.setdefault("status", StatusEnum.ready)
-        return Workflow.insert_values(self, **kwargs)
 
     def insert(
         self,
@@ -154,13 +116,6 @@ class SQLAlchemyInterface(DbInterface):
             n_running += 1
             if n_running >= max_running:
                 break
-        self.check(level, db_id)
-        return db_id_list
-
-    def validate(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        entry = self.get_entry(level, db_id)
-        handler = entry.get_handler()
-        db_id_list = handler.validate(self, entry)
         self.check(level, db_id)
         return db_id_list
 

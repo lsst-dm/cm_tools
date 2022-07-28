@@ -28,6 +28,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.handler_utils import (
     accept_children,
     accept_entry,
@@ -102,7 +103,7 @@ class CampaignHandler(EntryHandlerBase):
             coll_source = new_step.coll_out
             if previous_step_id is not None:
                 depend_id = campaign.db_id.extend(LevelEnum.step, previous_step_id)
-                dbi.add_prerequisite(new_step.db_id, depend_id)
+                Dependency.add_prerequisite(dbi, new_step.db_id, depend_id)
             previous_step_id = new_step.id
         return out_dict
 
@@ -115,8 +116,6 @@ class CampaignHandler(EntryHandlerBase):
             if status == StatusEnum.waiting:
                 if not step_.check_prerequistes(dbi):
                     continue
-            elif status != StatusEnum.ready:
-                continue
             step_handler = step_.get_handler()
             db_id_list += step_handler.prepare(dbi, step_)
         return db_id_list

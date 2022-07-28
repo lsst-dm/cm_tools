@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
-
-from lsst.cm.tools.core.db_interface import DbInterface, WorkflowBase
+from lsst.cm.tools.core.db_interface import WorkflowBase
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
@@ -12,7 +9,6 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import composite, relationship
 
 
@@ -57,42 +53,6 @@ class Workflow(common.Base, common.SQLScriptMixin, WorkflowBase):
     g_: Group = relationship("Group", back_populates="w_")
 
     match_keys = [p_id, c_id, s_id, g_id, id]
-    update_fields = (
-        common.update_field_list
-        + common.update_common_fields
-        + [
-            "n_tasks_done",
-            "n_tasks_failed",
-            "n_clusters_done",
-            "n_clusters_failed",
-            "workflow_start",
-            "workflow_end",
-            "workflow_cputime",
-            "run_script",
-        ]
-    )
-
-    @hybrid_property
-    def butler_repo(self) -> Any:
-        return self.c_.butler_repo
-
-    @hybrid_property
-    def prod_base_url(self) -> Any:
-        return self.c_.prod_base_url
-
-    @hybrid_property
-    def parent_id(self) -> Any:
-        return self.g_id
 
     def __repr__(self) -> str:
         return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
-
-    def get_handler(self) -> Handler:
-        return Handler.get_handler(self.handler, self.config_yaml)
-
-    def launch(self, dbi: DbInterface) -> None:
-        submit_command = f"{self.script_url} {self.config_url}"
-        # workflow_start = datetime.now()
-        print(f"Submitting workflow {str(self.db_id)} with {submit_command}")
-        update_fields = dict(status=StatusEnum.pending)
-        self.update_values(dbi, self.id, **update_fields)

@@ -81,25 +81,23 @@ def extract_workflow_status(itr: Iterable) -> np.ndarray:
     return np.array([x.status.value for x in itr])
 
 
-def check_children(entry: Any, itr: Iterable) -> StatusEnum:
+def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
     """Check the status of childern of a given row
     and return a status accordingly"""
-    child_status = extract_child_status(itr)
+    child_status = extract_child_status(entry.children())
     if child_status.size and (child_status >= StatusEnum.accepted.value).all():
         return StatusEnum.collectable
-    return StatusEnum(max(entry.status.value, child_status.min()))
+    status_val = min(max_status.value, max(min_status.value, child_status.min()))
+    return StatusEnum(status_val)
 
 
 def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) -> StatusEnum:
     """Check the status all the scripts of a given type"""
-    status_list = []
     for script in scripts:
         if script.script_type != script_type:
             continue
-        status_list.append(Script.check_status(dbi, script))
-    scripts_status = np.array([status_.value for status_ in status_list])
-    scripts_status_check = extract_scripts_status(scripts, script_type)
-    assert (scripts_status == scripts_status_check).all()
+        Script.check_status(dbi, script)
+    scripts_status = extract_scripts_status(scripts, script_type)
     if not scripts_status.size:
         # No scripts to check, return completed
         return StatusEnum.accepted
@@ -115,13 +113,10 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
 
 
 def check_workflows(dbi: DbInterface, workflows: Iterable) -> StatusEnum:
-    status_list = [Workflow.check_status(dbi, workflow) for workflow in workflows]
-    workflow_status = np.array([status_.value for status_ in status_list])
-    workflow_status_check = extract_workflow_status(workflows)
-    assert (workflow_status == workflow_status_check).all()
-    if not workflow_status.size:
-        # No scripts to check, return completed
-        return StatusEnum.completed
+    for workflow in workflows:
+        Workflow.check_status(dbi, workflow)
+    workflow_status = extract_workflow_status(workflows)
+    assert workflow_status.size
     if (workflow_status >= StatusEnum.completed.value).all():
         return StatusEnum.completed
     if (workflow_status < 0).any():
@@ -181,10 +176,8 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         elif current_status in [StatusEnum.prepared, StatusEnum.pending, StatusEnum.running]:
             if entry.level == LevelEnum.group:
                 new_status = check_workflows_for_entry(dbi, entry)
-            elif entry.level == LevelEnum.step:
-                new_status = check_children(entry, entry.g_)
-            elif entry.level == LevelEnum.campaign:
-                new_status = check_children(entry, entry.s_)
+            else:
+                new_status = check_children(entry, StatusEnum.pending, StatusEnum.collectable)
         elif current_status == StatusEnum.collectable:
             handler.collect(dbi, entry)
             new_status = StatusEnum.collecting
@@ -231,8 +224,7 @@ def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
 
 
 def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
-    if entry.status != StatusEnum.collectable:
-        return []
+    assert entry.status == StatusEnum.collectable
     collect_scripts = handler.collect_script_hook(dbi, entry)
     if collect_scripts:
         status = StatusEnum.collecting
@@ -253,8 +245,7 @@ def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 
 def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
-    if entry.status != StatusEnum.completed:
-        return []
+    assert entry.status == StatusEnum.completed
     validate_scripts = handler.validate_script_hook(dbi, entry)
     if validate_scripts:
         status = StatusEnum.validating
@@ -276,8 +267,7 @@ def validate_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     for script in scripts:
-        if script.status != StatusEnum.completed:
-            continue
+        assert script.status == StatusEnum.completed
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 
@@ -294,13 +284,14 @@ def accept_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
 def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
     db_id_list = []
     for child in children:
-        db_id_list += accept_entry(dbi, child)
+        handler = child.get_handler()
+        db_id_list += handler.accept(dbi, child)
     return db_id_list
 
 
 def reject_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
     if entry.status == StatusEnum.accepted:
-        return []
+        raise ValueError("Rejecting an already accepted entry {entry.db_id}")
     entry.update_values(dbi, entry.id, status=StatusEnum.rejected)
     return [entry.db_id]
 
@@ -308,12 +299,12 @@ def reject_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
 def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType):
     for script in entry.scripts_:
         if script.script_type == script_type:
-            Script.rollback_script(dbi, script)
+            Script.rollback_script(dbi, entry, script)
 
 
 def rollback_workflows(dbi: DbInterface, entry: Any):
     for workflow in entry.w_:
-        Workflow.rollback_script(dbi, workflow)
+        Workflow.rollback_script(dbi, entry, workflow)
 
 
 def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) -> list[DbId]:
@@ -322,7 +313,7 @@ def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) ->
         if entry.status.value <= to_status.value:
             continue
         handler = entry.get_handler()
-        db_id_list += rollback_entry(dbi, handler, entry, to_status)
+        db_id_list += handler.rollback(dbi, entry, to_status)
     return db_id_list
 
 

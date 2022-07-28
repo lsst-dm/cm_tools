@@ -1,29 +1,13 @@
 from typing import Any, Iterable, Optional, TextIO
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
+from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, TableBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import declarative_base
-
-update_field_list = ["handler", "config_yaml"]
-update_common_fields = [
-    "data_query",
-    "coll_source",
-    "coll_in",
-    "coll_out",
-    "input_type",
-    "output_type",
-    "status",
-    "superseeded",
-]
-update_script_fields = [
-    "prepare_id",
-    "collect_id",
-]
 
 
 class SQLTableMixin:
@@ -63,6 +47,9 @@ class SQLScriptMixin(SQLTableMixin):
 
     status: StatusEnum
 
+    def get_handler(self) -> Handler:
+        return Handler.get_handler(self.handler, self.config_yaml)
+
     @classmethod
     def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
         current_status = entry.status
@@ -77,10 +64,10 @@ class SQLScriptMixin(SQLTableMixin):
         return new_status
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
         """Rollback a script"""
-        rollback_handler = Rollback.get_rollback(entry.rollback)
-        rollback_handler.rollback_script(entry)
+        rollback_handler = Rollback.get_rollback(script.rollback)
+        rollback_handler.rollback_script(entry, script)
         cls.update_values(dbi, entry.id, superseeded=True)
 
     @classmethod
@@ -104,22 +91,9 @@ class CMTable(SQLTableMixin, CMTableBase):
         return Handler.get_handler(self.handler, self.config_yaml)
 
     @classmethod
-    def get_count_query(cls, db_id: Optional[DbId]) -> Any:
-        """Return the query to count rows matching an id"""
-        count_key = cls.parent_id
-        if count_key is None:
-            return func.count(cls.id)
-        if db_id is not None:
-            return func.count(count_key == db_id[cls.level])
-        return func.count(count_key)
-
-    @classmethod
-    def get_row_query(cls, db_id: DbId, columns: list[Any]) -> Any:
+    def get_row_query(cls, db_id: DbId) -> Any:
         """Returns the selection a single row given db_id"""
-        if not columns:
-            sel = select(cls).where(cls.id == db_id[cls.level])
-        else:
-            sel = select(columns).where(cls.id == db_id[cls.level])
+        sel = select(cls).where(cls.id == db_id[cls.level])
         return sel
 
     @classmethod
@@ -186,14 +160,6 @@ def return_first_column(dbi: DbInterface, sel: Any) -> Optional[int]:
         return sel_result.all()[0][0]
     except IndexError:
         return None
-
-
-def return_single_row(dbi: DbInterface, sel: Any) -> Any:
-    """Returns the first row matching a selection"""
-    conn = dbi.connection()
-    sel_result = conn.execute(sel)
-    check_result(sel_result)
-    return sel_result.all()[0]
 
 
 def print_select(dbi: DbInterface, stream: TextIO, sel: Any) -> None:

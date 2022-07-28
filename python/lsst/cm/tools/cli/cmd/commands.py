@@ -28,7 +28,6 @@ __all__ = [
     "cm_print",
     "cm_print_table",
     "cm_print_tree",
-    "cm_count",
     "cm_prepare",
     "cm_queue",
     "cm_launch",
@@ -118,22 +117,6 @@ def cm_print_table(**kwargs: Any) -> None:
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     which_table = TableEnum[all_args.pop("table")]
     iface.print_table(sys.stdout, which_table)
-
-
-@click.command("count")
-@level_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@db_option()
-@echo_option()
-def cm_count(**kwargs: Any) -> None:
-    all_args = kwargs.copy()
-    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
-    the_level = LevelEnum[all_args.pop("level")]
-    the_db_id = iface.get_db_id(the_level, **all_args)
-    print(iface.count(the_level, the_db_id))
 
 
 @click.command("prepare")

@@ -23,6 +23,7 @@ class Campaign(common.Base, common.CMTable):
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
+    coll_validate = Column(String)  # Validate data collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
@@ -38,7 +39,6 @@ class Campaign(common.Base, common.CMTable):
     depend_: Iterable = relationship("Dependency", back_populates="c_")
 
     match_keys = [p_id, id]
-    update_fields = common.update_field_list + common.update_common_fields
 
     @hybrid_property
     def parent_id(self) -> Any:
@@ -53,3 +53,7 @@ class Campaign(common.Base, common.CMTable):
             stream.write(f"  -{script}\n")
         for step in self.s_:
             step.print_tree(stream)
+
+    def children(self) -> Iterable:
+        for step in self.s_:
+            yield step
