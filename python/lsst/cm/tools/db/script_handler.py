@@ -88,7 +88,7 @@ class ScriptHandler(ScriptHandlerBase):
         )
         insert_fields.update(**script_data)
         script = Script.insert_values(dbi, **insert_fields)
-        fake_run = kwcopy.pop("fake_run")
+        fake_run = kwcopy.pop("fake_run", None)
         if fake_run:
             self.fake_run_hook(dbi, script, fake_run)
         self.write_script_hook(dbi, parent, script, **kwcopy)
