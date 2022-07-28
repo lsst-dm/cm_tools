@@ -42,6 +42,15 @@ from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
 class GroupHandler(EntryHandlerBase):
+    """Group level callback handler
+
+    Provides interface functions.
+
+    Derived classes will have to:
+
+    1. implement the `xxx_hook` functions.
+    2. define the Workflow callback hander with `make_workflow_handler`
+    """
 
     fullname_template = os.path.join(
         "{production_name}",

@@ -8,6 +8,13 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Production(common.Base, common.CMTable):
+    """Database table to manage processing `Production`
+
+    A `Production` is just a bunch of associated `Campaign`
+    Really this is just a useful way of collected related
+    `Campaign`.
+    """
+
     __tablename__ = "production"
 
     id = Column(Integer, primary_key=True)  # Unique production ID

@@ -15,6 +15,12 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Dependency(DependencyBase, common.Base):
+    """Database table to manage processing `Dependency`
+
+    A Dependency will prevent the `depend_id` entry
+    from running until the `prereq` entry is accepted
+    """
+
     __tablename__ = "dependency"
 
     id = Column(Integer, primary_key=True)  # Unique dependency ID

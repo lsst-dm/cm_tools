@@ -32,9 +32,6 @@ def test_bad_script() -> None:
         BadScript.insert_values(bad_db)
 
     with pytest.raises(NotImplementedError):
-        BadScript.get(bad_db, 0)
-
-    with pytest.raises(NotImplementedError):
         BadScript.update_values(bad_db, 0)
 
     with pytest.raises(NotImplementedError):
@@ -55,9 +52,6 @@ def test_bad_workflow() -> None:
 
     with pytest.raises(NotImplementedError):
         BadWorkflow.insert_values(bad_db)
-
-    with pytest.raises(NotImplementedError):
-        BadWorkflow.get(bad_db, 0)
 
     with pytest.raises(NotImplementedError):
         BadWorkflow.update_values(bad_db, 0)
@@ -117,12 +111,6 @@ def test_bad_db_interface() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_db.print_table(sys.stdout, TableEnum.production)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.count(TableEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.update(TableEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.check(TableEnum.production, null_db_id)

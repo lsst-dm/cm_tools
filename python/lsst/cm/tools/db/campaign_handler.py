@@ -50,6 +50,15 @@ from lsst.cm.tools.db.step import Step
 
 
 class CampaignHandler(EntryHandlerBase):
+    """Campaign level callback handler
+
+    Provides interface functions.
+
+    Derived classes will have to:
+
+    1. implement the `xxx_hook` functions.
+    2. provide a mapping for Step-level callback handlers in `step_dict`
+    """
 
     fullname_template = os.path.join("{production_name}", "{campaign_name}")
 

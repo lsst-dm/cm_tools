@@ -37,6 +37,16 @@ from lsst.cm.tools.db.script import Script
 
 
 class ScriptHandler(ScriptHandlerBase):
+    """Script callback handler
+
+    Provides interface functions.
+
+    Derived classes will have to:
+
+    1. define the `script_type`
+    2. implement `write_script_hook` to write the script to run
+    3. implement `get_coll_out_name` to get the script output collection name
+    """
 
     default_config = dict(
         script_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
@@ -104,6 +114,7 @@ class ScriptHandler(ScriptHandlerBase):
 
 
 class PrepareScriptHandler(ScriptHandler):
+    """Script handler for scripts that prepare input collections"""
 
     script_type: ScriptType = ScriptType.prepare
 
@@ -116,6 +127,7 @@ class PrepareScriptHandler(ScriptHandler):
 
 
 class CollectScriptHandler(ScriptHandler):
+    """Script handler for scripts that collect output collections"""
 
     script_type: ScriptType = ScriptType.collect
 
@@ -128,6 +140,7 @@ class CollectScriptHandler(ScriptHandler):
 
 
 class ValidateScriptHandler(ScriptHandler):
+    """Script handler for scripts that run validate on output collections"""
 
     script_type: ScriptType = ScriptType.validate
 

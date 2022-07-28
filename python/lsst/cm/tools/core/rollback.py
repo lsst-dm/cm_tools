@@ -33,18 +33,17 @@ if TYPE_CHECKING:  # pragma: no cover
 class Rollback:
     """Base class to rollback scripts
 
-    The derived classes should implement the `rollback` method
-    with returns a StatusEnum based on querying the URL.
+    The derived classes should implement the `rollback_script`
+    which cleans up any output of the rolled-back script
 
-    Typically, this could mean scanning a log file, or checking the existance
-    of a file at the URL, or querying a server at that URL.
+    Typically this would mean removing the output collection
     """
 
     rollback_cache: dict[str, Rollback] = {}
 
     @staticmethod
     def get_rollback(class_name: str) -> Rollback:
-        """Create and return a handler
+        """Create and return a Rollback handler
 
         Parameters
         ----------
@@ -73,5 +72,14 @@ class Rollback:
         return get_full_type_name(self)
 
     def rollback_script(self, entry: Any, script: TableBase) -> None:
-        """Rollback the script in question"""
+        """Rollback the script in question
+
+        Parameters
+        ----------
+        entry : Any
+            The database entry associated to the script be rolled-back
+
+        script : TableBase
+            The script or workflow being rolled back
+        """
         raise NotImplementedError()

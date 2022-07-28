@@ -11,9 +11,12 @@ from sqlalchemy.orm import declarative_base
 
 
 class SQLTableMixin:
+    """Provides implementation of some common
+    functions for Database tables
+    """
 
     depend_: Iterable
-    id: Optional[int] = None
+    id: Optional[int]
 
     @classmethod
     def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
@@ -44,7 +47,13 @@ class SQLTableMixin:
 
 
 class SQLScriptMixin(SQLTableMixin):
+    """Provides implementation some functions
+    need for Script and Workflow objects
+    """
 
+    id: Optional[int]
+    handler: Optional[str]
+    config_yaml: Optional[str]
     status: StatusEnum
 
     def get_handler(self) -> Handler:
@@ -78,6 +87,10 @@ class SQLScriptMixin(SQLTableMixin):
 
 
 class CMTable(SQLTableMixin, CMTableBase):
+    """Base class for database entries
+    that represent data processing elemements
+    such as `Production`, `Campaign` etc...
+    """
 
     level = LevelEnum.production
 

@@ -10,6 +10,13 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Script(common.Base, common.SQLScriptMixin, ScriptBase):
+    """Database table to manage processing `Script`
+
+    A `Script` is a small shell script that helps with
+    collection and file management, or does stuff that
+    we want to run independently.
+    """
+
     __tablename__ = "script"
 
     id = Column(Integer, primary_key=True)  # Unique script ID

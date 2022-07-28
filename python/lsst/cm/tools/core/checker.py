@@ -52,5 +52,20 @@ class Checker:
         return get_full_type_name(self)
 
     def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
-        """Return the status of the script being checked"""
+        """Return the status of the script being checked
+
+        Parameters
+        ----------
+        url : str
+            URL used to check the script status
+
+        current_status : StatusEnum
+            Can be used as output if the URL is empty
+            I.e., the script hasn't generated it yet
+
+        Returns
+        -------
+        status : StatusEnum
+            The status of the script
+        """
         raise NotImplementedError()

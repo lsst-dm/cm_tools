@@ -296,13 +296,13 @@ def reject_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
     return [entry.db_id]
 
 
-def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType):
+def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType) -> None:
     for script in entry.scripts_:
         if script.script_type == script_type:
             Script.rollback_script(dbi, entry, script)
 
 
-def rollback_workflows(dbi: DbInterface, entry: Any):
+def rollback_workflows(dbi: DbInterface, entry: Any) -> None:
     for workflow in entry.w_:
         Workflow.rollback_script(dbi, entry, workflow)
 

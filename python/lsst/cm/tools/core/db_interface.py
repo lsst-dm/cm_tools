@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, TextIO
+from typing import Any, TextIO
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -8,16 +8,48 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 
 
 class TableBase:
+    """Base class for database table interface
+
+    Provided interface to insert and update entries
+    """
+
     @classmethod
     def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
+        """Insert a new entry to a table
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        Keywords
+        --------
+        Give the values to insert
+
+        Returns
+        -------
+        new_entry : Any
+            The newly inserted entry
+        """
         raise NotImplementedError()
 
     @classmethod
-    def get(cls, dbi: DbInterface, row_id: int) -> Any:
-        raise NotImplementedError()
+    def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> None:
+        """Update the values in an entry
 
-    @classmethod
-    def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> Any:
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        row_id : int
+            The id of the entry we are updating
+
+        Keywords
+        --------
+        Give the values to update
+
+        """
         raise NotImplementedError()
 
 
@@ -25,7 +57,8 @@ class ScriptBase(TableBase):
     """Interface class for database entries describing Scripts
 
     This will require the derived class to implement
-    a `check_status` method to check on the status of the script.
+    a `check_status` method to check on the status of the script
+    and a `rollback_sript` method to clean up failed scripts
     """
 
     script_url = ""
@@ -33,23 +66,90 @@ class ScriptBase(TableBase):
     id = -1
 
     @classmethod
-    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def check_status(cls, dbi: DbInterface, entry: ScriptBase) -> StatusEnum:
+        """Check the status of a script
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        entry : ScriptBase
+            The entry in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the script in question
+        """
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: ScriptBase) -> None:
+        """Called when a particular entry is rejected
+
+        Calling this function will result in the script
+        being marked as `superseeded`, and be ignored by further processing.
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry associated to the script
+
+        script : ScriptBase
+            The script we are rolling back
+        """
         raise NotImplementedError()
 
 
 class WorkflowBase(TableBase):
-    """Interface class for database entries describing Workflows"""
+    """Interface class for database entries describing Workflows
+
+    This will require the derived class to implement
+    a `check_status` method to check on the status of the workflow
+    and a `rollback_sript` method to clean up failed workflows
+    """
 
     @classmethod
-    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def check_status(cls, dbi: DbInterface, entry: WorkflowBase) -> StatusEnum:
+        """Check the status of a Workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        entry : WorkflowBase
+            The entry in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the script in question
+        """
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: WorkflowBase) -> None:
+        """Called when a particular entry is rejected
+
+        Calling this function will result in the script
+        being marked as `superseeded`, and be ignored by further processing.
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry associated to the workflow
+
+        script : WorkflowBase
+            The workflow we are rolling back
+        """
         raise NotImplementedError()
 
 
@@ -58,6 +158,27 @@ class DependencyBase:
 
     @classmethod
     def add_prerequisite(cls, dbi: DbInterface, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
+        """Add a Dependency
+
+        This will prevent depend_id from running until
+        prereq_id is accepted
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        depend_id : DbId
+            DbId of the dependent entry
+
+        prereq_id : DbId
+            DbId of the prerequisite entry
+
+        Returns
+        -------
+        depend : DependencyBase
+            The newly create dependency
+        """
         raise NotImplementedError()
 
 
@@ -142,7 +263,7 @@ class DbInterface:
         stream : TextIO
             The stream we will print to
 
-        which_table: TableEnum
+        level: LevelEnum
             Selects which database table to print
 
         db_id: DbId
@@ -161,44 +282,6 @@ class DbInterface:
 
         which_table: TableEnum
             Selects which database table to print
-        """
-        raise NotImplementedError()
-
-    def count(self, which_table: TableEnum, db_id: Optional[DbId]) -> int:
-        """Count the number of database entries matching conditions
-
-        Parameters
-        ----------
-        whichTable: TableEnum
-            Selects which database table to search
-
-        db_id: DbId
-            Database ID specifying which entries to count.
-            See class notes above.
-
-        Returns
-        -------
-        count : int
-            The number of selected rows
-        """
-        raise NotImplementedError()
-
-    def update(self, level: LevelEnum, row_id: int, **kwargs: Any) -> None:
-        """Update a particular database entry
-
-        Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        row_id: int
-            Database ID specifying which entry to update.
-            See class notes above.
-
-        Keywords
-        --------
-        These are passed to the handler which can use
-        them to derive the values for the fields to update.
         """
         raise NotImplementedError()
 
@@ -223,6 +306,9 @@ class DbInterface:
         ----------
         parent_db_id : DbId
             Specifies the parent entry to the entry we are inserting
+
+        handler : Handler
+            The callback handler for the entry we are inserting
 
         Keywords
         --------

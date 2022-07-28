@@ -10,6 +10,15 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Campaign(common.Base, common.CMTable):
+    """Database table to manage processing `Campaign`
+
+    A `Campaign` consists of several processing `Step` which
+    are run sequentially
+
+    `Campaign` is also where we keep the global configuration
+    such as the URL for the butler repo and the production area
+    """
+
     __tablename__ = "campaign"
 
     level = LevelEnum.campaign

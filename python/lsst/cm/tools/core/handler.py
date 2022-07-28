@@ -218,22 +218,40 @@ class Handler:
 
 
 class ScriptHandlerBase(Handler):
+    """Handler class for dealing with scripts
+
+    By scripts we mean small shell scripts that
+    are run to manipulate the collections in the
+    processing.
+
+    Some of these can take long enough that
+    we want to run them independently of
+    managing the database
+    """
+
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
         """Insert a new script
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry the new script is associated with
+
+        Keywords
+        --------
+        These give the values we are inserting in the database
 
         Returns
         -------
-        new_entry : CMTableBase
+        new_entry : ScriptBase
             The new entry
         """
         raise NotImplementedError()
 
-    def write_script_hook(
-        self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any
-    ) -> ScriptBase:
+    def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
         """Write the script to run a workflow
 
         Parameters
@@ -241,36 +259,59 @@ class ScriptHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        Returns
-        -------
-        workflow : WorkflowBase
-            The newly inserted workflow
+        parent: Any
+            The parent entry the script is associated with
+
+        script: ScriptBase
+            The database entry for the script
+
+        Keywords
+        --------
+        These can we used in writing the script
         """
         raise NotImplementedError()
 
     def fake_run_hook(
         self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
     ) -> None:
-        """Used for testing
+        """Used for testing, falsely writes a log file that claims
+        script is completed
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
 
+        script: ScriptBase
+            The database entry for the script
+
+        status: StatusEnum
+            The status to set
         """
         raise NotImplementedError()
 
 
 class WorkflowHandlerBase(Handler):
+    """Handler class for dealing with workflows
+
+    The workflows can take quite some time to run.
+    This class defines the hooks used to manage them.
+    """
+
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> WorkflowBase:
         """Insert a new database entry
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry the new script is associated with
 
         Keywords
         --------
+        These give the values we are inserting in the database
 
         Returns
         -------
@@ -289,37 +330,56 @@ class WorkflowHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        Returns
-        -------
+        parent : Any
+            The parent entry the workflow is associated with
+
         workflow : WorkflowBase
             The newly inserted workflow
+
+        Keywords
+        --------
+        These can we used in writing the script
         """
         raise NotImplementedError()
 
     def launch(self, dbi: DbInterface, workflow: WorkflowBase) -> None:
-        """Used for testing
+        """Launch a workflow
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
 
+        workflow : WorkflowBase
+            The workflow in question
         """
         raise NotImplementedError()
 
-    def fake_run_hook(self, dbi: DbInterface, entry: Any, status: StatusEnum = StatusEnum.completed) -> None:
-        """Used for testing
+    def fake_run_hook(
+        self, dbi: DbInterface, workflow: WorkflowBase, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Used for testing, falsely writes a log file that claims
+        workflow is completed
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
 
+        workflow: WorkflowBase
+            The database entry for the workflow
+
+        status: StatusEnum
+            The status to set
         """
         raise NotImplementedError()
 
 
 class EntryHandlerBase(Handler):
+    """Handler class for dealing with Campaigns, Steps and Groups
+
+    This collects the common functionality between them
+    """
 
     default_config = dict(
         coll_in_template="prod/{fullname}_input",
@@ -338,23 +398,33 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry this entry is associated with
 
         Keywords
         --------
+        These give the values we are inserting in the database
 
         Returns
         -------
-        new_entry : CMTableBase
+        new_entry : CMTable
             The new entry
         """
         raise NotImplementedError()
 
     def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Prepare this entry and any children
+        """Prepare an entry and any children
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -368,7 +438,11 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -382,7 +456,11 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -396,7 +474,11 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -410,7 +492,11 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -424,7 +510,11 @@ class EntryHandlerBase(Handler):
 
         Parameters
         ----------
+        dbi: DbInterface
+            Interface to the database we are using
 
+        entry: Any
+            The entry in question
 
         Returns
         -------
@@ -464,8 +554,8 @@ class EntryHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        data : ???
-            Current data for the entry we are preparing
+        entry : Any
+            The entry we are preparing
 
         Returns
         -------
@@ -482,8 +572,13 @@ class EntryHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        data : ???
-            The data associated to this entry
+        entry : Any
+            The entry we are preparing
+
+        Returns
+        -------
+        scripts : list[ScriptBase]
+            The newly made scripts
         """
         raise NotImplementedError()
 
@@ -497,6 +592,11 @@ class EntryHandlerBase(Handler):
 
         entry : Any
             The entry in question
+
+        Returns
+        -------
+        scripts : list[ScriptBase]
+            The newly made scripts
         """
         raise NotImplementedError()
 
@@ -508,8 +608,11 @@ class EntryHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        data : ???
-            The data associated to this entry
+        itr : Iterable
+            Iterator over the children of this entry
+
+        entry : Any
+            The entry in question
         """
         raise NotImplementedError()
 
@@ -521,20 +624,26 @@ class EntryHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        data : ???
-            The data associated to this entry
+        entry : Any
+            The entry in question
         """
         raise NotImplementedError()
 
     def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> None:
-        """Called when a particular entry is rejected
+        """Called to 'roll-back' a partiuclar entry
+
+        Calling this function will result in scripts and child entries
+        being marked as `superseeded`, and be ignored by further processing.
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
 
-        data : ???
-            The data associated to this entry
+        entry : Any
+            The entry in question
+
+        to_status : StatusEnum
+            The status we want to roll back to
         """
         raise NotImplementedError()

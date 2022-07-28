@@ -13,6 +13,12 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Workflow(common.Base, common.SQLScriptMixin, WorkflowBase):
+    """Database table to manage processing `Workflow`
+
+    A `Workflow` is a single batch submission workflow.
+    This can include a very large number of individual jobs.
+    """
+
     __tablename__ = "workflow"
 
     id = Column(Integer, primary_key=True)  # Unique Workflow ID

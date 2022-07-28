@@ -20,7 +20,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-from collections import OrderedDict
 from typing import Any, Iterable, Optional
 
 from lsst.cm.tools.core.db_interface import DbInterface
@@ -47,10 +46,19 @@ from lsst.cm.tools.db.step import Step
 
 
 class StepHandler(EntryHandlerBase):
+    """Campaign level callback handler
+
+    Provides interface functions.
+
+    Derived classes will have to:
+
+    1. implement the `xxx_hook` functions.
+    2. define the Group callback hander with `group_handler_class`
+    3. provide the parameters for the Group callback handler with the
+    `group_iterator` function.
+    """
 
     fullname_template = os.path.join("{production_name}", "{campaign_name}", "{step_name}")
-
-    step_dict: OrderedDict[str, type] = OrderedDict([])
 
     group_handler_class: Optional[str]
 

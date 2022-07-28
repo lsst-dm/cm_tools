@@ -31,6 +31,16 @@ from lsst.cm.tools.db.workflow import Workflow
 
 
 class WorkflowHandler(WorkflowHandlerBase):
+    """Campaign level callback handler
+
+    Provides interface functions.
+
+    Derived classes will have to:
+
+    1. implement the `write_workflow_hook` function to write the
+    configuration and shell scripts to run the workflow
+    2. define the `Checker` and `Rollback` classes
+    """
 
     run_script_url_template_names = dict(
         script_url="script_url_template",
@@ -86,5 +96,7 @@ class WorkflowHandler(WorkflowHandlerBase):
         update_fields = dict(status=StatusEnum.running)
         Workflow.update_values(dbi, workflow.id, **update_fields)
 
-    def fake_run_hook(self, dbi: DbInterface, entry: Any, status: StatusEnum = StatusEnum.completed) -> None:
-        write_status_to_yaml(entry.log_url, status)
+    def fake_run_hook(
+        self, dbi: DbInterface, workflow: Workflow, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        write_status_to_yaml(workflow.log_url, status)

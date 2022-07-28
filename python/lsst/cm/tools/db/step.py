@@ -11,6 +11,13 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Step(common.Base, common.CMTable):
+    """Database table to manage processing `Step`
+
+    A `Step` consists of several processing `Group` which
+    are run in parallel
+
+    """
+
     __tablename__ = "step"
 
     level = LevelEnum.step

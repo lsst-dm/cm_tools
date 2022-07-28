@@ -12,6 +12,12 @@ from sqlalchemy.orm import composite, relationship
 
 
 class Group(common.Base, common.CMTable):
+    """Database table to manage processing `Group`
+
+    A `Group` can be processed in a single `Workflow`,
+    but we also need to account for possible failures.
+    """
+
     __tablename__ = "group"
 
     level = LevelEnum.group
