@@ -19,18 +19,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
-from lsst.cm.tools.core.handler import WorkflowHandlerBase
-from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
+from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.core.handler import EntryHandlerBase
+from lsst.cm.tools.core.script_utils import write_status_to_yaml
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.group import Group
+from lsst.cm.tools.db.handler_utils import (
+    accept_entry,
+    check_entry,
+    collect_entry,
+    reject_entry,
+    rollback_entry,
+    validate_entry,
+)
 from lsst.cm.tools.db.workflow import Workflow
 
 
-class WorkflowHandler(WorkflowHandlerBase):
+class WorkflowHandler(EntryHandlerBase):
 
     run_script_url_template_names = dict(
         script_url="script_url_template",
@@ -44,9 +55,6 @@ class WorkflowHandler(WorkflowHandlerBase):
         "{step_name}",
         "{group_name}_w{workflow_idx}",
     )
-
-    checker_class_name = YamlChecker().get_checker_class_name()
-    rollback_class_name = FakeRollback().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
         workflow_idx = self.get_kwarg_value("workflow_idx", **kwargs)
@@ -63,21 +71,11 @@ class WorkflowHandler(WorkflowHandlerBase):
             coll_out=parent.coll_out,
             status=StatusEnum.ready,
             script_method=ScriptMethod.bash_stamp,
-            checker=kwargs.get("checker", self.checker_class_name),
-            rollback=kwargs.get("rollback", self.rollback_class_name),
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,
         )
-        script_data = self.resolve_templated_strings(
-            self.run_script_url_template_names,
-            prod_base_url=parent.prod_base_url,
-            fullname=parent.fullname,
-            idx=workflow_idx,
-            name="run",
-        )
-        insert_fields.update(**script_data)
         workflow = Workflow.insert_values(dbi, **insert_fields)
-        self.write_workflow_hook(dbi, parent, workflow, **insert_fields)
+        return workflow
 
     def launch(self, dbi: DbInterface, workflow: Workflow) -> None:
         submit_command = f"{workflow.script_url} {workflow.config_url}"
@@ -88,3 +86,33 @@ class WorkflowHandler(WorkflowHandlerBase):
 
     def fake_run_hook(self, dbi: DbInterface, entry: Any, status: StatusEnum = StatusEnum.completed) -> None:
         write_status_to_yaml(entry.log_url, status)
+
+    def check(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        db_id_list = check_entry(dbi, entry)
+        return db_id_list
+
+    def collect(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        db_id_list = collect_entry(dbi, self, entry)
+        return db_id_list
+
+    def validate(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        db_id_list = validate_entry(dbi, self, entry)
+        return db_id_list
+
+    def accept(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        db_id_list = accept_entry(dbi, entry)
+        return db_id_list
+
+    def reject(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        return reject_entry(dbi, entry)
+
+    def make_workflow_handler(self) -> WorkflowHandler:
+        raise NotImplementedError()
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        return rollback_entry(dbi, self, entry, to_status)
+
+    def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+        assert entry.status.value >= to_status.value
+        db_id_list = rollback_entry(dbi, entry.w_, to_status)
+        return db_id_list

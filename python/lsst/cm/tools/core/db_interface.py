@@ -41,18 +41,6 @@ class ScriptBase(TableBase):
         raise NotImplementedError()
 
 
-class WorkflowBase(TableBase):
-    """Interface class for database entries describing Workflows"""
-
-    @classmethod
-    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
-        raise NotImplementedError()
-
-    @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
-        raise NotImplementedError()
-
-
 class DependencyBase:
     """Interface class for database entries describing Dependencies"""
 

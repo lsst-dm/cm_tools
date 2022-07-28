@@ -28,13 +28,17 @@ from lsst.cm.tools.core.handler import EntryHandlerBase
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.handler_utils import (
+    accept_children,
     accept_entry,
+    check_entries,
     check_entry,
+    collect_children,
     collect_entry,
     prepare_entry,
     reject_entry,
+    rollback_children,
     rollback_entry,
-    rollback_workflows,
+    validate_children,
     validate_entry,
 )
 from lsst.cm.tools.db.step import Step
@@ -91,19 +95,23 @@ class GroupHandler(EntryHandlerBase):
         return db_id_list
 
     def check(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = check_entry(dbi, entry)
+        db_id_list = check_entries(dbi, entry.w_)
+        db_id_list += check_entry(dbi, entry)
         return db_id_list
 
     def collect(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = collect_entry(dbi, self, entry)
+        db_id_list = collect_children(dbi, entry.w_)
+        db_id_list += collect_entry(dbi, self, entry)
         return db_id_list
 
     def validate(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = validate_entry(dbi, self, entry)
+        db_id_list = validate_children(dbi, entry.w_)
+        db_id_list += validate_entry(dbi, self, entry)
         return db_id_list
 
     def accept(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = accept_entry(dbi, entry)
+        db_id_list = accept_children(dbi, entry.w_)
+        db_id_list += accept_entry(dbi, entry)
         return db_id_list
 
     def reject(self, dbi: DbInterface, entry: Group) -> list[DbId]:
@@ -117,5 +125,5 @@ class GroupHandler(EntryHandlerBase):
 
     def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
         assert entry.status.value >= to_status.value
-        rollback_workflows(dbi, entry)
-        return [entry.db_id]
+        db_id_list = rollback_children(dbi, entry.w_, to_status)
+        return db_id_list

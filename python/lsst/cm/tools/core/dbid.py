@@ -35,9 +35,12 @@ class DbId:
     c_id: Optional[int] = None
     s_id: Optional[int] = None
     g_id: Optional[int] = None
+    w_id: Optional[int] = None
 
     def level(self) -> Optional[LevelEnum]:
         """Return the highest level which we do have a specific key for"""
+        if self.w_id is not None:
+            return LevelEnum.workflow
         if self.g_id is not None:
             return LevelEnum.group
         if self.s_id is not None:
@@ -50,14 +53,14 @@ class DbId:
 
     def to_tuple(self) -> tuple[Optional[int], Optional[int], Optional[int], Optional[int]]:
         """Return data as tuple"""
-        return (self.p_id, self.c_id, self.s_id, self.g_id)
+        return (self.p_id, self.c_id, self.s_id, self.g_id, self.w_id)
 
     def __getitem__(self, level: LevelEnum) -> Optional[int]:
         """Return primary key at a particular level"""
         return self.to_tuple()[level.value]
 
     def __repr__(self) -> str:
-        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id})".replace("None", "x")
+        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace("None", "x")
 
     def extend(self, level: LevelEnum, row_id: int) -> DbId:
         """Return an extension of this DbId
@@ -83,4 +86,6 @@ class DbId:
             return DbId(p_id=self.p_id, c_id=row_id)
         if level == LevelEnum.step:
             return DbId(p_id=self.p_id, c_id=self.c_id, s_id=row_id)
-        return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=row_id)
+        if level == LevelEnum.group:
+            return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=row_id)
+        return DbId(p_id=self.p_id, c_id=self.c_id, s_id=self.s_id, g_id=self.g_id, w_id=row_id)

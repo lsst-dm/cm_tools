@@ -110,22 +110,26 @@ class StepHandler(EntryHandlerBase):
         raise NotImplementedError()
 
     def check(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = check_entries(dbi, entry.g_)
+        db_id_list = check_entries(dbi, entry.w_)
+        db_id_list += check_entries(dbi, entry.g_)
         db_id_list += check_entry(dbi, entry)
         return db_id_list
 
     def collect(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = collect_children(dbi, entry.g_)
+        db_id_list = collect_children(dbi, entry.w_)
+        db_id_list += collect_children(dbi, entry.g_)
         db_id_list += collect_entry(dbi, self, entry)
         return db_id_list
 
     def validate(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = validate_children(dbi, entry.g_)
+        db_id_list = validate_children(dbi, entry.w_)
+        db_id_list += validate_children(dbi, entry.g_)
         db_id_list += validate_entry(dbi, self, entry)
         return db_id_list
 
     def accept(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = accept_children(dbi, entry.g_)
+        db_id_list = accept_children(dbi, entry.w_)
+        db_id_list += accept_children(dbi, entry.g_)
         db_id_list += accept_entry(dbi, entry)
         return db_id_list
 
@@ -136,5 +140,6 @@ class StepHandler(EntryHandlerBase):
         return rollback_entry(dbi, self, entry, to_status)
 
     def rollback_run(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
-        db_id_list = rollback_children(dbi, entry.g_, to_status)
+        db_id_list = rollback_children(dbi, entry.w_, to_status)
+        db_id_list += rollback_children(dbi, entry.g_, to_status)
         return db_id_list

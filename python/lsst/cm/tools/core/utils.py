@@ -34,6 +34,7 @@ class LevelEnum(enum.Enum):
     campaign = 1  # A full data processing campaign
     step = 2  # Part of a campaign that is finished before moving on
     group = 3  # A subset of data that can be processed in paralllel as part of a step
+    workflow = 4  # A single workflow
 
     def parent(self) -> Optional[LevelEnum]:
         """Return the parent level, or `None` if does not exist"""
@@ -43,7 +44,7 @@ class LevelEnum(enum.Enum):
 
     def child(self) -> Optional[LevelEnum]:
         """Return the child level, or `None` if does not exist"""
-        if self.value == 3:
+        if self.value == 4:
             return None
         return LevelEnum(self.value + 1)
 

@@ -10,7 +10,7 @@ from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase, WorkflowBase
+    from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
     from lsst.cm.tools.db.common import CMTable
 
 
@@ -231,9 +231,7 @@ class ScriptHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def write_script_hook(
-        self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any
-    ) -> ScriptBase:
+    def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
         """Write the script to run a workflow
 
         Parameters
@@ -241,73 +239,21 @@ class ScriptHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
-        Returns
-        -------
-        workflow : WorkflowBase
+        parent: Any
+            Parent entry for the script
+
+        script: ScriptBase
             The newly inserted workflow
+
+        Keywords
+        --------
+        These can be used to help write the script
         """
         raise NotImplementedError()
 
     def fake_run_hook(
         self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
     ) -> None:
-        """Used for testing
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        """
-        raise NotImplementedError()
-
-
-class WorkflowHandlerBase(Handler):
-    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> WorkflowBase:
-        """Insert a new database entry
-
-        Parameters
-        ----------
-
-        Keywords
-        --------
-
-        Returns
-        -------
-        new_entry : WorkflowBase
-            The new entry
-        """
-        raise NotImplementedError()
-
-    def write_workflow_hook(
-        self, dbi: DbInterface, parent: Any, workflow: WorkflowBase, **kwargs: Any
-    ) -> None:
-        """Write the script to run a workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        Returns
-        -------
-        workflow : WorkflowBase
-            The newly inserted workflow
-        """
-        raise NotImplementedError()
-
-    def launch(self, dbi: DbInterface, workflow: WorkflowBase) -> None:
-        """Used for testing
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        """
-        raise NotImplementedError()
-
-    def fake_run_hook(self, dbi: DbInterface, entry: Any, status: StatusEnum = StatusEnum.completed) -> None:
         """Used for testing
 
         Parameters

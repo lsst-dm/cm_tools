@@ -65,4 +65,5 @@ class Group(common.Base, common.CMTable):
             stream.write(f"      {workflow}")
 
     def children(self) -> Iterable:
-        return []
+        for workflow in self.w_:
+            yield workflow
