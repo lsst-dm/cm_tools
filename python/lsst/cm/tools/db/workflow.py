@@ -68,10 +68,10 @@ class Workflow(common.Base, common.CMTable):
 
     def print_tree(self, stream: TextIO) -> None:
         stream.write(f"  {self}\n")
-        for script in self.scripts_:
-            stream.write(f"    -{script}\n")
+        for job in self.jobs_:
+            stream.write(f"    -{job}\n")
 
-    def children(self) -> Iterable:
+    def children(self) -> Iterable:  # pragma: no cover
         return []
 
     def sub_iterators(self) -> list[Iterable]:

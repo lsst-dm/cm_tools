@@ -82,8 +82,8 @@ class StepHandler(EntryHandler):
         for group_ in entry.g_:
             status = group_.status
             if status == StatusEnum.waiting:
-                if not group_.check_prerequistes(dbi):
-                    continue
+                if not group_.check_prerequistes(dbi):  # pragma: no cover
+                    raise RuntimeError("We are not expecting groups to have prerequistes")
             group_handler = group_.get_handler()
             db_id_list += group_handler.prepare(dbi, group_)
         return db_id_list

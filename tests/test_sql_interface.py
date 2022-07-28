@@ -65,6 +65,9 @@ def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_na
         result = iface.launch_jobs(LevelEnum.campaign, db_c_id, 0)
         # assert not result
 
+        result = iface.accept(LevelEnum.campaign, db_c_id)
+        assert not result
+
         result = iface.fake_run(LevelEnum.campaign, db_c_id)
         # assert result
 
@@ -101,6 +104,26 @@ def test_full_example() -> None:
     db_s_id = iface.get_db_id(
         LevelEnum.step, production_name="example", campaign_name="test1", step_name="step1"
     )
+    db_g_id = iface.get_db_id(
+        LevelEnum.group,
+        production_name="example",
+        campaign_name="test1",
+        step_name="step1",
+        group_name="group_0",
+    )
+    db_w_id = iface.get_db_id(
+        LevelEnum.workflow,
+        production_name="example",
+        campaign_name="test1",
+        step_name="step1",
+        group_name="group_0",
+        workflow_idx=0,
+    )
+
+    result = iface.prepare(LevelEnum.group, db_g_id)
+    assert not result
+    result = iface.prepare(LevelEnum.workflow, db_w_id)
+    assert not result
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
     with open(os.devnull, "wt") as fout:
@@ -109,8 +132,13 @@ def test_full_example() -> None:
         iface.print_table(fout, TableEnum.step)
         iface.print_table(fout, TableEnum.group)
         iface.print_table(fout, TableEnum.workflow)
+        iface.print_table(fout, TableEnum.script)
+        iface.print_table(fout, TableEnum.job)
+        iface.print_table(fout, TableEnum.dependency)
         iface.print_tree(fout, LevelEnum.campaign, db_c_id)
         iface.print_tree(fout, LevelEnum.step, db_s_id)
+        iface.print_tree(fout, LevelEnum.group, db_g_id)
+        iface.print_tree(fout, LevelEnum.workflow, db_w_id)
         iface.print_(fout, LevelEnum.production, None)
         iface.print_(fout, LevelEnum.campaign, db_c_id)
         iface.print_(fout, LevelEnum.step, db_c_id)
@@ -229,8 +257,8 @@ def test_failed_workflows() -> None:
             step_name=step_name,
             group_name="group_5",
         )
-        # with pytest.raises(ValueError):
-        iface.reject(LevelEnum.group, db_g_id_ok)
+        with pytest.raises(ValueError):
+            iface.reject(LevelEnum.group, db_g_id_ok)
         iface.reject(LevelEnum.step, db_s_id)
     iface.reject(LevelEnum.campaign, db_c_id)
 

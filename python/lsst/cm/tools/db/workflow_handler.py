@@ -50,7 +50,7 @@ class WorkflowHandler(EntryHandler):
         "{campaign_name}",
         "{step_name}",
         "{group_name}",
-        "w{workflow_idx}",
+        "w{workflow_idx:02}",
     )
 
     level = LevelEnum.workflow

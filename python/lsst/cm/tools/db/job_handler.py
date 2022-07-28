@@ -65,9 +65,6 @@ class JobHandler(JobHandlerBase):
         )
         insert_fields.update(**script_data)
         script = Job.insert_values(dbi, **insert_fields)
-        fake_run = kwcopy.pop("fake_run", None)
-        if fake_run:
-            self.fake_run_hook(dbi, script, fake_run)
         self.write_job_hook(dbi, parent, script, **kwcopy)
         return script
 

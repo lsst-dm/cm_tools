@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import CMTableBase, DbId, DbInterface, DependencyBase, ScriptBase
-from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, ScriptHandlerBase
+from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, JobHandlerBase, ScriptHandlerBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db.group_handler import GroupHandler
@@ -177,6 +177,26 @@ def test_bad_handler() -> None:
     with pytest.raises(NotImplementedError):
         bad_script_handler_base.fake_run_hook(bad_db, None, StatusEnum.waiting)
 
+    with pytest.raises(NotImplementedError):
+        bad_script_handler_base.run(bad_db, None)
+
+    class BadJobHandlerBase(JobHandlerBase):
+        pass
+
+    bad_job_handler_base = BadJobHandlerBase()
+
+    with pytest.raises(NotImplementedError):
+        bad_job_handler_base.insert(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_job_handler_base.write_job_hook(bad_db, None, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_job_handler_base.fake_run_hook(bad_db, None, StatusEnum.waiting)
+
+    with pytest.raises(NotImplementedError):
+        bad_job_handler_base.launch(bad_db, None)
+
     class BadScriptHandler(ScriptHandler):
         pass
 
@@ -212,6 +232,9 @@ def test_bad_handler() -> None:
         bad_entry_handler.reject(bad_db, None)
 
     with pytest.raises(NotImplementedError):
+        bad_entry_handler.run(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
         bad_entry_handler.rollback(bad_db, None, StatusEnum.waiting)
 
     with pytest.raises(NotImplementedError):
@@ -225,6 +248,9 @@ def test_bad_handler() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_entry_handler.accept_hook(bad_db, [], None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.run_hook(bad_db, None)
 
     with pytest.raises(NotImplementedError):
         bad_entry_handler.reject_hook(bad_db, None)

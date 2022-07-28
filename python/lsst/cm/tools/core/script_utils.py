@@ -232,7 +232,7 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
         if prepend:
             fout.write(f"{prepend}\n")
         if fake:
-            command = f'echo "{command}"'
+            command = f"echo '{command}'"
         fout.write(command)
         fout.write("\n")
         if append:

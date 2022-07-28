@@ -36,12 +36,17 @@ class SQLAlchemyInterface(DbInterface):
         if level == LevelEnum.step:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id)
         g_id = self._get_id(LevelEnum.group, s_id, kwargs.get("group_name"))
-        return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
+        if level == LevelEnum.group:
+            return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
+        w_id = self._get_id(LevelEnum.workflow, g_id, "%02i" % kwargs.get("workflow_idx"))
+        return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_entry(self, level: LevelEnum, db_id: DbId) -> CMTableBase:
         table = top.get_table_for_level(level)
         sel = table.get_row_query(db_id)
-        return common.return_first_column(self, sel)
+        entry = common.return_first_column(self, sel)
+        self._verify_entry(entry, level, db_id)
+        return entry
 
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         table = top.get_table_for_level(level)
@@ -185,3 +190,7 @@ class SQLAlchemyInterface(DbInterface):
         table = top.get_table_for_level(level)
         sel = table.get_id_match_query(parent_id, match_name)
         return common.return_first_column(self, sel)
+
+    def _verify_entry(self, entry, level: LevelEnum, db_id: DbId) -> None:
+        if entry is None:  # pragma: no cover
+            raise ValueError(f"Failed to get entry for {db_id} at {level.name}")
