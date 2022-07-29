@@ -19,17 +19,12 @@ class JobHandler(JobHandlerBase):
     """
 
     default_config = dict(
-        script_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
-        stamp_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
-        log_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
-        config_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
-    )
-
-    job_url_template_names = dict(
-        script_url="script_url_template",
-        log_url="log_url_template",
-        stamp_url="stamp_url_template",
-        config_url="config_url_template",
+        templates=dict(
+            script_url="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
+            stamp_url="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
+            log_url="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
+            config_url="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
+        )
     )
 
     script_method = ScriptMethod.bash
@@ -57,7 +52,6 @@ class JobHandler(JobHandlerBase):
             level=parent.level,
         )
         script_data = self.resolve_templated_strings(
-            self.job_url_template_names,
             prod_base_url=parent.prod_base_url,
             fullname=parent.fullname,
             idx=idx,

@@ -24,7 +24,7 @@ from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.handler_utils import prepare_entry
@@ -62,9 +62,7 @@ class GroupHandler(EntryHandler):
             c_id=parent.c_.id,
             s_id=parent.id,
             data_query=kwargs.get("data_query"),
-            coll_source=kwargs.get("coll_source"),
-            input_type=InputType.tagged,
-            output_type=OutputType.chained,
+            coll_source=parent.coll_in,
             status=StatusEnum.waiting,
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,

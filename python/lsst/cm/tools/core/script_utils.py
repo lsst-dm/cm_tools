@@ -81,7 +81,7 @@ def make_butler_associate_command(
 
 
 def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list[str]) -> str:
-    """Build and return a butler chain-collection command
+    """Build and return a butler collection-chain command
 
     Parameters
     ----------
@@ -99,7 +99,7 @@ def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list
     command : str
         The requested butler command
     """
-    command = f"butler chain-collection {butler_repo} {coll_out}"
+    command = f"butler collection-chain {butler_repo} {coll_out}"
     for input_coll in input_colls:
         command += f" {input_coll}"
     return command

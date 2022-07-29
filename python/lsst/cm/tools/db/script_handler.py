@@ -30,15 +30,11 @@ class ScriptHandler(ScriptHandlerBase):
     """
 
     default_config = dict(
-        script_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
-        stamp_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
-        log_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
-    )
-
-    script_url_template_names = dict(
-        script_url="script_url_template",
-        log_url="log_url_template",
-        stamp_url="stamp_url_template",
+        templates=dict(
+            script_url="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
+            stamp_url="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
+            log_url="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
+        )
     )
 
     script_type: ScriptType = ScriptType.prepare
@@ -71,7 +67,6 @@ class ScriptHandler(ScriptHandlerBase):
         elif parent.level == LevelEnum.group:
             insert_fields.update(g_id=parent.db_id.g_id)
         script_data = self.resolve_templated_strings(
-            self.script_url_template_names,
             prod_base_url=parent.prod_base_url,
             fullname=parent.fullname,
             idx=idx,

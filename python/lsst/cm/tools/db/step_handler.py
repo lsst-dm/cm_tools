@@ -25,7 +25,7 @@ from typing import Any, Iterable, Optional
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
@@ -61,9 +61,8 @@ class StepHandler(EntryHandler):
             p_id=parent.p_.id,
             c_id=parent.id,
             data_query=kwargs.get("data_query"),
+            coll_in=kwargs.get("coll_source"),
             coll_source=kwargs.get("coll_source"),
-            input_type=InputType.tagged,
-            output_type=OutputType.chained,
             status=StatusEnum.waiting,
             handler=self.get_handler_class_name(),
             config_yaml=self.config_url,

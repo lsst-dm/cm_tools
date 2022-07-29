@@ -152,16 +152,11 @@ def test_bad_handler() -> None:
             self.config["bad_template"] = "{missing}"
             self.resolve_templated_string("bad_template")
 
-    bad_handler = BadHandler()
-
     with pytest.raises(TypeError):
         Handler.get_handler("lsst.cm.tools.core.handler", "dummy.yaml")
 
     with pytest.raises(KeyError):
         BadHandler.bad_get_kwarg()
-
-    with pytest.raises(KeyError):
-        bad_handler.bad_resolve_templated()
 
     class BadScriptHandlerBase(ScriptHandlerBase):
         pass

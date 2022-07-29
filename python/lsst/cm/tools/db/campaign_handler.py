@@ -26,7 +26,7 @@ from typing import Any, Optional
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.entry_handler import EntryHandler
@@ -64,11 +64,8 @@ class CampaignHandler(EntryHandler):
         insert_fields = dict(
             name=self.get_kwarg_value("campaign_name", **kwargs),
             fullname=self.get_fullname(**kwargs),
-            coll_source=self.get_config_var("coll_source", None, **kwargs),
             data_query=self.get_config_var("data_query", None, **kwargs),
             root_coll=self.get_config_var("root_coll", "prod", **kwargs),
-            input_type=InputType.tagged,
-            output_type=OutputType.chained,
             p_id=parent.id,
             status=StatusEnum.ready,
             butler_repo=kwargs["butler_repo"],
@@ -78,9 +75,6 @@ class CampaignHandler(EntryHandler):
         )
         coll_names = self.coll_names(insert_fields)
         insert_fields.update(**coll_names)
-        insert_fields.update(
-            coll_ancil=self.resolve_templated_string("coll_ancil_template", **insert_fields),
-        )
         campaign = Campaign.insert_values(dbi, **insert_fields)
         self.make_steps(dbi, campaign)
         return campaign

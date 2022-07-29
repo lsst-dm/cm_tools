@@ -15,20 +15,7 @@ from lsst.cm.tools.db.workflow import Workflow
 from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
-class Example2Config:
-
-    default_config = dict(
-        script_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.sh",
-        stamp_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
-        log_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
-        config_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
-        coll_in_template="prod/{fullname}_input",
-        coll_out_template="prod/{fullname}_output",
-        coll_validate_template="prod/{fullname}_validate",
-    )
-
-
-class Example2JobHandler(Example2Config, JobHandler):
+class Example2JobHandler(JobHandler):
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()
@@ -61,7 +48,7 @@ class Example2JobHandler(Example2Config, JobHandler):
         write_command_script(job, command)
 
 
-class Example2WorkflowHander(Example2Config, WorkflowHandler):
+class Example2WorkflowHander(WorkflowHandler):
 
     job_handler_class = Example2JobHandler().get_handler_class_name()
 
@@ -69,7 +56,7 @@ class Example2WorkflowHander(Example2Config, WorkflowHandler):
         return Handler.get_handler(self.job_handler_class, self.config_url)
 
 
-class Example2EntryHandler(Example2Config):
+class Example2EntryHandler:
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()

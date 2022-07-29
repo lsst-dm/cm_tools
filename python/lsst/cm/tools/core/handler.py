@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 import yaml
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.utils import InputType, StatusEnum
+from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
@@ -167,13 +167,13 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def resolve_templated_string(self, template_name: str, **kwargs: Any) -> str:
+    def resolve_templated_string(self, template_str: str, **kwargs: Any) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
         ----------
-        template_name : str
-            The name of the template requested, must be in self.config
+        template_str : str
+            template to use
 
         Keywords
         --------
@@ -189,22 +189,13 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        template_string = self.config.get(template_name, self.default_config.get(template_name))
-        format_vars = self.config.copy()
-        format_vars.update(**kwargs)
         try:
-            return template_string.format(**format_vars)
+            return template_str.format(**kwargs)
         except KeyError as msg:
-            raise KeyError(f"Failed to format {template_string} with {str(format_vars)}") from msg
+            raise KeyError(f"Failed to format {template_str} with {str(kwargs)}") from msg
 
-    def resolve_templated_strings(self, template_names: dict[str, str], **kwargs: Any) -> dict[str, Any]:
+    def resolve_templated_strings(self, **kwargs: Any) -> dict[str, Any]:
         """Utility function resolve a list of templated names
-
-        Parameters
-        ----------
-        template_names : dict[str, str]
-            Keys are the output keys, values are he names
-            of the template requested, which must be in self.config
 
         Keywords
         --------
@@ -220,6 +211,7 @@ class Handler:
         KeyError :
             The formatting failed
         """
+        template_names = self.config.get("templates", {})
         return {key_: self.resolve_templated_string(val_, **kwargs) for key_, val_ in template_names.items()}
 
 
@@ -586,17 +578,23 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        coll_names : dict[str, str]
+        coll_name_map : dict[str, Any]
             Names of the input and output collections
+            and input and output types
         """
-        default_coll_names = self.resolve_templated_strings(
-            self.coll_template_names,
+        coll_name_map = self.resolve_templated_strings(
             **insert_fields,
             **kwargs,
         )
-        if insert_fields.get("input_type") == InputType.source:
-            default_coll_names["coll_in"] = insert_fields["coll_source"]
-        return default_coll_names
+        input_type = InputType[self.get_config_var("input_type", "source", **kwargs)]
+        output_type = OutputType[self.get_config_var("output_type", "run", **kwargs)]
+        if input_type == InputType.source:
+            coll_name_map.setdefault("coll_in", kwargs.get("coll_source"))
+        coll_name_map.update(
+            input_type=input_type,
+            output_type=output_type,
+        )
+        return coll_name_map
 
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         """Called to set up scripts need to prepare an entry for execution
