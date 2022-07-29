@@ -86,7 +86,7 @@ def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -
     """Check the status of childern of a given row
     and return a status accordingly"""
     child_status = extract_child_status(entry.children())
-    if not child_status.size:
+    if not child_status.size:  # pragma: no cover
         raise ValueError("Where have the children gone?")
     if (child_status >= StatusEnum.accepted.value).all():
         return StatusEnum.collectable
@@ -293,10 +293,11 @@ def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 
-def accept_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
+def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     db_id_list: list[DbId] = []
     if entry.status != StatusEnum.reviewable:
         return db_id_list
+    handler.accept_hook(dbi, entry)
     accept_scripts(dbi, entry.scripts_)
     db_id_list += [entry.db_id]
     entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
@@ -311,10 +312,11 @@ def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
     return db_id_list
 
 
-def reject_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
+def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     if entry.status == StatusEnum.accepted:
         raise ValueError("Rejecting an already accepted entry {entry.db_id}")
     entry.update_values(dbi, entry.id, status=StatusEnum.rejected)
+    handler.reject_hook(dbi, entry)
     return [entry.db_id]
 
 

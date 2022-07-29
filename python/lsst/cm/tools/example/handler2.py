@@ -76,12 +76,6 @@ class Example2EntryHandler:
         assert entry
         return []
 
-    def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:
-        pass
-
-    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
-        pass
-
 
 class Example2GroupHandler(Example2EntryHandler, GroupHandler):
 

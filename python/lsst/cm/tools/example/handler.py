@@ -120,12 +120,6 @@ class ExampleEntryHandler:
             script.update_values(dbi, script.id, status=status)
         return [script]
 
-    def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:
-        pass
-
-    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
-        pass
-
 
 class ExampleGroupHandler(ExampleEntryHandler, GroupHandler):
 

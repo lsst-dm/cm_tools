@@ -67,11 +67,11 @@ class EntryHandler(EntryHandlerBase):
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list += accept_children(dbi, itr)
-        db_id_list += accept_entry(dbi, entry)
+        db_id_list += accept_entry(dbi, self, entry)
         return db_id_list
 
     def reject(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return reject_entry(dbi, entry)
+        return reject_entry(dbi, self, entry)
 
     def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
         return rollback_entry(dbi, self, entry, to_status)
@@ -86,3 +86,9 @@ class EntryHandler(EntryHandlerBase):
         assert entry.status == StatusEnum.prepared
         entry.update_values(dbi, entry.id, status=StatusEnum.running)
         return []
+
+    def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
+        pass
+
+    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+        pass

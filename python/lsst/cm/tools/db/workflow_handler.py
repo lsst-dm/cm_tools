@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Iterable
+from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
@@ -109,12 +109,6 @@ class WorkflowHandler(EntryHandler):
         assert dbi
         assert entry
         return []
-
-    def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:
-        pass
-
-    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
-        pass
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
         current_status = entry.status

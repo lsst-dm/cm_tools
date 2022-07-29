@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import types
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import yaml
 from lsst.cm.tools.core.dbid import DbId
@@ -191,7 +191,7 @@ class Handler:
         """
         try:
             return template_str.format(**kwargs)
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise KeyError(f"Failed to format {template_str} with {str(kwargs)}") from msg
 
     def resolve_templated_strings(self, **kwargs: Any) -> dict[str, Any]:
@@ -668,16 +668,13 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def accept_hook(self, dbi: DbInterface, itr: Iterable, entry: Any) -> None:
+    def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
         """Called when a particular entry is accepted
 
         Parameters
         ----------
         dbi : DbInterface
             Interface to the database we updated
-
-        itr : Iterable
-            Iterator over the children of this entry
 
         entry : Any
             The entry in question

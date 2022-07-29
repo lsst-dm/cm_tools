@@ -242,7 +242,7 @@ def test_bad_handler() -> None:
         bad_entry_handler.validate_script_hook(bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_entry_handler.accept_hook(bad_db, [], None)
+        bad_entry_handler.accept_hook(bad_db, None)
 
     with pytest.raises(NotImplementedError):
         bad_entry_handler.run_hook(bad_db, None)
