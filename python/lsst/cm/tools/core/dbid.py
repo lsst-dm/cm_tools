@@ -1,25 +1,4 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from __future__ import annotations  # Needed for class member returning class
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
@@ -32,6 +11,24 @@ class DbId:
     """Information to identify a single entry in the CM database tables
 
     This consist of primary keys into each of the tables
+
+    Notes
+    -----
+    A DbId can be used either to specific a single entry or to specify
+    a set of entries.
+
+    At each level, the DbId can either have a primary key, or `None`
+    any matching function should specify which table to search for
+    matches.
+
+    If matching is requested at a level which the DbId has a primary
+    key for, the matching should return only that one DbId.
+
+    On the other hand, the DbId does not have a primary key at that
+    level, the match should return all the entries that match
+    at the highest level it does have a key.  E.g., asking for matching
+    `LevelEnum.group` for a DbId that only contains `LevelEnum.step`
+    will match all the `LevelEnum.group` objects with that `LevelEnum.step`
     """
 
     p_id: Optional[int] = None
@@ -41,6 +38,7 @@ class DbId:
     w_id: Optional[int] = None
 
     def level(self) -> Optional[LevelEnum]:
+        """Return the highest level which we do have a specific key for"""
         if self.w_id is not None:
             return LevelEnum.workflow
         if self.g_id is not None:
@@ -53,16 +51,16 @@ class DbId:
             return LevelEnum.production
         return None
 
-    def to_tuple(self) -> tuple:
+    def to_tuple(self) -> tuple[Optional[int], Optional[int], Optional[int], Optional[int], Optional[int]]:
         """Return data as tuple"""
         return (self.p_id, self.c_id, self.s_id, self.g_id, self.w_id)
 
-    def __getitem__(self, level: LevelEnum) -> int:
+    def __getitem__(self, level: LevelEnum) -> Optional[int]:
         """Return primary key at a particular level"""
         return self.to_tuple()[level.value]
 
     def __repr__(self) -> str:
-        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace('None', 'x')
+        return f"DbId({self.p_id}:{self.c_id}:{self.s_id}:{self.g_id}:{self.w_id})".replace("None", "x")
 
     def extend(self, level: LevelEnum, row_id: int) -> DbId:
         """Return an extension of this DbId

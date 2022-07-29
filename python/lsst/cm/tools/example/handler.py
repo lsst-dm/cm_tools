@@ -1,46 +1,143 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 from collections import OrderedDict
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable
 
-from lsst.cm.tools.core.db_interface import DbId, DbInterface
-from lsst.cm.tools.core.grouper import Grouper
-from lsst.cm.tools.core.script_utils import (
-    YamlChecker,
-    make_butler_associate_command,
-    make_butler_chain_command,
-    write_status_to_yaml,
+import yaml
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+from lsst.cm.tools.core.handler import Handler
+from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
+from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.db.campaign_handler import CampaignHandler
+from lsst.cm.tools.db.group_handler import GroupHandler
+from lsst.cm.tools.db.job_handler import JobHandler
+from lsst.cm.tools.db.script_handler import (
+    AncillaryScriptHandler,
+    CollectScriptHandler,
+    PrepareScriptHandler,
+    ValidateScriptHandler,
 )
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db.sqlalch_handler import SQLAlchemyHandler
+from lsst.cm.tools.db.step import Step
+from lsst.cm.tools.db.step_handler import StepHandler
+from lsst.cm.tools.db.workflow import Workflow
+from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
-class ExampleStep1Grouper(Grouper):
-    def _do_call(self):
+class ExampleJobHandler(JobHandler):
+
+    yaml_checker_class = YamlChecker().get_checker_class_name()
+    fake_rollback_class = FakeRollback().get_rollback_class_name()
+
+    def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
+        """Internal function to write the bps.yaml file for a given workflow"""
+        workflow_template_yaml = os.path.expandvars(self.config["bps_template_yaml"])
+        butler_repo = parent.butler_repo
+
+        outpath = job.config_url
+
+        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
+            workflow_config = yaml.safe_load(fin)
+
+        workflow_config["project"] = parent.p_.name
+        workflow_config["campaign"] = f"{parent.p_.name}/{parent.c_.name}"
+
+        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][parent.s_.name]
+        payload = dict(
+            payloadName=f"{parent.p_.name}/{parent.c_.name}",
+            output=parent.coll_out,
+            butlerConfig=butler_repo,
+            inCollection=f"{parent.coll_in},{parent.c_.coll_ancil}",
+        )
+        workflow_config["payload"] = payload
+        with open(outpath, "wt", encoding="utf-8") as fout:
+            yaml.dump(workflow_config, fout)
+
+        command = make_bps_command(outpath)
+        write_command_script(job, command)
+
+
+class ExampleWorkflowHander(WorkflowHandler):
+
+    job_handler_class = ExampleJobHandler().get_handler_class_name()
+
+    def make_job_handler(self) -> JobHandler:
+        return Handler.get_handler(self.job_handler_class, self.config_url)
+
+
+class ExampleEntryHandler:
+
+    yaml_checker_class = YamlChecker().get_checker_class_name()
+    fake_rollback_class = FakeRollback().get_rollback_class_name()
+
+    prepare_handler_class = PrepareScriptHandler().get_handler_class_name()
+    collect_handler_class = CollectScriptHandler().get_handler_class_name()
+    validate_handler_class = ValidateScriptHandler().get_handler_class_name()
+
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        handler = Handler.get_handler(self.prepare_handler_class, entry.config_yaml)
+        script = handler.insert(
+            dbi,
+            entry,
+            name="prepare",
+            prepend=f"# Written by {handler.get_handler_class_name()}",
+            append="# Have a good day",
+            stamp=StatusEnum.completed,
+            fake=True,
+        )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
+        return [script]
+
+    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        handler = Handler.get_handler(self.collect_handler_class, entry.config_yaml)
+        script = handler.insert(
+            dbi,
+            entry,
+            name="collect",
+            prepend=f"# Written by {handler.get_handler_class_name()}",
+            append="# Have a good day",
+            stamp=StatusEnum.completed,
+            fake=True,
+        )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
+        return [script]
+
+    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        handler = Handler.get_handler(self.validate_handler_class, entry.config_yaml)
+        script = handler.insert(
+            dbi,
+            entry,
+            name="validate",
+            prepend=f"# Written by {handler.get_handler_class_name()}",
+            append="# Have a good day",
+            stamp=StatusEnum.completed,
+            fake=True,
+        )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
+        return [script]
+
+
+class ExampleGroupHandler(ExampleEntryHandler, GroupHandler):
+
+    workflow_handler_class = ExampleWorkflowHander().get_handler_class_name()
+
+    def make_workflow_handler(self) -> WorkflowHandler:
+        return Handler.get_handler(self.workflow_handler_class, self.config_url)
+
+
+class ExampleStep1Handler(ExampleEntryHandler, StepHandler):
+
+    group_handler_class = ExampleGroupHandler().get_handler_class_name()
+
+    def group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
         out_dict = dict(
-            production_name=self.config["production_name"],
-            campaign_name=self.config["campaign_name"],
-            step_name=self.config["step_name"],
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.name,
         )
 
         for i in range(10):
@@ -48,12 +145,15 @@ class ExampleStep1Grouper(Grouper):
             yield out_dict
 
 
-class ExampleStep2Grouper(Grouper):
-    def _do_call(self):
+class ExampleStep2Handler(ExampleEntryHandler, StepHandler):
+
+    group_handler_class = ExampleGroupHandler().get_handler_class_name()
+
+    def group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
         out_dict = dict(
-            production_name=self.config["production_name"],
-            campaign_name=self.config["campaign_name"],
-            step_name=self.config["step_name"],
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.name,
         )
 
         for i in range(20):
@@ -61,136 +161,50 @@ class ExampleStep2Grouper(Grouper):
             yield out_dict
 
 
-class ExampleStep3Grouper(Grouper):
-    def _do_call(self):
+class ExampleStep3Handler(ExampleEntryHandler, StepHandler):
+
+    group_handler_class = ExampleGroupHandler().get_handler_class_name()
+
+    def group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
         out_dict = dict(
-            production_name=self.config["production_name"],
-            campaign_name=self.config["campaign_name"],
-            step_name=self.config["step_name"],
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.name,
         )
 
         for i in range(20):
-            out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
+            out_dict.update(group_name=f"group{i}", data_query=f"i == {i}")
             yield out_dict
 
 
-class ExampleHandler(SQLAlchemyHandler):
-
-    default_config = SQLAlchemyHandler.default_config.copy()
-
-    default_config.update(
-        prepare_script_url_template="{prod_base_url}/{fullname}/prepare.sh",
-        prepare_log_url_template="{prod_base_url}/{fullname}/prepare.log",
-        collect_script_url_template="{prod_base_url}/{fullname}/collect.sh",
-        collect_log_url_template="{prod_base_url}/{fullname}/collect.log",
-        run_script_url_template="bps",
-        run_log_url_template="{prod_base_url}/{fullname}/run.log",
-        run_config_url_template="{prod_base_url}/{fullname}/bps.yaml",
-    )
+class ExampleHandler(ExampleEntryHandler, CampaignHandler):
 
     step_dict = OrderedDict(
-        [("step1", ExampleStep1Grouper), ("step2", ExampleStep2Grouper), ("step3", ExampleStep3Grouper)]
+        [
+            ("step1", ExampleStep1Handler),
+            ("step2", ExampleStep2Handler),
+            ("step3", ExampleStep3Handler),
+        ]
     )
 
-    prepare_script_url_template_names = dict(
-        script_url="prepare_script_url_template", log_url="prepare_log_url_template",
-    )
+    ancil_chain_handler_class = AncillaryScriptHandler().get_handler_class_name()
 
-    collect_script_url_template_names = dict(
-        script_url="collect_script_url_template", log_url="collect_log_url_template",
-    )
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
 
-    run_script_url_template_names = dict(
-        script_url="run_script_url_template",
-        log_url="run_log_url_template",
-        config_url="run_config_url_template",
-    )
+        scripts = ExampleEntryHandler.prepare_script_hook(self, dbi, entry)
 
-    yaml_checker_class = YamlChecker().get_checker_class_name()
-
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
-        assert level.value >= LevelEnum.campaign.value
-        if level == LevelEnum.workflow:
-            return None
-        butler_repo = dbi.get_repo(db_id)
-        script_data = self.resolve_templated_strings(
-            self.prepare_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data.fullname,
+        handler = Handler.get_handler(self.ancil_chain_handler_class, entry.config_yaml)
+        script = handler.insert(
+            dbi,
+            entry,
+            name="ancillary",
+            prepend=f"# Written by {handler.get_handler_class_name()}",
+            append="# Have a good day",
+            stamp=StatusEnum.completed,
+            fake=True,
         )
-        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data['script_url'], "wt", encoding="utf-8") as fout:
-            fout.write(make_butler_associate_command(butler_repo, data))
-            fout.write("\n")
-        write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
-        return script_id
-
-    def workflow_hook(self, dbi: DbInterface, db_id: DbId, data, **kwargs) -> int:
-        """Internal function to write the bps.yaml file for a given workflow"""
-        workflow_template_yaml = os.path.expandvars(self.config["workflow_template_yaml"])
-        butler_repo = dbi.get_repo(db_id)
-        script_data = self.resolve_templated_strings(
-            self.run_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data.fullname,
-        )
-        outpath = script_data['config_url']
-        script_id = dbi.add_script(checker="lsst.cm.tools.core.script_utils.YamlChecker", **script_data)
-        tokens = data.fullname.split("/")
-        production_name = tokens[0]
-        campaign_name = tokens[1]
-        step_name = tokens[2]
-        import yaml
-
-        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
-            workflow_config = yaml.safe_load(fin)
-
-        workflow_config["project"] = production_name
-        workflow_config["campaign"] = f"{production_name}/{campaign_name}"
-
-        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][step_name]
-        payload = dict(
-            payloadName=f"{production_name}/{campaign_name}",
-            output=data.coll_out,
-            butlerConfig=butler_repo,
-            inCollection=data.coll_in,
-        )
-        workflow_config["payload"] = payload
-        with open(outpath, "wt", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
-        return script_id
-
-    def fake_run_hook(
-        self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
-    ) -> None:
-        script_id = data.run_script
-        script_data = dbi.get_script(script_id)
-        write_status_to_yaml(script_data.log_url, status)  # type: ignore
-
-    def collection_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> dict[str, Any]:
-        assert level.value >= LevelEnum.campaign.value
-        if level == LevelEnum.campaign:
-            return dict(status=StatusEnum.collecting, collect_script=None)
-        butler_repo = dbi.get_repo(db_id)
-        script_data = self.resolve_templated_strings(
-            self.collect_script_url_template_names,
-            {},
-            prod_base_url=dbi.get_prod_base(db_id),
-            fullname=data.fullname,
-        )
-        script_id = dbi.add_script(checker=self.yaml_checker_class, **script_data)
-        with open(script_data['script_url'], "wt", encoding="utf-8") as fout:
-            fout.write(make_butler_chain_command(butler_repo, data, itr))
-            fout.write("\n")
-        write_status_to_yaml(script_data['log_url'], StatusEnum.completed)
-        return dict(status=StatusEnum.collecting, collect_script=script_id)
-
-    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
-        return
-
-    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
-        return
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
+        scripts += [script]
+        return scripts

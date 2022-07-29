@@ -8,10 +8,10 @@ config.log
 *.pyc
 *_wrap.cc
 *Lib.py
+.eggs
+python/cm_tools.egg-info
+python/lsst/cm/tools/_version.py
 
-# Built by sconsUtils
-version.py
-bin/
 
 # Pytest
 tests/.tests

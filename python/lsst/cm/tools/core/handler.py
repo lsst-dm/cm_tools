@@ -1,36 +1,17 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations
 
-from __future__ import annotations  # Needed for class member returning class
-
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+import types
+from typing import TYPE_CHECKING, Any, Optional
 
 import yaml
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import DbInterface
+    from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+    from lsst.cm.tools.db.common import CMTable
 
 
 class Handler:
@@ -42,16 +23,23 @@ class Handler:
     where particular database actions are taken.
     """
 
+    fullname_template = ""
+
     default_config: dict[str, Any] = {}
 
     handler_cache: dict[str, Handler] = {}
 
-    def __init__(self):
-        self._config_url = None
-        self._config = {}
+    config_block = ""
+
+    no_submit = False
+
+    def __init__(self) -> None:
+        self._config_url: Optional[str] = None
+        self._config: dict[str, Any] = {}
 
     @property
-    def config_url(self):
+    def config_url(self) -> Optional[str]:
+        """Return the url of the file with the handler configuration"""
         return self._config_url
 
     @staticmethod
@@ -81,268 +69,36 @@ class Handler:
         cached_handler = Handler.handler_cache.get(class_name)
         if cached_handler is None:
             handler_class = doImport(class_name)
-            cached_handler = handler_class()  # type: ignore
+            if isinstance(handler_class, types.ModuleType):
+                raise TypeError()
+            cached_handler = handler_class()
             Handler.handler_cache[class_name] = cached_handler
         cached_handler.update_config(config_url)
         return cached_handler
 
+    @classmethod
+    def get_fullname(cls, **kwargs: Any) -> str:
+        """Get a unique name for a particular database entry"""
+        return cls.fullname_template.format(**kwargs)
+
     @property
     def config(self) -> dict[str, Any]:
+        """Return the handler's configuration"""
         return self._config
 
     def get_handler_class_name(self) -> str:
-        """Return this classes full name"""
+        """Return this class's full name"""
         return get_full_type_name(self)
-
-    def get_insert_fields_hook(
-        self, level: LevelEnum, dbi: DbInterface, parent_db_id: DbId, **kwargs
-    ) -> dict[str, Any]:
-        """Get the fields needed to insert an entry into the database
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we are inserting into
-
-        dbi : DbInterface
-            Interface to the database we are inserting into
-
-        parent_db_id : DbId
-            Database ID for the parent entry to the one we are inserting
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes to compute insert field values
-
-        Returns
-        -------
-        insert_fields : dict[str, Any]
-            The fields and value to insert
-        """
-        raise NotImplementedError()
-
-    def post_insert_hook(
-        self,
-        level: LevelEnum,
-        dbi: DbInterface,
-        insert_fields: dict[str, Any],
-        **kwargs,
-    ) -> None:
-        """Called after inserting an entry into the database
-
-        Can be used to insert additional entries, i.e., children of this entry
-
-        Can also be used to do any actions associated to inserting this entry,
-        i.e., writing configuration files
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we inserted into
-
-        dbi : DbInterface
-            Interface to the database we intserted into
-
-        insert_fields : dict
-            List of fields and values that were inserted
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        raise NotImplementedError()
-
-    def prepare_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data, **kwargs,
-    ) -> list[DbId]:
-        """Called when preparing a database entry for execution
-
-        Can be used to prepare additional entries, for example,
-        the children of this entry.
-
-        Can also be used to do any actions associated to preparing this entry,
-        e.g., making TAGGED Butler collections
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            Current data for the entry we are preparing
-
-        Returns
-        -------
-        entries : list[DbId]
-            The entries that were prepared
-
-        Keywords
-        --------
-        Keywords can be used by sub-classes
-        """
-        raise NotImplementedError()
-
-    def prepare_script_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> Optional[int]:
-        """Called when preparing a database entry for execution
-
-        Can be used to prepare additional entries, for example,
-        the children of this entry.
-
-        Can also be used to do any actions associated to preparing this entry,
-        e.g., making TAGGED Butler collections
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            Current data for the entry we are preparing
-
-        Returns
-        -------
-        script_id : int
-            The id of the returned script
-        """
-        raise NotImplementedError()
-
-    def launch_workflow_hook(self, dbi: DbInterface, db_id: DbId, data):
-        """Launch a particular workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def check_workflow_status_hook(self, dbi: DbInterface, db_id: DbId, data) -> dict[str, Any]:
-        """Check the status of a particular workflow
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            The data associated to this entry
-
-        Returns
-        -------
-        update_fields : dict[str, Any]
-            Used to update the status of the workflow in question.
-        """
-        raise NotImplementedError()
-
-    def collection_hook(
-        self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data
-    ) -> dict[str, Any]:
-        """Called when all the childern of a particular entry are finished
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        itr : Iterable
-            Iterator over children of the entry we are updating
-
-        data : ???
-            The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def accept_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, itr: Iterable, data) -> None:
-        """Called when a particular entry is accepted
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def reject_hook(self, level: LevelEnum, dbi: DbInterface, db_id: DbId, data) -> None:
-        """Called when a particular entry is rejected
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specify which table we updated
-
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Database ID for this entry
-
-        data : ???
-            The data associated to this entry
-        """
-        raise NotImplementedError()
-
-    def fake_run_hook(
-        self, dbi: DbInterface, db_id: DbId, data, status: StatusEnum = StatusEnum.completed,
-    ) -> None:
-        """Pretend to run workflows, this is for testing
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we updated
-
-        db_id : DbId
-            Specifies the entries we are running
-
-        data :  ???
-            The data associated to this entry
-
-        status: StatusEnum
-            Status value to set
-        """
-        raise NotImplementedError()
 
     def _read_config(self, config_url: str) -> None:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
+        self._config = self.default_config.copy()
         with open(self._config_url, "rt", encoding="utf-8") as config_file:
-            self._config = yaml.safe_load(config_file)
+            read_config = yaml.safe_load(config_file)
+            my_block = read_config.get(self.config_block)
+            if my_block:
+                self._config.update(**my_block)
 
     def update_config(self, config_url: str) -> None:
         """Update this handler's configuration by reading a
@@ -358,7 +114,7 @@ class Handler:
             return
         self._read_config(config_url)
 
-    def get_config_var(self, varname: str, default: Any, **kwargs) -> Any:
+    def get_config_var(self, varname: str, default: Any, **kwargs: Any) -> Any:
         """Utility function to get a configuration parameter value
 
         Parameters
@@ -388,10 +144,10 @@ class Handler:
         return kwargs.get(varname, self.config.get(varname, default))
 
     @staticmethod
-    def get_kwarg_value(key: str, **kwargs) -> Any:
+    def get_kwarg_value(key: str, **kwargs: Any) -> Any:
         """Utility function to get a keyword value
 
-        Provides a more usefull error message if the keyword is not present
+        Provides a more useful error message if the keyword is not present
 
         Parameters
         ----------
@@ -413,21 +169,17 @@ class Handler:
             raise KeyError(f"Keyword {key} was not specified in {str(kwargs)}")
         return value
 
-    def resolve_templated_string(self, template_name: str, insert_fields: dict, **kwargs) -> str:
+    def resolve_templated_string(self, template_str: str, **kwargs: Any) -> str:
         """Utility function to return a string from a template using kwargs
 
         Parameters
         ----------
-        template_name : str
-            The name of the template requested, must be in self.config
-
-        insert_fields : dict
-            Fields used for most recent database insertion,
-            can be used in formatting
+        template_str : str
+            template to use
 
         Keywords
         --------
-        Keywords are also used in formating
+        These can be used in the formating
 
         Returns
         -------
@@ -439,33 +191,17 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        template_string = self.config.get(template_name, self.default_config.get(template_name))
-        format_vars = kwargs.copy()
-        format_vars.update(**insert_fields)
-        format_vars.update(**self.config)
         try:
-            return template_string.format(**format_vars)
-        except KeyError as msg:
-            raise KeyError(f"Failed to format {template_string} with {str(kwargs)}") from msg
+            return template_str.format(**kwargs)
+        except KeyError as msg:  # pragma: no cover
+            raise KeyError(f"Failed to format {template_str} with {str(kwargs)}") from msg
 
-    def resolve_templated_strings(
-        self, template_names: dict[str, str], insert_fields: dict, **kwargs
-    ) -> dict[str, Any]:
+    def resolve_templated_strings(self, **kwargs: Any) -> dict[str, Any]:
         """Utility function resolve a list of templated names
-
-        Parameters
-        ----------
-        template_names : dict[str, str]
-            Keys are the output keys, values are he names
-            of the template requested, which must be in self.config
-
-        insert_fields : dict
-            Fields used for most recent database insertion,
-            can be used in formatting
 
         Keywords
         --------
-        Keywords are also used in formating
+        These can be used in the formating
 
         Returns
         -------
@@ -477,7 +213,504 @@ class Handler:
         KeyError :
             The formatting failed
         """
-        return {
-            key_: self.resolve_templated_string(val_, insert_fields, **kwargs)
-            for key_, val_ in template_names.items()
-        }
+        template_names = self.config.get("templates", {})
+        return {key_: self.resolve_templated_string(val_, **kwargs) for key_, val_ in template_names.items()}
+
+
+class ScriptHandlerBase(Handler):
+    """Handler class for dealing with scripts
+
+    By scripts we mean small shell scripts that
+    are run to manipulate the collections in the
+    processing.
+
+    Some of these can take long enough that
+    we want to run them independently of
+    managing the database
+    """
+
+    config_block = "script"
+
+    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry the new script is associated with
+
+        Keywords
+        --------
+        These give the values we are inserting in the database
+
+        Returns
+        -------
+        new_entry : ScriptBase
+            The new entry
+        """
+        raise NotImplementedError()
+
+    def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
+        """Write the script to run a workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        parent: Any
+            The parent entry the script is associated with
+
+        script: ScriptBase
+            The database entry for the script
+
+        Keywords
+        --------
+        These can we used in writing the script
+        """
+        raise NotImplementedError()
+
+    def fake_run_hook(
+        self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Used for testing, falsely writes a log file that claims
+        script is completed
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        script: ScriptBase
+            The database entry for the script
+
+        status: StatusEnum
+            The status to set
+        """
+        raise NotImplementedError()
+
+    def run(self, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
+        """Run the script
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        script: ScriptBase
+            The database entry for the script
+
+        Returns
+        -------
+        status: StatusEnum
+            Status of the script
+        """
+        raise NotImplementedError()
+
+
+class JobHandlerBase(Handler):
+    """Handler class for dealing with jobs
+
+    By jobs we mean processing jobs that run
+    on batch systems
+    """
+
+    config_block = "job"
+
+    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> JobBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry the new script is associated with
+
+        Keywords
+        --------
+        These give the values we are inserting in the database
+
+        Returns
+        -------
+        new_entry : JobBase
+            The new entry
+        """
+        raise NotImplementedError()
+
+    def write_job_hook(self, dbi: DbInterface, parent: Any, job: JobBase, **kwargs: Any) -> None:
+        """Write the script to run a workflow
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        parent: Any
+            The parent entry the script is associated with
+
+        job: JobBase
+            The database entry for the job
+
+        Keywords
+        --------
+        These can we used in writing the job
+        """
+        raise NotImplementedError()
+
+    def fake_run_hook(
+        self, dbi: DbInterface, job: JobBase, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Used for testing, falsely writes a log file that claims
+        job is completed
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        job: JobBase
+            The database entry for the script
+
+        status: StatusEnum
+            The status to set
+        """
+        raise NotImplementedError()
+
+    def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
+        """Launched the job
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        job: JobBase
+            The database entry for the script
+
+        Returns
+        -------
+        status: StatusEnum
+            Status of the job
+        """
+        raise NotImplementedError()
+
+
+class EntryHandlerBase(Handler):
+    """Handler class for dealing with Campaigns, Steps and Groups
+
+    This collects the common functionality between them
+    """
+
+    default_config = dict(
+        coll_in_template="prod/{fullname}_input",
+        coll_out_template="prod/{fullname}_output",
+        coll_validate_template="prod/{fullname}_validate",
+    )
+
+    coll_template_names = dict(
+        coll_in="coll_in_template",
+        coll_out="coll_out_template",
+        coll_validate="coll_validate_template",
+    )
+
+    def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> CMTable:
+        """Insert a new database entry
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        parent: Any
+            The parent entry this entry is associated with
+
+        Keywords
+        --------
+        These give the values we are inserting in the database
+
+        Returns
+        -------
+        new_entry : CMTable
+            The new entry
+        """
+        raise NotImplementedError()
+
+    def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Prepare an entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def run(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Run an entry and any children
+
+        This actually just allow the children to run batch jobs.
+        It will not actually launch the jobs.
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def check(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Check this entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def collect(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Check this entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def validate(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Validate this entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def accept(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Accept this entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def reject(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Reject this entry and any children
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def coll_names(self, insert_fields: dict, **kwargs: Any) -> dict[str, str]:
+        """Called to get the name of the input and output collections
+
+        Parameters
+        ----------
+        insert_fields : dict
+            Fields used for most recent database insertion,
+            can be used in formatting
+
+        Returns
+        -------
+        coll_name_map : dict[str, Any]
+            Names of the input and output collections
+            and input and output types
+        """
+        coll_name_map = self.resolve_templated_strings(
+            **insert_fields,
+            **kwargs,
+        )
+        input_type = InputType[self.get_config_var("input_type", "source", **kwargs)]
+        output_type = OutputType[self.get_config_var("output_type", "run", **kwargs)]
+        if input_type == InputType.source:
+            coll_name_map.setdefault("coll_in", insert_fields.get("coll_source"))
+        coll_name_map.update(
+            input_type=input_type,
+            output_type=output_type,
+        )
+        return coll_name_map
+
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        """Called to set up scripts need to prepare an entry for execution
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry we are preparing
+
+        Returns
+        -------
+        scripts : list[ScriptBase]
+            The newly made scripts
+        """
+        raise NotImplementedError()
+
+    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        """Called when all the childern of a particular entry are finished
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry we are preparing
+
+        Returns
+        -------
+        scripts : list[ScriptBase]
+            The newly made scripts
+        """
+        raise NotImplementedError()
+
+    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        """Called to validate an entry once the results have been collected
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+
+        Returns
+        -------
+        scripts : list[ScriptBase]
+            The newly made scripts
+        """
+        raise NotImplementedError()
+
+    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
+        """Called to allow batch jobs to be run
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+
+        Returns
+        -------
+        job : list[JobBase]
+            The jobs that can be run
+        """
+        raise NotImplementedError()
+
+    def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
+        """Called when a particular entry is accepted
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+        """
+        raise NotImplementedError()
+
+    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+        """Called when a particular entry is rejected
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+        """
+        raise NotImplementedError()
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> None:
+        """Called to 'roll-back' a partiuclar entry
+
+        Calling this function will result in scripts and child entries
+        being marked as `superseeded`, and be ignored by further processing.
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+
+        to_status : StatusEnum
+            The status we want to roll back to
+        """
+        raise NotImplementedError()

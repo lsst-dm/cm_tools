@@ -1,58 +1,43 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import sys
+from typing import Any
 
 import pytest
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import DbId, DbInterface, ScriptBase, CMTableBase
-from lsst.cm.tools.core.grouper import Grouper
-from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.core.db_interface import CMTableBase, DbId, DbInterface, DependencyBase, ScriptBase
+from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, JobHandlerBase, ScriptHandlerBase
+from lsst.cm.tools.core.rollback import Rollback
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
+from lsst.cm.tools.db.group_handler import GroupHandler
+from lsst.cm.tools.db.script_handler import ScriptHandler
+from lsst.cm.tools.db.step_handler import StepHandler
 
 
-def test_bad_script():
+def test_bad_script() -> None:
     class BadScript(ScriptBase):
         pass
 
-    bad_script = BadScript()
-    with pytest.raises(NotImplementedError):
-        bad_script.check_status(None)
-
-
-def test_bad_cm_table():
-    class BadCMTable(CMTableBase):
+    class BadDbInterface(DbInterface):
         pass
 
-    bad_cm_table = BadCMTable()
-    null_db_id = DbId()
+    bad_db = BadDbInterface()
 
     with pytest.raises(NotImplementedError):
-        bad_cm_table.get_handler()
+        BadScript.insert_values(bad_db)
 
     with pytest.raises(NotImplementedError):
-        bad_cm_table.get_insert_fields(None, null_db_id)
+        BadScript.update_values(bad_db, 0)
+
+    with pytest.raises(NotImplementedError):
+        BadScript.check_status(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        BadScript.rollback_script(bad_db, None, None)
 
 
-def test_bad_db_interface():
+def test_bad_dependency() -> None:
+    class BadDependency(DependencyBase):
+        pass
+
     class BadDbInterface(DbInterface):
         pass
 
@@ -60,67 +45,58 @@ def test_bad_db_interface():
     null_db_id = DbId()
 
     with pytest.raises(NotImplementedError):
-        BadDbInterface.full_name(LevelEnum.production)
+        BadDependency.add_prerequisite(bad_db, null_db_id, null_db_id)
+
+
+def test_bad_cm_table() -> None:
+    class BadCMTableBase(CMTableBase):
+        pass
+
+    class BadDbInterface(DbInterface):
+        pass
+
+    bad_cm_table_base = BadCMTableBase()
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_repo(null_db_id)
+        bad_cm_table_base.get_handler()
+
+
+def test_bad_db_interface() -> None:
+    class BadDbInterface(DbInterface):
+        pass
+
+    bad_db = BadDbInterface()
+    null_db_id = DbId()
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_prod_base(null_db_id)
+        bad_db.connection()
 
     with pytest.raises(NotImplementedError):
         bad_db.get_db_id(LevelEnum.production)
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_row_id(LevelEnum.production)
+        bad_db.get_entry(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_status(LevelEnum.production, null_db_id)
+        bad_db.print_(sys.stdout, TableEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_prerequisites(LevelEnum.production, null_db_id)
+        bad_db.print_table(sys.stdout, TableEnum.production)
 
     with pytest.raises(NotImplementedError):
-        bad_db.get_script(0)
+        bad_db.check(TableEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.print_(sys.stdout, LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.print_table(sys.stdout, LevelEnum.production)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.count(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.update(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.check(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.get_data(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.get_iterable(LevelEnum.production, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.add_prerequisite(null_db_id, null_db_id)
-
-    with pytest.raises(NotImplementedError):
-        bad_db.add_script()
-
-    with pytest.raises(NotImplementedError):
-        bad_db.insert(LevelEnum.production, null_db_id, None)
+        bad_db.insert(null_db_id, None)
 
     with pytest.raises(NotImplementedError):
         bad_db.prepare(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.queue_workflows(LevelEnum.production, null_db_id)
+        bad_db.queue_jobs(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
-        bad_db.launch_workflows(LevelEnum.production, null_db_id, 100)
+        bad_db.launch_jobs(LevelEnum.production, null_db_id, 100)
 
     with pytest.raises(NotImplementedError):
         bad_db.accept(LevelEnum.production, null_db_id)
@@ -129,28 +105,16 @@ def test_bad_db_interface():
         bad_db.reject(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
+        bad_db.rollback(LevelEnum.production, null_db_id, StatusEnum.waiting)
+
+    with pytest.raises(NotImplementedError):
         bad_db.fake_run(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.daemon(null_db_id)
 
 
-def test_bad_grouper():
-    class BadDbInterface(DbInterface):
-        pass
-
-    class BadGrouper(Grouper):
-        pass
-
-    bad_db = BadDbInterface()
-    null_db_id = DbId()
-    bad_grouper = BadGrouper()
-
-    with pytest.raises(NotImplementedError):
-        bad_grouper({}, bad_db, null_db_id, None)
-
-
-def test_bad_checker():
+def test_bad_checker() -> None:
     class BadChecker(Checker):
         pass
 
@@ -159,56 +123,145 @@ def test_bad_checker():
     with pytest.raises(NotImplementedError):
         bad_checker.check_url(None, StatusEnum.ready)
 
+    with pytest.raises(TypeError):
+        Checker.get_checker("lsst.cm.tools.core")
 
-def test_bad_handler():
+
+def test_bad_rollback() -> None:
+    class BadRollback(Rollback):
+        pass
+
+    bad_rollback = BadRollback()
+
+    with pytest.raises(NotImplementedError):
+        bad_rollback.rollback_script(None, None)
+
+
+def test_bad_handler() -> None:
     class BadDbInterface(DbInterface):
         pass
 
+    bad_db = BadDbInterface()
+
     class BadHandler(Handler):
         @classmethod
-        def bad_get_kwarg(cls):
+        def bad_get_kwarg(cls) -> Any:
             return cls.get_kwarg_value("bad")
 
-        def bad_resolve_templated(self):
+        def bad_resolve_templated(self) -> None:
             self.config["bad_template"] = "{missing}"
-            self.resolve_templated_string("bad_template", {})
+            self.resolve_templated_string("bad_template")
 
-    bad_db = BadDbInterface()
-    null_db_id = DbId()
-    bad_handler = BadHandler()
+    with pytest.raises(TypeError):
+        Handler.get_handler("lsst.cm.tools.core.handler", "dummy.yaml")
 
     with pytest.raises(KeyError):
         BadHandler.bad_get_kwarg()
 
-    with pytest.raises(KeyError):
-        bad_handler.bad_resolve_templated()
+    class BadScriptHandlerBase(ScriptHandlerBase):
+        pass
+
+    bad_script_handler_base = BadScriptHandlerBase()
 
     with pytest.raises(NotImplementedError):
-        bad_handler.get_insert_fields_hook(LevelEnum.production, bad_db, null_db_id)
+        bad_script_handler_base.insert(bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.post_insert_hook(LevelEnum.production, bad_db, {})
+        bad_script_handler_base.write_script_hook(bad_db, None, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.prepare_hook(LevelEnum.production, bad_db, null_db_id, None)
+        bad_script_handler_base.fake_run_hook(bad_db, None, StatusEnum.waiting)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.prepare_script_hook(LevelEnum.production, bad_db, null_db_id, None)
+        bad_script_handler_base.run(bad_db, None)
+
+    class BadJobHandlerBase(JobHandlerBase):
+        pass
+
+    bad_job_handler_base = BadJobHandlerBase()
 
     with pytest.raises(NotImplementedError):
-        bad_handler.launch_workflow_hook(bad_db, null_db_id, None)
+        bad_job_handler_base.insert(bad_db, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.check_workflow_status_hook(bad_db, null_db_id, None)
+        bad_job_handler_base.write_job_hook(bad_db, None, None)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.collection_hook(LevelEnum.production, bad_db, null_db_id, [], None)
+        bad_job_handler_base.fake_run_hook(bad_db, None, StatusEnum.waiting)
 
     with pytest.raises(NotImplementedError):
-        bad_handler.accept_hook(LevelEnum.production, bad_db, null_db_id, [], None)
+        bad_job_handler_base.launch(bad_db, None)
+
+    class BadScriptHandler(ScriptHandler):
+        pass
+
+    bad_script_handler = BadScriptHandler()
 
     with pytest.raises(NotImplementedError):
-        bad_handler.reject_hook(LevelEnum.production, bad_db, null_db_id, [])
+        bad_script_handler.get_coll_out_name(None)
+
+    class BadEntryHandler(EntryHandlerBase):
+        pass
+
+    bad_entry_handler = BadEntryHandler()
 
     with pytest.raises(NotImplementedError):
-        bad_handler.fake_run_hook(bad_db, null_db_id, None)
+        bad_entry_handler.insert(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.prepare(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.check(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.collect(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.validate(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.accept(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.reject(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.run(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.rollback(bad_db, None, StatusEnum.waiting)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.prepare_script_hook(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.collect_script_hook(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.validate_script_hook(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.accept_hook(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.run_hook(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.reject_hook(bad_db, None)
+
+    class BadGroupHandler(GroupHandler):
+        pass
+
+    bad_group_handler = BadGroupHandler()
+
+    with pytest.raises(NotImplementedError):
+        bad_group_handler.make_workflow_handler()
+
+    class BadStepHandler(StepHandler):
+        pass
+
+    bad_step_handler = BadStepHandler()
+
+    with pytest.raises(NotImplementedError):
+        bad_step_handler.group_iterator(bad_db, None)

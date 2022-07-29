@@ -1,54 +1,172 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations
 
-from __future__ import annotations  # Needed for class member returning class
-
-from collections.abc import Iterable
-from typing import Any, Optional, TextIO
+from typing import Any, TextIO
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 
 
-class ScriptBase:
+class TableBase:
+    """Base class for database table interface
 
-    def check_status(self, conn) -> StatusEnum:
-        raise NotImplementedError()
+    Provided interface to insert and update entries
+    """
 
+    @classmethod
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
+        """Insert a new entry to a table
 
-class CMTableBase:
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
 
-    def get_handler(self) -> Handler:
+        Keywords
+        --------
+        Give the values to insert
+
+        Returns
+        -------
+        new_entry : Any
+            The newly inserted entry
+        """
         raise NotImplementedError()
 
     @classmethod
-    def get_insert_fields(cls, handler, parent_db_id: DbId, **kwargs) -> dict[str, Any]:
+    def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> None:
+        """Update the values in an entry
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        row_id : int
+            The id of the entry we are updating
+
+        Keywords
+        --------
+        Give the values to update
+
+        """
+        raise NotImplementedError()
+
+
+class ScriptBase(TableBase):
+    """Interface class for database entries describing Scripts and Jobs
+
+    Scripts are command that run locally, but potentially
+    asynchronously.
+
+    Jobs are commands that run on a batch system
+
+    This will require the derived class to implement
+    a `check_status` method to check on the status of the script
+    and a `rollback_script` method to clean up failed scripts
+    """
+
+    script_url = ""
+    log_url = ""
+    id = -1
+
+    @classmethod
+    def check_status(cls, dbi: DbInterface, entry: ScriptBase) -> StatusEnum:
+        """Check the status of a script
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        entry : ScriptBase
+            The entry in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the script in question
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def rollback_script(cls, dbi: DbInterface, entry: Any, script: ScriptBase) -> None:
+        """Called when a particular entry is rejected
+
+        Calling this function will result in the script
+        being marked as `superseeded`, and be ignored by further processing.
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry associated to the script
+
+        script : ScriptBase
+            The script we are rolling back
+        """
+        raise NotImplementedError()
+
+
+class JobBase(ScriptBase):
+    """Interface class for database entries describing Jobs
+
+    This will require the derived class to implement
+    a `check_status` method to check on the status of the script
+    and a `rollback_job` method to clean up failed jobs
+    """
+
+
+class DependencyBase:
+    """Interface class for database entries describing Dependencies"""
+
+    @classmethod
+    def add_prerequisite(cls, dbi: DbInterface, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
+        """Add a Dependency
+
+        This will prevent depend_id from running until
+        prereq_id is accepted
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        depend_id : DbId
+            DbId of the dependent entry
+
+        prereq_id : DbId
+            DbId of the prerequisite entry
+
+        Returns
+        -------
+        depend : DependencyBase
+            The newly create dependency
+        """
+        raise NotImplementedError()
+
+
+class CMTableBase(TableBase):
+    """Interface class for database entries describing parts of
+    the data processing
+
+    This will require the derived class to implement
+    a `get_handler` method to get a callback handler,
+    and a `get_insert_fields` method to populate
+    the fields need to make a new entry in the associated table.
+    """
+
+    def get_handler(self) -> Handler:
+        """Return the associated callback `Handler`"""
         raise NotImplementedError()
 
 
 class DbInterface:
     """Base class for database interface
 
-    Many of the interface function here take a DbId an an argument.
+    Many of the interface functions here take a DbId argument.
     This can specify either a single database entry, or all of the
     entries in a given table with a particular parent.
 
@@ -60,58 +178,11 @@ class DbInterface:
     requested operation.
     """
 
-    @classmethod
-    def full_name(cls, level: LevelEnum, **kwargs) -> str:
-        """Utility function to return a full name
-        associated to a database entry
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Specifies which table we are refering to
-
-        Keywords
-        --------
-        These are used to build the full name, see class notes.
-
-        Returns
-        -------
-        fullname : str
-            Unique string desribing this database entry
-        """
+    def connection(self) -> Any:
+        """Return the database connection object"""
         raise NotImplementedError()
 
-    def get_repo(self, db_id: DbId) -> str:
-        """Return the data repository for a given campaign
-
-        Parameters
-        ----------
-        db_id : DbId
-            The database ID used to identify the campaign
-
-        Returns
-        -------
-        repo : str
-            Url for the data repository
-        """
-        raise NotImplementedError()
-
-    def get_prod_base(self, db_id: DbId) -> str:
-        """Return the URL for the production area for a given campaign
-
-        Parameters
-        ----------
-        db_id : DbId
-            The database ID used to identify the campaign
-
-        Returns
-        -------
-        repo : str
-            Url for the root of the production area
-        """
-        raise NotImplementedError()
-
-    def get_db_id(self, level: LevelEnum, **kwargs) -> DbId:
+    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
         """Return an id that identifies one or more database entries
 
         Parameters
@@ -127,34 +198,12 @@ class DbInterface:
         Returns
         -------
         db_id : DbId
-            The request database ID
+            The requested database ID
         """
         raise NotImplementedError()
 
-    def get_row_id(self, level: LevelEnum, **kwargs) -> int:
-        """Return the primary key of a particular row in the database
-
-         Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        Keywords
-        --------
-        These are used to sub-select a single matching row
-        in the selected table.
-        See class notes above.
-
-        Returns
-        -------
-        row_id : int
-            The primary key of the selected row
-        """
-        db_id = self.get_db_id(level, **kwargs)
-        return db_id[level]
-
-    def get_status(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
-        """Return the status of a selected entry
+    def get_entry(self, level: LevelEnum, db_id: DbId) -> CMTableBase:
+        """Return a selected entry
 
         Parameters
         ----------
@@ -167,41 +216,8 @@ class DbInterface:
 
         Returns
         -------
-        status : StatusEnum
-            Status of the selected entry
-        """
-        raise NotImplementedError()
-
-    def get_prerequisites(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Return the prerequisites of a selected entry
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Selects which database table to search
-
-        db_id : DbId
-            Database ID specifying which row to select.
-            See class notes above.
-
-        Returns
-        -------
-        prerequisites : list[DbId]
-            Prerequisites for the selected entry
-        """
-        raise NotImplementedError()
-
-    def get_script(self, script_id: int) -> ScriptBase:
-        """Return the info about a selected script
-
-        Parameters
-        ----------
-        script_id : int
-            The id for the selected script
-
-        Returns
-        -------
-        script_data :
+        entry : CMTableBase
+            Selected entry
         """
         raise NotImplementedError()
 
@@ -214,7 +230,7 @@ class DbInterface:
             The stream we will print to
 
         level: LevelEnum
-            Selects which database table to print from
+            Selects which database table to print
 
         db_id: DbId
             Database ID specifying which entries to print.
@@ -222,7 +238,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_table(self, stream: TextIO, level: LevelEnum) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum) -> None:
         """Print a database table
 
         Parameters
@@ -230,50 +246,30 @@ class DbInterface:
         stream : TextIO
             The stream we will print to
 
-        level: LevelEnum
+        which_table: TableEnum
             Selects which database table to print
         """
         raise NotImplementedError()
 
-    def count(self, level: LevelEnum, db_id: Optional[DbId]) -> int:
-        """Count the number of database entries matching conditions
+    def print_tree(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        """Print a database table from a given entry
+        in a tree-like format
 
         Parameters
         ----------
+        stream : TextIO
+            The stream we will print to
+
         level: LevelEnum
-            Selects which database table to search
+            Selects which database table to start with
 
         db_id: DbId
-            Database ID specifying which entries to count.
+            Database ID specifying which entries to print.
             See class notes above.
-
-        Returns
-        -------
-        count : int
-            The number of selected rows
         """
         raise NotImplementedError()
 
-    def update(self, level: LevelEnum, db_id: DbId, **kwargs) -> None:
-        """Update a particular database entry
-
-        Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        db_id: DbId
-            Database ID specifying which entry to update.
-            See class notes above.
-
-        Keywords
-        --------
-        These are passed to the handler which can use
-        them to derive the values for the fields to update.
-        """
-        raise NotImplementedError()
-
-    def check(self, level: LevelEnum, db_id: DbId, recurse: bool = False, counter: int = 2) -> None:
+    def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Check all database entries at a particular level
 
         Parameters
@@ -284,106 +280,19 @@ class DbInterface:
         db_id : DbId
             Selects which entries to check
 
-        recurse : bool
-            If true, will recursively check childern
-
-        counter : int
-            Number of times to run check
         """
         raise NotImplementedError()
 
-    def get_data(self, level: LevelEnum, db_id: DbId):
-        """Return data in matching database entries
-
-        Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        db_id : DbId
-            Selects which entries to return
-
-        Returns
-        -------
-        data : ???
-            The matching data
-        """
-        raise NotImplementedError()
-
-    def get_iterable(self, level: LevelEnum, db_id: DbId) -> Iterable:
-        """Return an iterator over the matching database entries
-
-        Parameters
-        ----------
-        level: LevelEnum
-            Selects which database table to search
-
-        db_id : DbId
-            Selects which entries to include
-
-        Returns
-        -------
-        itr : iterator
-            Iterator over the matching rows
-        """
-        raise NotImplementedError()
-
-    def add_prerequisite(self, depend_id: DbId, prereq_id: DbId) -> None:
-        """Add a prerequisite to
-
-        Parameters
-        ----------
-        depend_id : DbId
-            The dependent entry
-
-        prereq_id : DbId
-            The prerequiste entry
-        """
-        raise NotImplementedError()
-
-    def add_script(
-        self,
-        script_url: Optional[str] = None,
-        log_url: Optional[str] = None,
-        checker: Optional[str] = None,
-        status: Optional[StatusEnum] = StatusEnum.ready,
-    ) -> int:
-        """Insert a new row with details about a script
-
-        Parameters
-        ----------
-        script_url: str
-            The location of the script
-
-        log_url: str
-            The location of the log
-            (which can be checked to set the script status)
-
-        checker : str
-            Fully defined path to a class to check the status of the script
-
-        status : StatusEnum
-            Status of the script
-
-        Returns
-        -------
-        script_id : int
-            The ID for the new script
-        """
-        raise NotImplementedError()
-
-    def insert(
-        self, level: LevelEnum, parent_db_id: DbId, handler: Handler, **kwargs
-    ) -> dict[str, Any]:
+    def insert(self, parent_db_id: DbId, handler: Handler, **kwargs: Any) -> CMTableBase:
         """Insert a new database entry at a particular level
 
         Parameters
         ----------
-        level : LevelEnum
-            Selects which database table to search
-
         parent_db_id : DbId
             Specifies the parent entry to the entry we are inserting
+
+        handler : Handler
+            The callback handler for the entry we are inserting
 
         Keywords
         --------
@@ -393,13 +302,13 @@ class DbInterface:
 
         Returns
         -------
-        insert_fields : dict[str, Any]:
-            The keys and values being inserted into the new entry
+        new_entry : CMTableBase
+            The new entry
         """
         raise NotImplementedError()
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs) -> list[DbId]:
-        """Preparing a database entry for execution
+    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
+        """Prepare a database entry for execution
 
         Parameters
         ----------
@@ -416,12 +325,12 @@ class DbInterface:
 
         Keywords
         --------
-,         Keywords can be used in recursion
+        Keywords can be based to the callback handler
         """
         raise NotImplementedError()
 
-    def queue_workflows(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Queue all the ready workflows matching the selection
+    def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        """Queue all the ready jobs matching the selection
 
         Parameters
         ----------
@@ -438,8 +347,8 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def launch_workflows(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
-        """Launch all the pending workflows matching the selection
+    def launch_jobs(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
+        """Launch all the pending jobs matching the selection
 
         Parameters
         ----------
@@ -450,7 +359,7 @@ class DbInterface:
             Specifies the entries we are queuing
 
         max_running: int
-            Maximum number of running workflows
+            Maximum number of running jobs
 
         Returns
         -------
@@ -459,9 +368,8 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def accept(self, level: LevelEnum, db_id: DbId, recurse: bool = True) -> list[DbId]:
-        """Accept all the completed or part_fail
-        entries at a particular level
+    def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        """Accept completed entries at a particular level
 
         Parameters
         ----------
@@ -479,8 +387,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def reject(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
-        """Reject all the completed or part_fail
-        entries at a particular level
+        """Reject entries at a particular level
 
         Parameters
         ----------
@@ -488,7 +395,7 @@ class DbInterface:
             Selects which database table to search
 
         db_id : DbId
-            Specifies the entries we are accepting
+            Specifies the entries we are rejecting
 
         Returns
         -------
@@ -497,11 +404,35 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def fake_run(self, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
+    def rollback(self, level: LevelEnum, db_id: DbId, to_status: StatusEnum) -> list[DbId]:
+        """Roll-backl entries at a particular level
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are rolling back
+
+        to_status: StatusEnum
+            The status we are rolling back to
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were rolled back
+        """
+        raise NotImplementedError()
+
+    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
         """Pretend to run workflows, this is for testing
 
         Parameters
         ----------
+        level: LevelEnum
+           Selects which database table to search
+
         db_id : DbId
             Specifies the entries we are running
 
