@@ -87,6 +87,8 @@ class ScriptHandler(ScriptHandlerBase):
         dbi: DbInterface,
         script: ScriptBase,
     ) -> StatusEnum:
+        if self.no_submit:
+            return StatusEnum.running
         if script.script_method != ScriptMethod.no_script:
             os.system(f"source {script.script_url}")
         status = StatusEnum.running

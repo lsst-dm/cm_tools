@@ -52,6 +52,8 @@ echo_option = MWOptionDecorator("--echo", help="Echo DB commands", is_flag=True)
 
 recurse_option = MWOptionDecorator("--recurse", help="Recurvisely execute command", is_flag=True)
 
+nosubmit_option = MWOptionDecorator("--no-submit", help="Don't submit jobs and scripts", is_flag=True)
+
 level_option = MWOptionDecorator(
     "--level",
     default="group",

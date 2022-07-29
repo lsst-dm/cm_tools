@@ -31,6 +31,8 @@ class Handler:
 
     config_block = ""
 
+    no_submit = False
+
     def __init__(self) -> None:
         self._config_url: Optional[str] = None
         self._config: dict[str, Any] = {}

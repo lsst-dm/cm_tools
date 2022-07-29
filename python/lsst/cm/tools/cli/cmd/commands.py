@@ -12,6 +12,7 @@ from lsst.cm.tools.cli.opt.options import (
     handler_option,
     level_option,
     max_running_option,
+    nosubmit_option,
     prod_base_option,
     production_option,
     step_option,
@@ -58,9 +59,11 @@ def cm_create(**kwargs: Any) -> None:
 @handler_option()
 @config_option()
 @db_option()
+@nosubmit_option()
 @echo_option()
 def cm_insert(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     config_yaml = all_args.pop("config_yaml")
@@ -126,9 +129,11 @@ def cm_print_table(**kwargs: Any) -> None:
 @step_option()
 @group_option()
 @db_option()
+@nosubmit_option()
 @echo_option()
 def cm_prepare(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
@@ -167,9 +172,11 @@ def cm_queue(**kwargs: Any) -> None:
 @group_option()
 @db_option()
 @echo_option()
+@nosubmit_option()
 @max_running_option()
 def cm_launch(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
@@ -184,13 +191,14 @@ def cm_launch(**kwargs: Any) -> None:
 @step_option()
 @group_option()
 @db_option()
+@nosubmit_option()
 @echo_option()
 def cm_check(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-
     iface.check(the_level, the_db_id)
 
 
@@ -201,9 +209,11 @@ def cm_check(**kwargs: Any) -> None:
 @step_option()
 @group_option()
 @db_option()
+@nosubmit_option()
 @echo_option()
 def cm_accept(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
@@ -217,9 +227,11 @@ def cm_accept(**kwargs: Any) -> None:
 @step_option()
 @group_option()
 @db_option()
+@nosubmit_option()
 @echo_option()
 def cm_reject(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
@@ -248,9 +260,11 @@ def cm_fake_run(**kwargs: Any) -> None:
 @campaign_option()
 @db_option()
 @echo_option()
+@nosubmit_option()
 @max_running_option()
 def cm_daemon(**kwargs: Any) -> None:
     all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
     max_running = all_args.pop("max_running")
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_db_id = iface.get_db_id(LevelEnum.campaign, **all_args)
