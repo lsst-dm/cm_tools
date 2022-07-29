@@ -591,7 +591,7 @@ class EntryHandlerBase(Handler):
         input_type = InputType[self.get_config_var("input_type", "source", **kwargs)]
         output_type = OutputType[self.get_config_var("output_type", "run", **kwargs)]
         if input_type == InputType.source:
-            coll_name_map.setdefault("coll_in", kwargs.get("coll_source"))
+            coll_name_map.setdefault("coll_in", insert_fields.get("coll_source"))
         coll_name_map.update(
             input_type=input_type,
             output_type=output_type,

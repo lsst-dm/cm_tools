@@ -13,8 +13,8 @@ step:
     input_type: source
     output_type: chained
     templates:
-         coll_out: "{root_coll}/{fullname}_ouput"
-         coll_validate: "{root_coll}/{fullname}_validate"
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
 group:
     input_type: tagged
     output_type: chained
