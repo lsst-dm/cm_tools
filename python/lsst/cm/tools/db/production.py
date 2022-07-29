@@ -29,10 +29,12 @@ class Production(common.Base, common.CMTable):
 
     @hybrid_property
     def p_id(self) -> Any:
+        """Maps id to p_id for consistency"""
         return self.id
 
     @hybrid_property
     def fullname(self) -> Any:
+        """Maps name to fullname for consistency"""
         return self.name
 
     def __repr__(self) -> str:

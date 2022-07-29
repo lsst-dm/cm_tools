@@ -148,24 +148,99 @@ class TableEnum(enum.Enum):
 
 
 class InputType(enum.Enum):
+    """Defines how an entry deals with input data
+
+    The data source location `coll_source` must provided, either
+    from the configuration, or as an input from the parent entry
+
+    This will control how `coll_input` is set.
+
+    The options are:
+
+    source = 0
+       Use the source collection as the input collection.
+
+    tagged = 1
+        Make a TAGGED collection by copying from the source
+        collection.  In this case `data_query` can be used
+        to reduce the input data.
+
+    chained = 1
+        Make a CHAINED collection connecting `coll_in`
+        to `coll_source`
+    """
+
     source = 0  # Use the source collection
     tagged = 1  # Make a TAGGED collection
-    chained = 1  # Make a CHAINED collection
+    chained = 2  # Make a CHAINED collection
 
 
 class OutputType(enum.Enum):
+    """Defines how an entry deals with output data
+
+    This defines how to collect data from the children of
+    the entry in question.
+
+    The child entries must have `coll_out` defined.
+
+    This will control how `coll_output` is set
+
+    The options are:
+
+    run = 0
+        The children ran direction into `coll_out`.  No need to do
+        anything.
+
+    tagged = 1
+        Make a TAGGED collection by copying from the children.
+        collection.  In this case `data_query` can be used
+        to reduce the input data.
+
+    chained = 2
+        Make a CHAINED collection collect the data from the
+        children
+    """
+
     run = 0  # Write directly to a RUN collection
     tagged = 1  # Collect results into a TAGGED collection
     chained = 2  # Collect results into a CHAINED collection
 
 
 class ScriptType(enum.Enum):
-    prepare = 0  # Called before the workflow is run
-    collect = 1  # Called after the workflows have been run
-    validate = 2  # Called after collection
+    """Defines when scripts get called.
+
+    This depends on what the scripts do.
+    The options are:
+
+    prepare = 0
+        Called before the workflow is run to prepare the input collection
+
+    collect = 1
+        Called after the workflows have been run to collect
+        collections into a single output collection
+
+    validate = 2
+        Called after collection on the output collection to validate it
+    """
+
+    prepare = 0
+    collect = 1
+    validate = 2
 
 
 class ScriptMethod(enum.Enum):
+    """Defines how to run a script
+
+    no_script = 0
+        No actual script, just a placeholder for using python
+        to manipulate the input collection
+
+    bash = 1
+        Bash script, just run the script using a system call
+
+    More methods to come...
+    """
+
     no_script = 0  # No actual script, just a placeholder
     bash = 1  # Bash script
 

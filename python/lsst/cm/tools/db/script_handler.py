@@ -95,6 +95,18 @@ class ScriptHandler(ScriptHandlerBase):
         return status
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
+        """Get the name of the output collection of this script
+
+        Parameters
+        ----------
+        parent : Any
+            The parent entry for the script
+
+        Returns
+        -------
+        coll_out : str
+            The name of the output collection
+        """
         raise NotImplementedError()
 
 

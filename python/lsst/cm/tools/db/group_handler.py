@@ -92,4 +92,8 @@ class GroupHandler(EntryHandler):
         return db_id_list
 
     def make_workflow_handler(self) -> WorkflowHandler:
+        """Return a WorkflowHandler to manage the
+        Workflows associated with the Groups managed by this
+        handler
+        """
         raise NotImplementedError()

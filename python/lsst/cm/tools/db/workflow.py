@@ -53,23 +53,28 @@ class Workflow(common.Base, common.CMTable):
 
     @hybrid_property
     def butler_repo(self) -> Any:
+        """Direct access to the butler_repo URL, for convinience"""
         return self.c_.butler_repo
 
     @hybrid_property
     def prod_base_url(self) -> Any:
+        """Direct access to the production area URL, for convinience"""
         return self.c_.prod_base_url
 
     @hybrid_property
     def parent_id(self) -> Any:
+        """Maps g_id to parent_id for consistency"""
         return self.g_id
 
     def __repr__(self) -> str:
         return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     def print_tree(self, stream: TextIO) -> None:
+        """Print entry in tree-like format"""
         stream.write(f"  {self}\n")
         for job in self.jobs_:
             stream.write(f"    -{job}\n")
 
     def sub_iterators(self) -> list[Iterable]:
+        """Iterators over sub-entries, used for recursion"""
         return []

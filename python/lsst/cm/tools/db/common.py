@@ -39,6 +39,7 @@ class SQLTableMixin:
         conn.commit()
 
     def check_prerequistes(self, dbi: DbInterface) -> bool:
+        """Check the prerequisites of an entry"""
         for dep_ in self.depend_:
             entry = dbi.get_entry(dep_.db_id.level(), dep_.db_id)
             if entry.status.value < StatusEnum.accepted.value:
@@ -57,10 +58,12 @@ class SQLScriptMixin(SQLTableMixin):
     status: StatusEnum
 
     def get_handler(self) -> Handler:
+        """Return a Handler for this entry"""
         return Handler.get_handler(self.handler, self.config_yaml)
 
     @classmethod
     def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+        """Check the status of a script"""
         current_status = entry.status
         checker = Checker.get_checker(entry.checker)
         new_status = checker.check_url(entry.stamp_url, entry.status)

@@ -54,12 +54,14 @@ class Campaign(common.Base, common.CMTable):
 
     @hybrid_property
     def parent_id(self) -> Any:
+        """Maps p_id to parent_id for consistency"""
         return self.p_id
 
     def __repr__(self) -> str:
         return f"Campaign {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     def print_tree(self, stream: TextIO) -> None:
+        """Print entry in tree-like format"""
         stream.write(f"{self}\n")
         for script in self.scripts_:
             stream.write(f"  -{script}\n")
@@ -67,8 +69,10 @@ class Campaign(common.Base, common.CMTable):
             step.print_tree(stream)
 
     def children(self) -> Iterable:
+        """Maps self.s_ to self.children() for consistency"""
         for step in self.s_:
             yield step
 
     def sub_iterators(self) -> list[Iterable]:
+        """Iterators over sub-entries, used for recursion"""
         return [self.w_, self.g_, self.s_]

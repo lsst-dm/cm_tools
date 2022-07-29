@@ -79,12 +79,23 @@ def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> np.ndarray
 
 def extract_job_status(itr: Iterable) -> np.ndarray:
     """Return the status of all children in an array"""
-    return np.array([x.status.value for x in itr])
+    return np.array([x.status.value for x in itr if not x.superseeded])
 
 
 def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
-    """Check the status of childern of a given row
-    and return a status accordingly"""
+    """Check the status of childern of a given entry
+    and return a status accordingly
+
+    Notes
+    -----
+    When an entry is waiting on children, it's status will only
+    vary between a couple of states, but the status of the children
+    can vary a lot more.
+
+    The `min_status` and `max_status` parameters allow this
+    function to return values that are consistent with the
+    parent status.
+    """
     child_status = extract_child_status(entry.children())
     if not child_status.size:  # pragma: no cover
         raise ValueError("Where have the children gone?")
@@ -98,6 +109,8 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
     """Check the status all the scripts of a given type"""
     for script in scripts:
         if script.script_type != script_type:
+            continue
+        if script.superseeded:
             continue
         Script.check_status(dbi, script)
     scripts_status = extract_scripts_status(scripts, script_type)
@@ -116,7 +129,10 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
 
 
 def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
+    """Check the status of a set of jobs"""
     for job in jobs:
+        if job.superseeded:
+            continue
         Job.check_status(dbi, job)
     job_status = extract_job_status(jobs)
     assert job_status.size
@@ -132,7 +148,7 @@ def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
 
 
 def check_prepare_scripts(dbi: DbInterface, entry: Any) -> StatusEnum:
-    """Check the status prepare scripts for one entry"""
+    """Check the status of the prepares scripts for one entry"""
     script_status = check_scripts(dbi, entry.scripts_, ScriptType.prepare)
     return prepare_script_status_map[script_status]
 
@@ -150,12 +166,29 @@ def check_validation_scripts(dbi: DbInterface, entry: Any) -> StatusEnum:
 
 
 def check_running_jobs(dbi: DbInterface, workflow: Workflow) -> StatusEnum:
-    """Check the status the workflow for one entry"""
+    """Check the status of the jobs for one workflow"""
     workflow_status = check_jobs(dbi, workflow.jobs_)
     return workflow_status_map[workflow_status]
 
 
 def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
+    """Check the status of a given entry, and take any
+    possible actions to continue processing that entry
+
+    This will continue checking this entry until:
+
+    1. the entry is marked as rejected or failed,
+
+    2. the entry is marked as accepted,
+
+    3. the entry is marked as reviewable, which will
+    require someone to actually review it,
+
+    4. the entry is stays in the same status through
+    and entire cycle, typically this is because it
+    is waiting on some asynchronous event, such as jobs
+    processing.
+    """
     current_status = entry.status
     new_status = current_status
 
@@ -208,6 +241,7 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
 
 
 def check_entries(dbi: DbInterface, itr: Iterable) -> list[DbId]:
+    """Check the status of a set of entries"""
     db_id_list = []
     for entry in itr:
         db_id_list += check_entry(dbi, entry)
@@ -215,6 +249,14 @@ def check_entries(dbi: DbInterface, itr: Iterable) -> list[DbId]:
 
 
 def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Prepare an entry for processing
+
+    This will take an entry from
+    `StatusEnum.waiting` or `StatusEnum.ready`
+
+    `StatusEnum.preparing` if the prepare scripts are run asynchronously
+    `StatusEnum.prepared` if the prepare scripts completed
+    """
     if entry.status == StatusEnum.waiting:
         if not entry.check_prerequistes(dbi):
             return []
@@ -232,10 +274,20 @@ def prepare_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
 
 
 def run_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Mark that an entry is processing
+
+    This will take an entry from
+    `StatusEnum.prepared` or `StatusEnum.running`
+
+    This doesn't actually submit to the batch farm, as that
+    needs to be throttled, but it does allow for jobs associated
+    with the entry to be submitted.
+    """
     return handler.run_hook(dbi, entry)
 
 
 def run_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+    """Call run_entry on all the children of given entry"""
     db_id_list: list[DbId] = []
     for child in children:
         if child.status != StatusEnum.prepared:
@@ -246,6 +298,14 @@ def run_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 
 def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Collect the data from the children of an entry
+
+    This will take an entry from
+    `StatusEnum.collectable` to
+
+    `StatusEnum.collecting` if the collect scripts are run asynchronously
+    `StatusEnum.completed` if the collect scripts are completed
+    """
     assert entry.status == StatusEnum.collectable
     collect_scripts = handler.collect_script_hook(dbi, entry)
     if collect_scripts:
@@ -257,6 +317,7 @@ def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
 
 
 def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+    """Call collect_entry on all the children of given entry"""
     db_id_list: list[DbId] = []
     for child in children:
         if child.status != StatusEnum.collectable:
@@ -267,6 +328,15 @@ def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 
 def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Run the validation scripts for an entry
+
+    This will take an entry from
+    `StatusEnum.completed` to
+
+    `StatusEnum.validating` if the validation scripts are run asynchronously
+    `StatusEnum.accepted` if the validation scripts are completed
+    """
+
     assert entry.status == StatusEnum.completed
     validate_scripts = handler.validate_script_hook(dbi, entry)
     if validate_scripts:
@@ -278,6 +348,7 @@ def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]
 
 
 def validate_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+    """Call validate_entry on all the children of given entry"""
     db_id_list: list[DbId] = []
     for child in children:
         if child.status != StatusEnum.completed:
@@ -288,12 +359,19 @@ def validate_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 
 def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
+    """Make all the scripts associated with an entry as accepted"""
     for script in scripts:
         assert script.status == StatusEnum.completed
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 
 def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Accept an entry that needed reviewing
+
+    This will take an entry from
+    `StatusEnum.reviewable` to `StatusEnum.accepted`
+    """
+
     db_id_list: list[DbId] = []
     if entry.status != StatusEnum.reviewable:
         return db_id_list
@@ -305,6 +383,7 @@ def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
 
 
 def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+    """Call accept_entry on all the children of given entry"""
     db_id_list = []
     for child in children:
         handler = child.get_handler()
@@ -313,6 +392,20 @@ def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 
 
 def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Reject an entry
+
+    Notes
+    -----
+    This will block processing of any parents until this entry
+    is superseeded.
+
+    Trying to reject an already accepted entry will raise
+    an exception.  This is because if the entry is accepted,
+    the data can be used in processing up the hierarchy.
+
+    Rejecting such a entry will require rolling back the
+    parent.
+    """
     if entry.status == StatusEnum.accepted:
         raise ValueError("Rejecting an already accepted entry {entry.db_id}")
     entry.update_values(dbi, entry.id, status=StatusEnum.rejected)
@@ -342,6 +435,7 @@ def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) ->
 
 
 def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: StatusEnum) -> list[DbId]:
+    """Mark an entry as superseeded"""
     status_val = entry.status.value
     db_id_list: list[DbId] = []
     if status_val <= to_status.value:

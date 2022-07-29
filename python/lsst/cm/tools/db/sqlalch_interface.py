@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 
 
 class SQLAlchemyInterface(DbInterface):
+    """SQL Alchemy based implemenation of the database interface"""
+
     def __init__(self, db_url: str, **kwargs: Any):
         self._engine = top.build_engine(db_url, **kwargs)
         self._conn = Session(self._engine, future=True)

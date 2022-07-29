@@ -80,6 +80,21 @@ class CampaignHandler(EntryHandler):
         return campaign
 
     def make_steps(self, dbi: DbInterface, campaign: Campaign) -> dict[str, Step]:
+        """Called to set up the Steps needed to process this campaign
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        campaign: Campaign
+            The entry we are preparing
+
+        Returns
+        -------
+        steps : dict[str, Step]
+            The newly made Steps
+        """
         out_dict = {}
         coll_source = campaign.coll_in
         previous_step_id: Optional[int] = None

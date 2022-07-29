@@ -51,24 +51,29 @@ class Step(common.Base, common.CMTable):
 
     @hybrid_property
     def butler_repo(self) -> Any:
+        """Direct access to the butler_repo URL, for convinience"""
         return self.c_.butler_repo
 
     @hybrid_property
     def prod_base_url(self) -> Any:
+        """Direct access to the production area URL, for convinience"""
         return self.c_.prod_base_url
 
     @hybrid_property
     def root_coll(self) -> Any:
+        """Direct access to the root of collection names, for convinience"""
         return self.c_.root_coll
 
     @hybrid_property
     def parent_id(self) -> Any:
+        """Maps c_id to parent_id for consistency"""
         return self.c_id
 
     def __repr__(self) -> str:
         return f"Step {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
 
     def print_tree(self, stream: TextIO) -> None:
+        """Print entry in tree-like format"""
         stream.write(f"  {self}\n")
         for script in self.scripts_:
             stream.write(f"    -{script}\n")
@@ -76,8 +81,10 @@ class Step(common.Base, common.CMTable):
             group.print_tree(stream)
 
     def children(self) -> Iterable:
+        """Maps self.g_ to self.children() for consistency"""
         for group in self.g_:
             yield group
 
     def sub_iterators(self) -> list[Iterable]:
+        """Iterators over sub-entries, used for recursion"""
         return [self.w_, self.g_]

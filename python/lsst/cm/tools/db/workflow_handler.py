@@ -93,6 +93,10 @@ class WorkflowHandler(EntryHandler):
         return db_id_list
 
     def make_job_handler(self) -> JobHandler:
+        """Return a JobHandler to manage the
+        Jobs associated with the Workflows managed by this
+        handler
+        """
         raise NotImplementedError()
 
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:

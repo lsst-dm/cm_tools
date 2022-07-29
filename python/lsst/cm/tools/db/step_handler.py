@@ -91,6 +91,21 @@ class StepHandler(EntryHandler):
         return db_id_list
 
     def make_groups(self, dbi: DbInterface, entry: Step) -> dict[str, Group]:
+        """Called to set up the groups needed to process this step
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Step
+            The entry we are preparing
+
+        Returns
+        -------
+        groups : dict[str, Group]
+            The newly made Groups
+        """
         out_dict = {}
         insert_fields = dict(
             production_name=entry.p_.name,
@@ -105,4 +120,23 @@ class StepHandler(EntryHandler):
         return out_dict
 
     def group_iterator(self, dbi: DbInterface, entry: Step, **kwargs: Any) -> Iterable:
+        """Iterator of over the parameters of the Groups for this step
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Step
+            The entry we are preparing
+
+        Keywords
+        --------
+        These can
+
+        Returns
+        -------
+        group_configs : Iterable[dict[str, Any]]
+            Iterator over the configs
+        """
         raise NotImplementedError()
