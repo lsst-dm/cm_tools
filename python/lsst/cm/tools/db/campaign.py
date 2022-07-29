@@ -33,11 +33,13 @@ class Campaign(common.Base, common.CMTable):
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
     coll_validate = Column(String)  # Validate data collection
+    coll_ancil = Column(String)  # Ancillary (i.e., calibration) collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
     superseeded = Column(Boolean)  # Has this been superseeded
     butler_repo = Column(String)  # URL for butler repository
+    root_coll = Column(String)  # root for collection names
     prod_base_url = Column(String)  # URL for root of the production area
     db_id: DbId = composite(DbId, p_id, id)
     p_: Iterable = relationship("Production", back_populates="c_")

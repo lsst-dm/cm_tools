@@ -13,6 +13,7 @@ from lsst.cm.tools.core.script_utils import (
     write_status_to_yaml,
 )
 from lsst.cm.tools.core.utils import LevelEnum, ScriptMethod, ScriptType, StatusEnum
+from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.script import Script
 
 
@@ -106,7 +107,12 @@ class PrepareScriptHandler(ScriptHandler):
     script_type: ScriptType = ScriptType.prepare
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        command = make_butler_associate_command(parent.butler_repo, parent)
+        command = make_butler_associate_command(
+            parent.butler_repo,
+            parent.coll_in,
+            parent.coll_source,
+            parent.data_query,
+        )
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
@@ -119,7 +125,8 @@ class CollectScriptHandler(ScriptHandler):
     script_type: ScriptType = ScriptType.collect
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        command = make_butler_chain_command(parent.butler_repo, parent)
+        input_colls = [child.coll_out for child in parent.children()]
+        command = make_butler_chain_command(parent.butler_repo, parent.coll_out, input_colls)
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
@@ -132,8 +139,26 @@ class ValidateScriptHandler(ScriptHandler):
     script_type: ScriptType = ScriptType.validate
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        command = make_validate_command(parent.butler_repo, parent)
+        command = make_validate_command(parent.butler_repo, parent.coll_validate, parent.coll_out)
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
         return parent.coll_validate
+
+
+class AncillaryScriptHandler(ScriptHandler):
+    """Script handler for scripts that collect output collections"""
+
+    config_block = "ancil"
+
+    script_type: ScriptType = ScriptType.prepare
+
+    def write_script_hook(
+        self, dbi: DbInterface, parent: Campaign, script: ScriptBase, **kwargs: Any
+    ) -> None:
+        input_colls = self.config["collections"]
+        command = make_butler_chain_command(parent.butler_repo, parent.coll_ancil, input_colls)
+        write_command_script(script, command, **kwargs)
+
+    def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
+        return parent.coll_ancil

@@ -70,6 +70,7 @@ class StepHandler(EntryHandler):
         )
         extra_fields = dict(
             prod_base_url=parent.prod_base_url,
+            root_coll=parent.root_coll,
         )
         coll_names = self.coll_names(insert_fields, **extra_fields)
         insert_fields.update(**coll_names)

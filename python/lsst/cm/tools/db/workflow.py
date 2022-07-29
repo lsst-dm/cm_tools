@@ -60,6 +60,10 @@ class Workflow(common.Base, common.CMTable):
         return self.c_.prod_base_url
 
     @hybrid_property
+    def root_coll(self) -> Any:
+        return self.c_.root_coll
+
+    @hybrid_property
     def parent_id(self) -> Any:
         return self.g_id
 
@@ -71,7 +75,7 @@ class Workflow(common.Base, common.CMTable):
         for job in self.jobs_:
             stream.write(f"    -{job}\n")
 
-    def children(self) -> Iterable:  # pragma: no cover
+    def children(self) -> Iterable:  # pragma:
         return []
 
     def sub_iterators(self) -> list[Iterable]:

@@ -10,7 +10,12 @@ from lsst.cm.tools.core.utils import StatusEnum
 from lsst.cm.tools.db.campaign_handler import CampaignHandler
 from lsst.cm.tools.db.group_handler import GroupHandler
 from lsst.cm.tools.db.job_handler import JobHandler
-from lsst.cm.tools.db.script_handler import CollectScriptHandler, PrepareScriptHandler, ValidateScriptHandler
+from lsst.cm.tools.db.script_handler import (
+    AncillaryScriptHandler,
+    CollectScriptHandler,
+    PrepareScriptHandler,
+    ValidateScriptHandler,
+)
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.step_handler import StepHandler
 from lsst.cm.tools.db.workflow import Workflow
@@ -24,9 +29,9 @@ class ExampleConfig:
         stamp_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
         log_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
         config_url_template="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
-        coll_in_template="prod/{fullname}_input",
-        coll_out_template="prod/{fullname}_output",
-        coll_validate_template="prod/{fullname}_validate",
+        coll_in_template="{root_coll}/{fullname}_input",
+        coll_out_template="{root_coll}/{fullname}_output",
+        coll_validate_template="{root_coll}/{fullname}_validate",
     )
 
 
@@ -53,7 +58,7 @@ class ExampleJobHandler(ExampleConfig, JobHandler):
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
             output=parent.coll_out,
             butlerConfig=butler_repo,
-            inCollection=parent.coll_in,
+            inCollection=f"{parent.coll_in},{parent.c_.coll_ancil}",
         )
         workflow_config["payload"] = payload
         with open(outpath, "wt", encoding="utf-8") as fout:
@@ -86,7 +91,6 @@ class ExampleEntryHandler(ExampleConfig):
             dbi,
             entry,
             name="prepare",
-            idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
             stamp=StatusEnum.completed,
@@ -103,7 +107,6 @@ class ExampleEntryHandler(ExampleConfig):
             dbi,
             entry,
             name="collect",
-            idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
             stamp=StatusEnum.completed,
@@ -120,7 +123,6 @@ class ExampleEntryHandler(ExampleConfig):
             dbi,
             entry,
             name="validate",
-            idx=0,
             prepend=f"# Written by {handler.get_handler_class_name()}",
             append="# Have a good day",
             stamp=StatusEnum.completed,
@@ -203,3 +205,25 @@ class ExampleHandler(ExampleEntryHandler, CampaignHandler):
             ("step3", ExampleStep3Handler),
         ]
     )
+
+    ancil_chain_handler_class = AncillaryScriptHandler().get_handler_class_name()
+
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+
+        scripts = ExampleEntryHandler.prepare_script_hook(self, dbi, entry)
+
+        handler = Handler.get_handler(self.ancil_chain_handler_class, entry.config_yaml)
+        script = handler.insert(
+            dbi,
+            entry,
+            name="ancillary",
+            prepend=f"# Written by {handler.get_handler_class_name()}",
+            append="# Have a good day",
+            stamp=StatusEnum.completed,
+            fake=True,
+        )
+        status = handler.run(dbi, script)
+        if status != StatusEnum.ready:
+            script.update_values(dbi, script.id, status=status)
+        scripts += [script]
+        return scripts

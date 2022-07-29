@@ -1,12 +1,11 @@
 import os
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
-from lsst.cm.tools.db.common import CMTable
 
 
 def write_status_to_yaml(stamp_url: str, status: StatusEnum) -> None:
@@ -47,25 +46,18 @@ def check_status_from_yaml(stamp_url: str, current_status: StatusEnum) -> Status
     return StatusEnum[fields["status"]]
 
 
-def make_butler_associate_command(butler_repo: str, entry: CMTable) -> str:
+def make_butler_associate_command(
+    butler_repo: str,
+    coll_in: str,
+    coll_source: str,
+    data_query: Optional[str],
+) -> str:
     """Build and return a butler associate command
 
     Parameters
     ----------
     butler_repo : str
         The butler repo being used
-
-    entry :
-        The database entry we are making the command for
-
-    Returns
-    -------
-    command : str
-        The requested butler command
-
-    Notes
-    -----
-    This will look for three fields in entry:
 
     coll_in : str
         This will be the name given to the TAGGED collection
@@ -75,17 +67,20 @@ def make_butler_associate_command(butler_repo: str, entry: CMTable) -> str:
 
     data_query : Optional[str]
         A query that can be used to skim out data from the source collection
+
+    Returns
+    -------
+    command : str
+        The requested butler command
+
     """
-    coll_in = entry.coll_in
-    coll_source = entry.coll_source
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
-    data_query = entry.data_query
     if data_query:
         command += f' --where "{data_query}"'
     return command
 
 
-def make_butler_chain_command(butler_repo: str, entry: CMTable) -> str:
+def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list[str]) -> str:
     """Build and return a butler chain-collection command
 
     Parameters
@@ -93,37 +88,24 @@ def make_butler_chain_command(butler_repo: str, entry: CMTable) -> str:
     butler_repo : str
         The butler repo being used
 
-    entry :
-        The database entry we are making the command for
+    coll_out : str
+        This will be the name given to the CHAINED collection
 
-    itr : Iterable
-        Iterable with all the source collections
+    input_colls : list[str]
+        These are the source collections
 
     Returns
     -------
     command : str
         The requested butler command
-
-
-    Notes
-    -----
-    This will look for two fields
-
-    entry.coll_out : str
-        This will be the name given to the CHAINED collection
-
-    entry.children().coll_out
-        These are the source collections
     """
-    coll_out = entry.coll_out
     command = f"butler chain-collection {butler_repo} {coll_out}"
-    for child in entry.children():
-        child_coll = child.coll_out
-        command += f" {child_coll}"
+    for input_coll in input_colls:
+        command += f" {input_coll}"
     return command
 
 
-def make_butler_remove_collection_command(butler_repo: str, entry: Any) -> str:
+def make_butler_remove_collection_command(butler_repo: str, coll_out: str) -> str:
     """Build and return a butler remove-collection command
 
     Parameters
@@ -131,26 +113,19 @@ def make_butler_remove_collection_command(butler_repo: str, entry: Any) -> str:
     butler_repo : str
         The butler repo being used
 
-    entry : Any
-        The database entry we are making the command for
+    coll_out : str
+        This collection will be removed
 
     Returns
     -------
     command : str
         The requested butler command
-
-
-    Notes
-    -----
-    coll_out : str
-        This collection will be removed
     """
-    coll_out = entry.coll_out
     command = f"butler remove-collection {butler_repo} {coll_out}"
     return command
 
 
-def make_validate_command(butler_repo: str, entry: Any) -> str:
+def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -> str:
     """Build and return command to run validation
 
     Parameters
@@ -158,19 +133,19 @@ def make_validate_command(butler_repo: str, entry: Any) -> str:
     butler_repo : str
         The butler repo being used
 
-    entry : Any
-        The database entry we are making the command for
+    coll_validate : str
+        Where to write the validation
+
+    coll_out : str
+        The collection being validated
 
     Returns
     -------
     command : str
         The requested command
 
-    Notes
-    -----
-    This is just a placeholder for now
     """
-    command = f"validate {butler_repo} --output {entry.coll_validate} {entry.coll_out}"
+    command = f"validate {butler_repo} --output {coll_validate} {coll_out}"
     return command
 
 
@@ -254,5 +229,5 @@ class FakeRollback(Rollback):
     """Fakes a command that would remove collections associated to a script"""
 
     def rollback_script(self, entry: Any, script: TableBase) -> None:
-        command = make_butler_remove_collection_command(entry.butler_repo, script)
+        command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out)
         print(f"Rolling back {script.db_id}.{script.name} with {command}")

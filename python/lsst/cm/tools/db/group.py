@@ -58,6 +58,10 @@ class Group(common.Base, common.CMTable):
         return self.c_.prod_base_url
 
     @hybrid_property
+    def root_coll(self) -> Any:
+        return self.c_.root_coll
+
+    @hybrid_property
     def parent_id(self) -> Any:
         return self.s_id
 
