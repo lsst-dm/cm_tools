@@ -46,6 +46,8 @@ class StepHandler(EntryHandler):
     `group_iterator` function.
     """
 
+    config_block = "step"
+
     fullname_template = os.path.join("{production_name}", "{campaign_name}", "{step_name}")
 
     group_handler_class: Optional[str]

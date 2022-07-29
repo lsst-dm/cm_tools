@@ -29,6 +29,8 @@ class Handler:
 
     handler_cache: dict[str, Handler] = {}
 
+    config_block = ""
+
     def __init__(self) -> None:
         self._config_url: Optional[str] = None
         self._config: dict[str, Any] = {}
@@ -89,8 +91,12 @@ class Handler:
     def _read_config(self, config_url: str) -> None:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
+        self._config = self.default_config.copy()
         with open(self._config_url, "rt", encoding="utf-8") as config_file:
-            self._config = yaml.safe_load(config_file)
+            read_config = yaml.safe_load(config_file)
+            my_block = read_config.get(self.config_block)
+            if my_block:
+                self._config.update(**my_block)
 
     def update_config(self, config_url: str) -> None:
         """Update this handler's configuration by reading a
@@ -229,6 +235,8 @@ class ScriptHandlerBase(Handler):
     managing the database
     """
 
+    config_block = "script"
+
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
         """Insert a new script
 
@@ -315,6 +323,8 @@ class JobHandlerBase(Handler):
     By jobs we mean processing jobs that run
     on batch systems
     """
+
+    config_block = "job"
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> JobBase:
         """Insert a new script

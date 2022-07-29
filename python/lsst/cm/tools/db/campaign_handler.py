@@ -48,6 +48,8 @@ class CampaignHandler(EntryHandler):
     2. provide a mapping for Step-level callback handlers in `step_dict`
     """
 
+    config_block = "campaign"
+
     fullname_template = os.path.join("{production_name}", "{campaign_name}")
 
     level = LevelEnum.campaign
@@ -62,8 +64,8 @@ class CampaignHandler(EntryHandler):
         insert_fields = dict(
             name=self.get_kwarg_value("campaign_name", **kwargs),
             fullname=self.get_fullname(**kwargs),
-            coll_source=self.get_config_var("campaign_coll_source", None, **kwargs),
-            data_query=self.get_config_var("campaign_data_query", None, **kwargs),
+            coll_source=self.get_config_var("coll_source", None, **kwargs),
+            data_query=self.get_config_var("data_query", None, **kwargs),
             input_type=InputType.tagged,
             output_type=OutputType.chained,
             p_id=parent.id,

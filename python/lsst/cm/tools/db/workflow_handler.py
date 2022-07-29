@@ -45,6 +45,8 @@ class WorkflowHandler(EntryHandler):
     configuration and shell scripts to run the workflow
     """
 
+    config_block = "workflow"
+
     fullname_template = os.path.join(
         "{production_name}",
         "{campaign_name}",

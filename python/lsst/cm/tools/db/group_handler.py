@@ -43,6 +43,8 @@ class GroupHandler(EntryHandler):
     2. define the Workflow callback hander with `make_workflow_handler`
     """
 
+    config_block = "group"
+
     fullname_template = os.path.join(
         "{production_name}",
         "{campaign_name}",
