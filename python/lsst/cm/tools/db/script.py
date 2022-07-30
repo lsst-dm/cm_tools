@@ -36,7 +36,7 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
     status = Column(Enum(StatusEnum))  # Status flag
-    superseeded = Column(Boolean)  # Has this been superseeded
+    superseded = Column(Boolean)  # Has this been superseded
     script_type = Column(Enum(ScriptType))  # What sort of thing the script does
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     level = Column(Enum(LevelEnum))
@@ -47,4 +47,10 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     w_: Workflow = relationship("Workflow", back_populates="scripts_")
 
     def __repr__(self) -> str:
-        return f"Script {self.id}: {self.db_id} {self.name} {self.log_url} {self.status.name}"
+        if self.superseded:
+            supersede_string = "SUPERSEDED"
+        else:
+            supersede_string = ""
+        return (
+            f"Script {self.id}: {self.db_id} {self.name} {self.handler} {self.status.name} {supersede_string}"
+        )

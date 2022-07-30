@@ -10,6 +10,7 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db.group_handler import GroupHandler
 from lsst.cm.tools.db.script_handler import ScriptHandler
 from lsst.cm.tools.db.step_handler import StepHandler
+from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
 def test_bad_script() -> None:
@@ -78,10 +79,19 @@ def test_bad_db_interface() -> None:
         bad_db.get_entry(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
+        bad_db.get_entry_from_fullname(LevelEnum.production, "")
+
+    with pytest.raises(NotImplementedError):
+        bad_db.get_entry_from_parent(null_db_id, "")
+
+    with pytest.raises(NotImplementedError):
         bad_db.print_(sys.stdout, TableEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.print_table(sys.stdout, TableEnum.production)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.print_tree(sys.stdout, TableEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.check(TableEnum.production, null_db_id)
@@ -109,6 +119,9 @@ def test_bad_db_interface() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_db.fake_run(LevelEnum.production, null_db_id)
+
+    with pytest.raises(NotImplementedError):
+        bad_db.supersede(LevelEnum.production, null_db_id)
 
     with pytest.raises(NotImplementedError):
         bad_db.daemon(null_db_id)
@@ -227,6 +240,9 @@ def test_bad_handler() -> None:
         bad_entry_handler.reject(bad_db, None)
 
     with pytest.raises(NotImplementedError):
+        bad_entry_handler.supersede(bad_db, None)
+
+    with pytest.raises(NotImplementedError):
         bad_entry_handler.run(bad_db, None)
 
     with pytest.raises(NotImplementedError):
@@ -250,6 +266,9 @@ def test_bad_handler() -> None:
     with pytest.raises(NotImplementedError):
         bad_entry_handler.reject_hook(bad_db, None)
 
+    with pytest.raises(NotImplementedError):
+        bad_entry_handler.supersede_hook(bad_db, None)
+
     class BadGroupHandler(GroupHandler):
         pass
 
@@ -265,3 +284,11 @@ def test_bad_handler() -> None:
 
     with pytest.raises(NotImplementedError):
         bad_step_handler.group_iterator(bad_db, None)
+
+    class BadWorkflowHandler(WorkflowHandler):
+        pass
+
+    bad_workflow_handler = BadWorkflowHandler()
+
+    with pytest.raises(NotImplementedError):
+        bad_workflow_handler.make_job_handler()

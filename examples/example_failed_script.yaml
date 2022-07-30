@@ -12,21 +12,17 @@ campaign:
     prepare:
         prepare:
             class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: completed
-            fake: true
-        ancil:
-            class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
     collect:
         collect:
             class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
     validate:
         validate:
             class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
 step:
     input_type: source
@@ -34,21 +30,6 @@ step:
     templates:
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_validate: "{root_coll}/{fullname}_validate"
-    prepare:
-        prepare:
-            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: completed
-            fake: true
-    collect:
-        collect:
-            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: completed
-            fake: true
-    validate:
-        validate:
-            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: completed
-            fake: true
 group:
     input_type: tagged
     output_type: chained
@@ -59,17 +40,17 @@ group:
     prepare:
         prepare:
             class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
     collect:
         collect:
             class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
     validate:
         validate:
             class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: completed
+            stamp: failed
             fake: true
 workflow:
     input_type: source

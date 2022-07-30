@@ -6,7 +6,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import declarative_base
 
 
@@ -80,13 +80,7 @@ class SQLScriptMixin(SQLTableMixin):
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
         rollback_handler.rollback_script(entry, script)
-        cls.update_values(dbi, entry.id, superseeded=True)
-
-    @classmethod
-    def get_rows_with_status_query(cls, status: StatusEnum) -> Any:
-        """Returns the selection for all rows with a particular status"""
-        sel = select([cls.id]).where(cls.status == status)
-        return sel
+        cls.update_values(dbi, entry.id, superseded=True)
 
 
 class CMTable(SQLTableMixin, CMTableBase):
@@ -105,22 +99,6 @@ class CMTable(SQLTableMixin, CMTableBase):
 
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
-
-    @classmethod
-    def get_row_query(cls, db_id: DbId) -> Any:
-        """Returns the selection a single row given db_id"""
-        sel = select(cls).where(cls.id == db_id[cls.level])
-        return sel
-
-    @classmethod
-    def get_id_match_query(cls, parent_id: Optional[int], match_name: Any) -> Any:
-        """Returns the selection to match a particular ID"""
-        parent_field = cls.parent_id
-        if parent_field is None:
-            sel = select([cls.id]).where(cls.name == match_name)
-        else:
-            sel = select([cls.id]).where(and_(parent_field == parent_id, cls.name == match_name))
-        return sel
 
     @classmethod
     def get_match_query(cls, db_id: DbId) -> Any:
@@ -153,15 +131,6 @@ def check_result(result: Any) -> None:
 def return_count(dbi: DbInterface, count: Any) -> int:
     """Returns the number of rows mathcing a selection"""
     conn = dbi.connection()
-    count_result = conn.execute(count)
-    check_result(count_result)
-    return count_result.scalar()
-
-
-def return_select_count(dbi: DbInterface, sel: Any) -> int:
-    """Counts an iterable matching a selection"""
-    conn = dbi.connection()
-    count = func.count(sel)
     count_result = conn.execute(count)
     check_result(count_result)
     return count_result.scalar()

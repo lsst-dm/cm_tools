@@ -10,7 +10,7 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 
@@ -28,6 +28,13 @@ class SQLAlchemyInterface(DbInterface):
     def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
         if level is None:
             return DbId()
+        fullname = kwargs.get("fullname")
+        if fullname:
+            entry = self.get_entry_from_fullname(level, fullname)
+            return entry.db_id
+        return self._get_db_id_in_steps(level, **kwargs)
+
+    def _get_db_id_in_steps(self, level: LevelEnum, **kwargs: Any) -> DbId:
         p_id = self._get_id(LevelEnum.production, None, kwargs.get("production_name"))
         if level == LevelEnum.production:
             return DbId(p_id=p_id)
@@ -43,9 +50,29 @@ class SQLAlchemyInterface(DbInterface):
         w_id = self._get_id(LevelEnum.workflow, g_id, "%02i" % kwargs.get("workflow_idx"))
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
+    def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> DbId:
+        table = top.get_table_for_level(level)
+        sel = select(table).where(table.fullname == fullname)
+        entry = common.return_first_column(self, sel)
+        return entry
+
+    def get_entry_from_parent(self, parent_id: DbId, entry_name: str) -> DbId:
+        parent_level = parent_id.level()
+        child_level = parent_level.child()
+        assert child_level
+        table = top.get_table_for_level(child_level)
+        sel = select(table).where(
+            and_(
+                table.name == entry_name,
+                table.parent_id == parent_id[parent_level],
+            )
+        )
+        entry = common.return_first_column(self, sel)
+        return entry
+
     def get_entry(self, level: LevelEnum, db_id: DbId) -> CMTableBase:
         table = top.get_table_for_level(level)
-        sel = table.get_row_query(db_id)
+        sel = select(table).where(table.id == db_id[table.level])
         entry = common.return_first_column(self, sel)
         self._verify_entry(entry, level, db_id)
         return entry
@@ -149,6 +176,12 @@ class SQLAlchemyInterface(DbInterface):
         db_id_list = handler.rollback(self, entry, to_status)
         return db_id_list
 
+    def supersede(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        db_id_list = handler.supersede(self, entry)
+        return db_id_list
+
     def fake_run(
         self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
     ) -> list[DbId]:
@@ -182,15 +215,19 @@ class SQLAlchemyInterface(DbInterface):
 
     def _count_jobs_at_status(self, status: StatusEnum) -> int:
         table = top.get_table(TableEnum.job)
-        sel = table.get_rows_with_status_query(status)
-        return common.return_select_count(self, sel)
+        count = func.count(table.status == status)
+        return common.return_count(self, count)
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""
         if match_name is None:
             return None
         table = top.get_table_for_level(level)
-        sel = table.get_id_match_query(parent_id, match_name)
+        parent_field = table.parent_id
+        if parent_field is None:
+            sel = select([table.id]).where(table.name == match_name)
+        else:
+            sel = select([table.id]).where(and_(parent_field == parent_id, table.name == match_name))
         return common.return_first_column(self, sel)
 
     def _verify_entry(self, entry, level: LevelEnum, db_id: DbId) -> None:

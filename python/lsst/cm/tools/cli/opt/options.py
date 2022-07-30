@@ -2,7 +2,7 @@ from functools import partial
 from typing import Any, List, Optional, Reversible
 
 import click
-from lsst.cm.tools.core.utils import LevelEnum, TableEnum
+from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 
 
 class MWOptionDecorator:
@@ -74,6 +74,17 @@ table_option = MWOptionDecorator(
     help="Which database table to manipulate.",
 )
 
+status_option = MWOptionDecorator(
+    "--status",
+    default="completed",
+    type=click.Choice(
+        choices=list(StatusEnum.__members__.keys()),
+        case_sensitive=True,
+    ),
+    help="Status level to set.",
+)
+
+
 max_running_option = MWOptionDecorator(
     "--max_running", default=50, help="Maximum number of running workflows."
 )
@@ -94,6 +105,8 @@ handler_option = MWOptionDecorator(
 
 config_option = MWOptionDecorator("--config_yaml", type=click.Path(exists=True), help="Configuration Yaml.")
 
+fullname_option = MWOptionDecorator("--fullname", help="Full entry name.")
+
 production_option = MWOptionDecorator("--production_name", help="Production name.")
 
 campaign_option = MWOptionDecorator("--campaign_name", help="Campaign name.")
@@ -102,7 +115,7 @@ step_option = MWOptionDecorator("--step_name", help="Step name.")
 
 group_option = MWOptionDecorator("--group_name", help="Group name.")
 
-workflow_option = MWOptionDecorator("--workflow_name", type=int, help="Workflow name.")
+workflow_option = MWOptionDecorator("--workflow_idx", type=int, help="Workflow index.")
 
 
 class IdOptions(OptionGroup):

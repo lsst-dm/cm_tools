@@ -24,12 +24,12 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
-from lsst.cm.tools.db.handler_utils import prepare_entry
+from lsst.cm.tools.db.handler_utils import prepare_entry, rollback_jobs
 from lsst.cm.tools.db.job_handler import JobHandler
 from lsst.cm.tools.db.workflow import Workflow
 
@@ -99,27 +99,13 @@ class WorkflowHandler(EntryHandler):
         """
         raise NotImplementedError()
 
-    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        assert dbi
-        assert entry
-        return []
-
-    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        assert dbi
-        assert entry
-        return []
-
-    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        assert dbi
-        assert entry
-        return []
-
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        current_status = entry.status
+        assert entry.status == StatusEnum.prepared
         db_id_list: list[DbId] = []
-        if current_status != StatusEnum.prepared:
-            return db_id_list
         for job in entry.jobs_:
             job.update_values(dbi, job.id, status=StatusEnum.ready)
             db_id_list.append(job.w_.db_id)
         return db_id_list
+
+    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+        rollback_jobs(dbi, entry)

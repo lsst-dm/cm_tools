@@ -69,17 +69,17 @@ workflow_status_map = {
 
 def extract_child_status(itr: Iterable) -> np.ndarray:
     """Return the status of all children in an array"""
-    return np.array([x.status.value for x in itr if not x.superseeded])
+    return np.array([x.status.value for x in itr if not x.superseded])
 
 
 def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> np.ndarray:
     """Return the status of all children in an array"""
-    return np.array([x.status.value for x in itr if (x.script_type == script_type) and not x.superseeded])
+    return np.array([x.status.value for x in itr if (x.script_type == script_type) and not x.superseded])
 
 
 def extract_job_status(itr: Iterable) -> np.ndarray:
     """Return the status of all children in an array"""
-    return np.array([x.status.value for x in itr if not x.superseeded])
+    return np.array([x.status.value for x in itr if not x.superseded])
 
 
 def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
@@ -98,9 +98,9 @@ def check_children(entry: Any, min_status: StatusEnum, max_status: StatusEnum) -
     """
     child_status = extract_child_status(entry.children())
     if not child_status.size:  # pragma: no cover
-        raise ValueError("Where have the children gone?")
+        return StatusEnum.waiting
     if (child_status >= StatusEnum.accepted.value).all():
-        return StatusEnum.collectable
+        return max_status
     status_val = min(max_status.value, max(min_status.value, child_status.min()))
     return StatusEnum(status_val)
 
@@ -110,7 +110,7 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
     for script in scripts:
         if script.script_type != script_type:
             continue
-        if script.superseeded:
+        if script.superseded:
             continue
         Script.check_status(dbi, script)
     scripts_status = extract_scripts_status(scripts, script_type)
@@ -131,7 +131,7 @@ def check_scripts(dbi: DbInterface, scripts: Iterable, script_type: ScriptType) 
 def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
     """Check the status of a set of jobs"""
     for job in jobs:
-        if job.superseeded:
+        if job.superseded:
             continue
         Job.check_status(dbi, job)
     job_status = extract_job_status(jobs)
@@ -371,14 +371,15 @@ def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     This will take an entry from
     `StatusEnum.reviewable` to `StatusEnum.accepted`
     """
-
     db_id_list: list[DbId] = []
     if entry.status != StatusEnum.reviewable:
         return db_id_list
-    handler.accept_hook(dbi, entry)
-    accept_scripts(dbi, entry.scripts_)
-    db_id_list += [entry.db_id]
-    entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
+    new_status = check_children(entry, StatusEnum.reviewable, StatusEnum.accepted)
+    if new_status == StatusEnum.accepted:
+        handler.accept_hook(dbi, entry)
+        accept_scripts(dbi, entry.scripts_)
+        db_id_list += [entry.db_id]
+        entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
     return db_id_list
 
 
@@ -387,7 +388,7 @@ def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
     db_id_list = []
     for child in children:
         handler = child.get_handler()
-        db_id_list += handler.accept(dbi, child)
+        db_id_list += accept_entry(dbi, handler, child)
     return db_id_list
 
 
@@ -397,7 +398,7 @@ def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     Notes
     -----
     This will block processing of any parents until this entry
-    is superseeded.
+    is superseded.
 
     Trying to reject an already accepted entry will raise
     an exception.  This is because if the entry is accepted,
@@ -419,9 +420,9 @@ def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType) -> N
             Script.rollback_script(dbi, entry, script)
 
 
-def rollback_workflows(dbi: DbInterface, entry: Any) -> None:
-    for workflow in entry.w_:
-        Workflow.rollback_script(dbi, entry, workflow)
+def rollback_jobs(dbi: DbInterface, entry: Any) -> None:
+    for job in entry.jobs_:
+        Job.rollback_script(dbi, entry, job)
 
 
 def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) -> list[DbId]:
@@ -435,8 +436,10 @@ def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) ->
 
 
 def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: StatusEnum) -> list[DbId]:
-    """Mark an entry as superseeded"""
+    """Roll-back an entry to a lower status"""
     status_val = entry.status.value
+    if status_val < 0:
+        status_val = StatusEnum.completed.value
     db_id_list: list[DbId] = []
     if status_val <= to_status.value:
         return db_id_list
@@ -446,10 +449,27 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
         elif status_val == StatusEnum.collectable.value:
             rollback_scripts(dbi, entry, ScriptType.collect)
         elif status_val == StatusEnum.prepared.value:
-            db_id_list += handler.rollback_run(dbi, entry, to_status)
+            rollback_jobs(dbi, entry)
+            db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared)
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)
+            supersede_children(dbi, entry.children())
         db_id_list.append(entry.db_id)
         status_val -= 1
     entry.update_values(dbi, entry.id, status=to_status)
     return db_id_list
+
+
+def supersede_children(dbi: DbInterface, itr: Iterable) -> list[DbId]:
+    db_id_list: list[DbId] = []
+    for entry in itr:
+        handler = entry.get_handler()
+        db_id_list += handler.supersede(dbi, entry)
+    return db_id_list
+
+
+def supersede_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+    """Roll-back an entry to a lower status"""
+    entry.update_values(dbi, entry.id, superseded=True)
+    handler.supersede_hook(dbi, entry)
+    return [entry.db_id]

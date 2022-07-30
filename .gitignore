@@ -20,7 +20,5 @@ pytest_session.txt
 .pytest_cache
 .coverage
 htmlcov
-archive/
-archive_test/
-cm.db
-test.db
+archive*/
+*.db

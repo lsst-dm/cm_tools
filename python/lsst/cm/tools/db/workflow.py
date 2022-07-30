@@ -39,7 +39,7 @@ class Workflow(common.Base, common.CMTable):
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
     status = Column(Enum(StatusEnum))  # Status flag
-    superseeded = Column(Boolean)  # Has this been superseeded
+    superseded = Column(Boolean)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, g_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
     c_: Campaign = relationship("Campaign", back_populates="w_")
@@ -67,13 +67,21 @@ class Workflow(common.Base, common.CMTable):
         return self.g_id
 
     def __repr__(self) -> str:
-        return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
+        if self.superseded:
+            supersede_string = "SUPERSEDED"
+        else:
+            supersede_string = ""
+        return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""
         stream.write(f"  {self}\n")
         for job in self.jobs_:
             stream.write(f"    -{job}\n")
+
+    def children(self) -> Iterable:
+        """Maps empty list to self.children() for consistency"""
+        return []
 
     def sub_iterators(self) -> list[Iterable]:
         """Iterators over sub-entries, used for recursion"""

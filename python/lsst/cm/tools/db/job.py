@@ -31,10 +31,11 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     stamp_url = Column(String)  # Url for a status 'stamp' file
     log_url = Column(String)  # Url for log
     config_url = Column(String)  # Url for script configuration
+    coll_out = Column(String)  # Output collection
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
     status = Column(Enum(StatusEnum))  # Status flag
-    superseeded = Column(Boolean)  # Has this been superseeded
+    superseded = Column(Boolean)  # Has this been superseded
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     n_tasks_all = Column(Integer, default=0)  # Number of associated tasks
     n_tasks_done = Column(Integer, default=0)  # Number of finished tasks
@@ -54,4 +55,10 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     w_: Workflow = relationship("Workflow", back_populates="jobs_")
 
     def __repr__(self) -> str:
-        return f"BatchJob {self.id}: {self.db_id} {self.name} {self.log_url} {self.status.name}"
+        if self.superseded:
+            supersede_string = "SUPERSEDED"
+        else:
+            supersede_string = ""
+        string_out = f"BatchJob {self.id}: {self.db_id} {self.name} {self.handler} {self.status.name}"
+        string_out += f" {supersede_string}"
+        return string_out

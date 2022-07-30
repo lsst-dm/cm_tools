@@ -696,11 +696,24 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> None:
+    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+        """Called when a particular entry is superseded
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+        """
+        raise NotImplementedError()
+
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
         """Called to 'roll-back' a partiuclar entry
 
-        Calling this function will result in scripts and child entries
-        being marked as `superseeded`, and be ignored by further processing.
+        Calling this function can result in scripts and child entries
+        being marked as `superseded`, and be ignored by further processing.
 
         Parameters
         ----------
@@ -712,5 +725,34 @@ class EntryHandlerBase(Handler):
 
         to_status : StatusEnum
             The status we want to roll back to
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Called to 'roll-back' a partiuclar entry
+
+        Calling this function can result in scripts and child entries
+        being marked as `superseded`, and be ignored by further processing.
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we updated
+
+        entry : Any
+            The entry in question
+
+        to_status : StatusEnum
+            The status we want to roll back to
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
         """
         raise NotImplementedError()

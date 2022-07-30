@@ -213,7 +213,7 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
         if append:
             fout.write(f"{append}\n")
         if stamp:
-            fout.write(f'echo "status: completed" > {os.path.abspath(script.stamp_url)}\n')
+            fout.write(f'echo "status: {stamp}" > {os.path.abspath(script.stamp_url)}\n')
         if callback:  # pragma: no cover
             raise NotImplementedError()
 

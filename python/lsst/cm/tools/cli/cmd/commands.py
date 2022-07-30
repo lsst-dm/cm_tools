@@ -8,6 +8,7 @@ from lsst.cm.tools.cli.opt.options import (
     config_option,
     db_option,
     echo_option,
+    fullname_option,
     group_option,
     handler_option,
     level_option,
@@ -15,6 +16,7 @@ from lsst.cm.tools.cli.opt.options import (
     nosubmit_option,
     prod_base_option,
     production_option,
+    status_option,
     step_option,
     table_option,
     workflow_option,
@@ -81,10 +83,12 @@ def cm_insert(**kwargs: Any) -> None:
 
 @click.command("print_tree")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @echo_option()
 def cm_print_tree(**kwargs: Any) -> None:
@@ -97,10 +101,12 @@ def cm_print_tree(**kwargs: Any) -> None:
 
 @click.command("print")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @echo_option()
 def cm_print(**kwargs: Any) -> None:
@@ -124,10 +130,12 @@ def cm_print_table(**kwargs: Any) -> None:
 
 @click.command("prepare")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @nosubmit_option()
 @echo_option()
@@ -150,10 +158,12 @@ def cm_prepare(**kwargs: Any) -> None:
 
 @click.command("queue")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @echo_option()
 def cm_queue(**kwargs: Any) -> None:
@@ -166,10 +176,12 @@ def cm_queue(**kwargs: Any) -> None:
 
 @click.command("launch")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @echo_option()
 @nosubmit_option()
@@ -186,10 +198,12 @@ def cm_launch(**kwargs: Any) -> None:
 
 @click.command("check")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @nosubmit_option()
 @echo_option()
@@ -204,10 +218,12 @@ def cm_check(**kwargs: Any) -> None:
 
 @click.command("accept")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @nosubmit_option()
 @echo_option()
@@ -222,10 +238,12 @@ def cm_accept(**kwargs: Any) -> None:
 
 @click.command("reject")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
 @db_option()
 @nosubmit_option()
 @echo_option()
@@ -238,12 +256,57 @@ def cm_reject(**kwargs: Any) -> None:
     iface.reject(the_level, the_db_id)
 
 
-@click.command("fake_run")
+@click.command("supersede")
 @level_option()
+@fullname_option()
 @production_option()
 @campaign_option()
 @step_option()
 @group_option()
+@workflow_option()
+@db_option()
+@nosubmit_option()
+@echo_option()
+def cm_supersede(**kwargs: Any) -> None:
+    all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
+    the_level = LevelEnum[all_args.pop("level")]
+    the_db_id = iface.get_db_id(the_level, **all_args)
+    iface.supersede(the_level, the_db_id)
+
+
+@click.command("rollback")
+@level_option()
+@fullname_option()
+@production_option()
+@campaign_option()
+@step_option()
+@group_option()
+@workflow_option()
+@status_option()
+@db_option()
+@nosubmit_option()
+@echo_option()
+def cm_rollback(**kwargs: Any) -> None:
+    all_args = kwargs.copy()
+    Handler.no_submit = all_args.pop("no-submit", False)
+    iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
+    the_level = LevelEnum[all_args.pop("level")]
+    the_status = StatusEnum[all_args.pop("status", StatusEnum.completed)]
+    the_db_id = iface.get_db_id(the_level, **all_args)
+    iface.rollback(the_level, the_db_id, the_status)
+
+
+@click.command("fake_run")
+@level_option()
+@fullname_option()
+@production_option()
+@campaign_option()
+@step_option()
+@group_option()
+@workflow_option()
+@status_option()
 @db_option()
 @echo_option()
 @max_running_option()
@@ -252,10 +315,12 @@ def cm_fake_run(**kwargs: Any) -> None:
     iface = SQLAlchemyInterface(db_url=all_args.pop("db"), echo=all_args.pop("echo"))
     the_level = LevelEnum[all_args.pop("level")]
     the_db_id = iface.get_db_id(the_level, **all_args)
-    iface.fake_run(the_level, the_db_id, StatusEnum.completed)
+    the_status = StatusEnum[all_args.pop("status", StatusEnum.completed)]
+    iface.fake_run(the_level, the_db_id, the_status)
 
 
 @click.command("daemon")
+@fullname_option()
 @production_option()
 @campaign_option()
 @db_option()

@@ -94,7 +94,7 @@ class ScriptBase(TableBase):
         """Called when a particular entry is rejected
 
         Calling this function will result in the script
-        being marked as `superseeded`, and be ignored by further processing.
+        being marked as `superseded`, and be ignored by further processing.
 
         Parameters
         ----------
@@ -199,6 +199,50 @@ class DbInterface:
         -------
         db_id : DbId
             The requested database ID
+        """
+        raise NotImplementedError()
+
+    def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> CMTableBase:
+        """Return a selected entry
+
+        Parameters
+        ----------
+        level : LevelEnum
+            Specifies which database table to search
+
+        fullname : str
+            Full name of the entry
+
+        Returns
+        -------
+        entry : CMTableBase
+            Selected entry
+
+        Notes
+        -----
+        This will return the entry that matches level and fullname
+        """
+        raise NotImplementedError()
+
+    def get_entry_from_parent(self, parent_id: DbId, entry_name: str) -> CMTableBase:
+        """Return a selected entry
+
+        Parameters
+        ----------
+        parent_id: DbId
+            Parent DbId
+
+        entry_name: str
+            Name for the entry in question
+
+        Returns
+        -------
+        entry : CMTableBase
+            Selected entry
+
+        Notes
+        -----
+        This will return the entry that matches parent_id and entry_name
         """
         raise NotImplementedError()
 
@@ -422,6 +466,25 @@ class DbInterface:
         -------
         entries : list[DbId]
             The entries that were rolled back
+        """
+        raise NotImplementedError()
+
+    def supersede(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        """Mark entries as superseded so that they will be ignored
+        in subsequent processing
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are rolling back
+
+        Returns
+        -------
+        entries : list[DbId]
+            The entries that were marked
         """
         raise NotImplementedError()
 

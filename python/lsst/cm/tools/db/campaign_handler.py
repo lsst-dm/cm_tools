@@ -21,7 +21,7 @@
 
 import os
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
@@ -54,7 +54,7 @@ class CampaignHandler(EntryHandler):
 
     level = LevelEnum.campaign
 
-    step_dict: OrderedDict[str, type] = OrderedDict([])
+    step_dict: OrderedDict[str, tuple[type, list[str]]] = OrderedDict([])
 
     def insert(self, dbi: DbInterface, parent: Production, **kwargs: Any) -> Campaign:
         if "butler_repo" not in kwargs:
@@ -76,7 +76,6 @@ class CampaignHandler(EntryHandler):
         coll_names = self.coll_names(insert_fields)
         insert_fields.update(**coll_names)
         campaign = Campaign.insert_values(dbi, **insert_fields)
-        self.make_steps(dbi, campaign)
         return campaign
 
     def make_steps(self, dbi: DbInterface, campaign: Campaign) -> dict[str, Step]:
@@ -97,8 +96,7 @@ class CampaignHandler(EntryHandler):
         """
         out_dict = {}
         coll_source = campaign.coll_in
-        previous_step_id: Optional[int] = None
-        for step_name, step_handler_class in self.step_dict.items():
+        for step_name, (step_handler_class, step_prereqs) in self.step_dict.items():
             step_handler = Handler.get_handler(
                 step_handler_class().get_handler_class_name(),
                 campaign.config_yaml,
@@ -113,16 +111,16 @@ class CampaignHandler(EntryHandler):
             )
             out_dict[step_name] = new_step
             coll_source = new_step.coll_out
-            if previous_step_id is not None:
-                depend_id = campaign.db_id.extend(LevelEnum.step, previous_step_id)
-                Dependency.add_prerequisite(dbi, new_step.db_id, depend_id)
-            previous_step_id = new_step.id
+            for prereq_step in step_prereqs:
+                prereq = dbi.get_entry_from_parent(campaign.db_id, prereq_step)
+                Dependency.add_prerequisite(dbi, new_step.db_id, prereq.db_id)
         return out_dict
 
     def prepare(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
         db_id_list = prepare_entry(dbi, self, entry)
         if not db_id_list:
             return db_id_list
+        self.make_steps(dbi, entry)
         for step_ in entry.s_:
             status = step_.status
             if status == StatusEnum.waiting:

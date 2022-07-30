@@ -1,8 +1,9 @@
 from typing import Any
 
-from lsst.cm.tools.core.db_interface import DbInterface, JobBase
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.handler import EntryHandlerBase
+from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
+from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker
 from lsst.cm.tools.core.utils import StatusEnum
 from lsst.cm.tools.db.common import CMTable
 from lsst.cm.tools.db.handler_utils import (
@@ -17,6 +18,8 @@ from lsst.cm.tools.db.handler_utils import (
     rollback_entry,
     run_children,
     run_entry,
+    supersede_children,
+    supersede_entry,
     validate_children,
     validate_entry,
 )
@@ -76,7 +79,14 @@ class EntryHandler(EntryHandlerBase):
     def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
         return rollback_entry(dbi, self, entry, to_status)
 
-    def rollback_run(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
+    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        for itr in entry.sub_iterators():
+            db_id_list += supersede_children(dbi, itr)
+        db_id_list += supersede_entry(dbi, self, entry)
+        return db_id_list
+
+    def rollback_subs(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list = rollback_children(dbi, itr, to_status)
@@ -92,3 +102,53 @@ class EntryHandler(EntryHandlerBase):
 
     def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
         pass
+
+    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+        pass
+
+
+class GenericEntryHandlerMixin(EntryHandler):
+    """Callback handler for database entries
+
+    Provides generic version of interface functions
+
+    """
+
+    yaml_checker_class = YamlChecker().get_checker_class_name()
+    rollback_class = FakeRollback().get_rollback_class_name()
+
+    def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        script_handlers = self.config.get("prepare", {})
+        return self._generic_scripts(dbi, entry, script_handlers)
+
+    def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        script_handlers = self.config.get("collect", {})
+        return self._generic_scripts(dbi, entry, script_handlers)
+
+    def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
+        script_handlers = self.config.get("validate", {})
+        return self._generic_scripts(dbi, entry, script_handlers)
+
+    @staticmethod
+    def _generic_scripts(
+        dbi: DbInterface,
+        entry: Any,
+        script_handlers: dict[str, Any],
+    ) -> list[ScriptBase]:
+        scripts: list[ScriptBase] = []
+        for handler_name, handler_info in script_handlers.items():
+            handler_class_name = handler_info.get("class_name", None)
+            handler = Handler.get_handler(handler_class_name, entry.config_yaml)
+            script = handler.insert(
+                dbi,
+                entry,
+                name=handler_name,
+                prepend=f"# Written by {handler.get_handler_class_name()}",
+                append="# Have a good day",
+                **handler_info,
+            )
+            status = handler.run(dbi, script)
+            if status != StatusEnum.ready:
+                script.update_values(dbi, script.id, status=status)
+            scripts.append(script)
+        return scripts

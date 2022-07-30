@@ -87,17 +87,17 @@ def test_full_example() -> None:
 
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
 
-    config_yaml = "examples/example_config.yaml"
-    handler1_class = "lsst.cm.tools.example.handler.ExampleHandler"
-    handler1 = Handler.get_handler(handler1_class, config_yaml)
-
-    handler2_class = "lsst.cm.tools.example.handler2.Example2Handler"
-    handler2 = Handler.get_handler(handler2_class, config_yaml)
-
     top_db_id = None
     iface.insert(top_db_id, None, production_name="example")
 
+    config_yaml = "examples/example_config.yaml"
+    handler1_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    handler1 = Handler.get_handler(handler1_class, config_yaml)
     run_production(iface, handler1, "test1")
+
+    config_yaml2 = "examples/example_config2.yaml"
+    handler2_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    handler2 = Handler.get_handler(handler2_class, config_yaml2)
     run_production(iface, handler2, "test2")
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test1")
@@ -126,23 +126,6 @@ def test_full_example() -> None:
     assert not result
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
-    with open(os.devnull, "wt") as fout:
-        iface.print_table(fout, TableEnum.production)
-        iface.print_table(fout, TableEnum.campaign)
-        iface.print_table(fout, TableEnum.step)
-        iface.print_table(fout, TableEnum.group)
-        iface.print_table(fout, TableEnum.workflow)
-        iface.print_table(fout, TableEnum.script)
-        iface.print_table(fout, TableEnum.job)
-        iface.print_table(fout, TableEnum.dependency)
-        iface.print_tree(fout, LevelEnum.campaign, db_c_id)
-        iface.print_tree(fout, LevelEnum.step, db_s_id)
-        iface.print_tree(fout, LevelEnum.group, db_g_id)
-        iface.print_tree(fout, LevelEnum.workflow, db_w_id)
-        iface.print_(fout, LevelEnum.production, None)
-        iface.print_(fout, LevelEnum.campaign, db_c_id)
-        iface.print_(fout, LevelEnum.step, db_c_id)
-        iface.print_(fout, LevelEnum.group, db_c_id)
 
     check_top_id = iface.get_db_id(None)
     assert check_top_id.to_tuple() == (None, None, None, None, None)
@@ -153,9 +136,31 @@ def test_full_example() -> None:
     prod = iface.get_entry(LevelEnum.production, check_p_id)
     assert prod.db_id.to_tuple() == (1, None, None, None, None)
     assert prod.name == "example"
+    assert (
+        iface.get_entry_from_fullname(
+            LevelEnum.production,
+            "example",
+        ).db_id.to_tuple()
+        == prod.db_id.to_tuple()
+    )
 
     check_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test1")
     assert check_c_id.to_tuple() == (1, 1, None, None, None)
+    assert (
+        iface.get_entry_from_fullname(
+            LevelEnum.campaign,
+            "example/test1",
+        ).db_id.to_tuple()
+        == check_c_id.to_tuple()
+    )
+
+    assert (
+        iface.get_db_id(
+            LevelEnum.campaign,
+            fullname="example/test1",
+        ).to_tuple()
+        == check_c_id.to_tuple()
+    )
 
     check_c_bad_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="bad")
     assert check_c_bad_id.to_tuple() == (1, None, None, None, None)
@@ -181,6 +186,28 @@ def test_full_example() -> None:
     assert not result
 
     iface.rollback(LevelEnum.campaign, db_c_id, StatusEnum.waiting)
+    iface.supersede(LevelEnum.campaign, db_c_id)
+
+    result = iface.prepare(LevelEnum.campaign, db_c_id)
+    assert not result
+
+    with open(os.devnull, "wt") as fout:
+        iface.print_table(fout, TableEnum.production)
+        iface.print_table(fout, TableEnum.campaign)
+        iface.print_table(fout, TableEnum.step)
+        iface.print_table(fout, TableEnum.group)
+        iface.print_table(fout, TableEnum.workflow)
+        iface.print_table(fout, TableEnum.script)
+        iface.print_table(fout, TableEnum.job)
+        iface.print_table(fout, TableEnum.dependency)
+        iface.print_tree(fout, LevelEnum.campaign, db_c_id)
+        iface.print_tree(fout, LevelEnum.step, db_s_id)
+        iface.print_tree(fout, LevelEnum.group, db_g_id)
+        iface.print_tree(fout, LevelEnum.workflow, db_w_id)
+        iface.print_(fout, LevelEnum.production, None)
+        iface.print_(fout, LevelEnum.campaign, db_c_id)
+        iface.print_(fout, LevelEnum.step, db_c_id)
+        iface.print_(fout, LevelEnum.group, db_c_id)
 
     os.system("\\rm -rf archive_test")
     os.unlink("test.db")
@@ -268,6 +295,56 @@ def test_failed_workflows() -> None:
     os.unlink("fail.db")
 
 
+def test_failed_scripts() -> None:
+
+    try:
+        os.unlink("fail.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+
+    iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+
+    config_yaml = "examples/example_failed_script.yaml"
+    handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    the_handler = Handler.get_handler(handler_class, config_yaml)
+
+    top_db_id = None
+    iface.insert(top_db_id, None, production_name="example")
+
+    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    iface.insert(
+        db_p_id,
+        the_handler,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        prod_base_url="archive_test",
+    )
+
+    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+    iface.prepare(LevelEnum.campaign, db_c_id)
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(
+            LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
+        )
+        iface.check(LevelEnum.step, db_s_id)
+
+    # import sys
+    # iface.print_table(sys.stdout, TableEnum.production)
+    # iface.print_table(sys.stdout, TableEnum.campaign)
+    # iface.print_table(sys.stdout, TableEnum.step)
+    # iface.print_table(sys.stdout, TableEnum.group)
+    # iface.print_table(sys.stdout, TableEnum.workflow)
+    # iface.print_table(sys.stdout, TableEnum.script)
+    # iface.print_table(sys.stdout, TableEnum.job)
+    # iface.print_table(sys.stdout, TableEnum.dependency)
+
+    os.system("\\rm -rf archive_test")
+    os.unlink("fail.db")
+
+
 def test_bad_db() -> None:
 
     with pytest.raises(RuntimeError):
@@ -284,4 +361,4 @@ def test_table_repr() -> None:
 
 
 if __name__ == "__main__":
-    test_failed_workflows()
+    test_failed_scripts()

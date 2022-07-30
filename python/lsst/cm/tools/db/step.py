@@ -36,7 +36,7 @@ class Step(common.Base, common.CMTable):
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
-    superseeded = Column(Boolean)  # Has this been superseeded
+    superseded = Column(Boolean)  # Has this been superseded
     previous_step_id = Column(Integer)
     db_id: DbId = composite(DbId, p_id, c_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
@@ -70,7 +70,11 @@ class Step(common.Base, common.CMTable):
         return self.c_id
 
     def __repr__(self) -> str:
-        return f"Step {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
+        if self.superseded:
+            supersede_string = "SUPERSEDED"
+        else:
+            supersede_string = ""
+        return f"Step {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""

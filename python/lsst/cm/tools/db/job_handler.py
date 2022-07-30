@@ -47,6 +47,7 @@ class JobHandler(JobHandlerBase):
             config_yaml=self.config_url,
             checker=self.checker_class_name,
             rollback=self.rollback_class_name,
+            coll_out=parent.coll_out,
             status=StatusEnum.waiting,
             script_method=self.script_method,
             level=parent.level,

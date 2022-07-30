@@ -37,7 +37,7 @@ class Group(common.Base, common.CMTable):
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
-    superseeded = Column(Boolean)  # Has this been superseeded
+    superseded = Column(Boolean)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
     c_: Campaign = relationship("Campaign", back_populates="g_")
@@ -65,7 +65,11 @@ class Group(common.Base, common.CMTable):
         return self.s_id
 
     def __repr__(self) -> str:
-        return f"Group {self.fullname} {self.db_id}: {self.handler} {self.config_yaml} {self.status.name}"
+        if self.superseded:
+            supersede_string = "SUPERSEDED"
+        else:
+            supersede_string = ""
+        return f"Group {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""
