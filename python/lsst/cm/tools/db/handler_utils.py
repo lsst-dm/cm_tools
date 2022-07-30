@@ -214,6 +214,9 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         elif current_status == StatusEnum.preparing:
             new_status = check_prepare_scripts(dbi, entry)
         elif current_status == StatusEnum.prepared:
+            handler.make_children(dbi, entry)
+            new_status = StatusEnum.runnable
+        elif current_status == StatusEnum.runnable:
             handler.run(dbi, entry)
             new_status = StatusEnum.running
         elif current_status == StatusEnum.running:
@@ -450,12 +453,13 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
             rollback_scripts(dbi, entry, ScriptType.validate)
         elif status_val == StatusEnum.collectable.value:
             rollback_scripts(dbi, entry, ScriptType.collect)
-        elif status_val == StatusEnum.prepared.value:
+        elif status_val == StatusEnum.runnable.value:
             rollback_jobs(dbi, entry)
             db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared)
+        elif status_val == StatusEnum.prepared.value:
+            supersede_children(dbi, entry.children())
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)
-            supersede_children(dbi, entry.children())
         db_id_list.append(entry.db_id)
         status_val -= 1
     entry.update_values(dbi, entry.id, status=to_status)

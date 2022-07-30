@@ -76,9 +76,10 @@ class StepHandler(EntryHandler):
         return Step.insert_values(dbi, **insert_fields)
 
     def prepare(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = prepare_entry(dbi, self, entry)
-        if not db_id_list:
-            return db_id_list
+        return prepare_entry(dbi, self, entry)
+
+    def make_children(self, dbi: DbInterface, entry: Step) -> list[DbId]:
+        db_id_list: list[DbId] = []
         self.make_groups(dbi, entry)
         db_id_list.append(entry.db_id)
         for group_ in entry.g_:

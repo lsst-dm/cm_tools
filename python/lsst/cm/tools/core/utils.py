@@ -33,41 +33,45 @@ class StatusEnum(enum.Enum):
         If all the prepare scripts have been completed can move to `prepared`
 
     prepared = 3  # Inputs have been prepared
+        -> make_children()
+        This will make any child entries
+
+    runnable = 4  # Children have been made and prepared
         -> run()
         This will mark the entry as running and allow
         for batch job submission
 
-    running = 4  # Jobs are running
+    running = 5  # Jobs are running
         -> check_running()
         If all the jobs / children are `completed` this can move
         to `collectable`
 
-    collectable = 5  # Jobs have finshed running, can collect results
+    collectable = 6  # Jobs have finshed running, can collect results
         -> collect()
         This will submit the command to merge the collections from
         all the children, and move to `collecting`
 
-    collecting = 6  # Jobs have finshed running, collecting results
+    collecting = 7  # Jobs have finshed running, collecting results
         -> check_collect_scripts()
         If all the collection scripts have been completed can move
         to `completed`
 
-    completed = 7  # Completed, awaiting review
+    completed = 8  # Completed, awaiting review
         -> validate()
         This will submit validation scripts, and move to `validating`
 
-    validating = 8  # Running validation scripts
+    validating = 9  # Running validation scripts
         -> check_validate_scripts()
         If all the validation scripts are `accepted` this will move to
         `accepted`.
         If all the validation scripts are `completed` or `accepted` this
         will move to `reviewable`
 
-    reviewable = 9  # Ready to review
+    reviewable = 10  # Ready to review
         -> accept()
         This requires outside action to move to `accept`
 
-    accepted = 10  # Completed, reviewed and accepted
+    accepted = 11  # Completed, reviewed and accepted
         Processing is done, can be used down the road
     """
 
@@ -77,13 +81,14 @@ class StatusEnum(enum.Enum):
     ready = 1
     preparing = 2
     prepared = 3
-    running = 4
-    collectable = 5
-    collecting = 6
-    completed = 7
-    validating = 8
-    reviewable = 9
-    accepted = 10
+    runnable = 4
+    running = 5
+    collectable = 6
+    collecting = 7
+    completed = 8
+    validating = 9
+    reviewable = 10
+    accepted = 11
 
     def bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""

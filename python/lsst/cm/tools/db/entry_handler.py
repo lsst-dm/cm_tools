@@ -93,7 +93,7 @@ class EntryHandler(EntryHandlerBase):
         return db_id_list
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        assert entry.status == StatusEnum.prepared
+        # assert entry.status == StatusEnum.runnable:
         entry.update_values(dbi, entry.id, status=StatusEnum.running)
         return []
 

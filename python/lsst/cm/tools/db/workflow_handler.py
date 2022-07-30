@@ -76,7 +76,7 @@ class WorkflowHandler(EntryHandler):
         workflow = Workflow.insert_values(dbi, **insert_fields)
         return workflow
 
-    def prepare(self, dbi: DbInterface, entry: Group) -> list[DbId]:
+    def prepare(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
         db_id_list = prepare_entry(dbi, self, entry)
         if not db_id_list:
             return db_id_list
@@ -92,6 +92,11 @@ class WorkflowHandler(EntryHandler):
         )
         return db_id_list
 
+    def make_children(self, dbi: DbInterface, entry: Workflow) -> list[DbId]:
+        assert dbi
+        assert entry
+        return []
+
     def make_job_handler(self) -> JobHandler:
         """Return a JobHandler to manage the
         Jobs associated with the Workflows managed by this
@@ -100,7 +105,7 @@ class WorkflowHandler(EntryHandler):
         raise NotImplementedError()
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        assert entry.status == StatusEnum.prepared
+        assert entry.status == StatusEnum.runnable
         db_id_list: list[DbId] = []
         for job in entry.jobs_:
             job.update_values(dbi, job.id, status=StatusEnum.ready)

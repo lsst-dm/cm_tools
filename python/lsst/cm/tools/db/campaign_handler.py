@@ -117,9 +117,10 @@ class CampaignHandler(EntryHandler):
         return out_dict
 
     def prepare(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = prepare_entry(dbi, self, entry)
-        if not db_id_list:
-            return db_id_list
+        return prepare_entry(dbi, self, entry)
+
+    def make_children(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
+        db_id_list: list[DbId] = []
         self.make_steps(dbi, entry)
         for step_ in entry.s_:
             status = step_.status
