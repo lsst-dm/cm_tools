@@ -6,6 +6,7 @@ from lsst.cm.tools.cli.opt.options import (
     butler_option,
     campaign_option,
     config_option,
+    data_query_option,
     db_option,
     echo_option,
     fullname_option,
@@ -55,6 +56,7 @@ def cm_create(**kwargs: Any) -> None:
 @campaign_option()
 @step_option()
 @group_option()
+@data_query_option()
 @butler_option()
 @prod_base_option()
 @workflow_option()

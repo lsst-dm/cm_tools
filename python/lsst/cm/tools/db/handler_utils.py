@@ -135,7 +135,10 @@ def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
             continue
         Job.check_status(dbi, job)
     job_status = extract_job_status(jobs)
-    assert job_status.size
+    # assert job_status.size
+    if job_status.size == 0:
+        print("Childless")
+        return StatusEnum.ready
     if (job_status >= StatusEnum.completed.value).all():
         return StatusEnum.completed
     if (job_status < 0).any():

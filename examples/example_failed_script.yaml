@@ -9,21 +9,6 @@ campaign:
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_ancil: "{root_coll}/{fullname}_ancil"
         coll_validate: "{root_coll}/{fullname}_validate"
-    prepare:
-        prepare:
-            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: failed
-            fake: true
-    collect:
-        collect:
-            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: failed
-            fake: true
-    validate:
-        validate:
-            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: failed
-            fake: true
 step:
     input_type: source
     output_type: chained
@@ -45,12 +30,11 @@ group:
     collect:
         collect:
             class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: failed
-            fake: true
+            stamp: completed
     validate:
         validate:
             class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: failed
+            stamp: accepted
             fake: true
 workflow:
     input_type: source

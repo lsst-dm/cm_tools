@@ -103,6 +103,8 @@ handler_option = MWOptionDecorator(
     help="Full import path to callback handler.",
 )
 
+data_query_option = MWOptionDecorator("--data_query", help="Data query for entry")
+
 config_option = MWOptionDecorator("--config_yaml", type=click.Path(exists=True), help="Configuration Yaml.")
 
 fullname_option = MWOptionDecorator("--fullname", help="Full entry name.")

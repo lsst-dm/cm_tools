@@ -326,20 +326,26 @@ def test_failed_scripts() -> None:
     iface.prepare(LevelEnum.campaign, db_c_id)
 
     for step_name in ["step1"]:
-        db_s_id = iface.get_db_id(
-            LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
+        db_g_id = iface.get_db_id(
+            LevelEnum.group,
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
         )
-        iface.check(LevelEnum.step, db_s_id)
+        iface.check(LevelEnum.group, db_g_id)
+        iface.rollback(LevelEnum.group, db_g_id, StatusEnum.ready)
+        # iface.prepare(LevelEnum.group, db_g_id)
+    import sys
 
-    # import sys
-    # iface.print_table(sys.stdout, TableEnum.production)
-    # iface.print_table(sys.stdout, TableEnum.campaign)
-    # iface.print_table(sys.stdout, TableEnum.step)
-    # iface.print_table(sys.stdout, TableEnum.group)
-    # iface.print_table(sys.stdout, TableEnum.workflow)
-    # iface.print_table(sys.stdout, TableEnum.script)
-    # iface.print_table(sys.stdout, TableEnum.job)
-    # iface.print_table(sys.stdout, TableEnum.dependency)
+    iface.print_table(sys.stdout, TableEnum.production)
+    iface.print_table(sys.stdout, TableEnum.campaign)
+    iface.print_table(sys.stdout, TableEnum.step)
+    iface.print_table(sys.stdout, TableEnum.group)
+    iface.print_table(sys.stdout, TableEnum.workflow)
+    iface.print_table(sys.stdout, TableEnum.script)
+    iface.print_table(sys.stdout, TableEnum.job)
+    iface.print_table(sys.stdout, TableEnum.dependency)
 
     os.system("\\rm -rf archive_test")
     os.unlink("fail.db")
