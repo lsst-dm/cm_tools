@@ -29,7 +29,6 @@ requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "src/lsst/cm/tools/_version.py"
 
 [tool.coverage.run]
 source = ["src/lsst/cm/tools"]
