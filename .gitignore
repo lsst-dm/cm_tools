@@ -9,8 +9,8 @@ config.log
 *_wrap.cc
 *Lib.py
 .eggs
-python/cm_tools.egg-info
-python/lsst/cm/tools/_version.py
+src/cm_tools.egg-info
+src/lsst/cm/tools/_version.py
 
 
 # Pytest

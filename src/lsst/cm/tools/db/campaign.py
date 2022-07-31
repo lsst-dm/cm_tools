@@ -1,12 +1,13 @@
 from typing import Any, Iterable, TextIO
 
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import composite, relationship
+
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.production import Production
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite, relationship
 
 
 class Campaign(common.Base, common.CMTable):

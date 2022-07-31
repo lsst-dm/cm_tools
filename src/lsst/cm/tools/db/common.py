@@ -1,13 +1,14 @@
 from typing import Any, Iterable, Optional, TextIO
 
+from sqlalchemy import func, select, update
+from sqlalchemy.orm import declarative_base
+
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, TableBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from sqlalchemy import func, select, update
-from sqlalchemy.orm import declarative_base
 
 
 class SQLTableMixin:

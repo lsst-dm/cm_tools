@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import types
 
-from lsst.cm.tools.core.utils import StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
+
+from lsst.cm.tools.core.utils import StatusEnum
 
 
 class Checker:

@@ -1,10 +1,11 @@
 from typing import Any, Iterable
 
-from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.db import common
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import composite, relationship
+
+from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.db import common
 
 
 class Production(common.Base, common.CMTable):

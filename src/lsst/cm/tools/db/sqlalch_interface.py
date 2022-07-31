@@ -3,6 +3,9 @@ import sys
 from time import sleep
 from typing import Any, Optional, TextIO
 
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session
+
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -10,8 +13,6 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
-from sqlalchemy import and_, func, select
-from sqlalchemy.orm import Session
 
 
 class SQLAlchemyInterface(DbInterface):

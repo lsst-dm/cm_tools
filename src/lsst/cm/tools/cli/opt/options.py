@@ -2,6 +2,7 @@ from functools import partial
 from typing import Any, List, Optional, Reversible
 
 import click
+
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 
 

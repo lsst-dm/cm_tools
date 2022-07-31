@@ -2,6 +2,7 @@ import os
 from typing import Any, Optional
 
 import yaml
+
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback

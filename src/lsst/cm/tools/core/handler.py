@@ -4,10 +4,11 @@ import types
 from typing import TYPE_CHECKING, Any, Optional
 
 import yaml
-from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
+
+from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase

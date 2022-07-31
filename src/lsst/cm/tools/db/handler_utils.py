@@ -23,6 +23,7 @@ import os
 from typing import Any, Iterable
 
 import numpy as np
+
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler

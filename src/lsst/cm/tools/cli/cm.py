@@ -1,6 +1,7 @@
 from typing import Any, List, Optional
 
 import click
+
 import lsst.cm.tools.cli.cmd.commands as cli_commands
 
 

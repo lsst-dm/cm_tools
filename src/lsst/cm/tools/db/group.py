@@ -1,30 +1,32 @@
 from typing import Any, Iterable, TextIO
 
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import composite, relationship
+
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.production import Production
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite, relationship
+from lsst.cm.tools.db.step import Step
 
 
-class Step(common.Base, common.CMTable):
-    """Database table to manage processing `Step`
+class Group(common.Base, common.CMTable):
+    """Database table to manage processing `Group`
 
-    A `Step` consists of several processing `Group` which
-    are run in parallel
-
+    A `Group` can be processed in a single `Workflow`,
+    but we also need to account for possible failures.
     """
 
-    __tablename__ = "step"
+    __tablename__ = "group"
 
-    level = LevelEnum.step
-    id = Column(Integer, primary_key=True)  # Unique Step ID
+    level = LevelEnum.group
+    id = Column(Integer, primary_key=True)  # Unique Group ID
     p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
-    name = Column(String)  # Step name
+    s_id = Column(Integer, ForeignKey(Step.id))
+    name = Column(String)  # Group name
     fullname = Column(String, unique=True)  # Unique name
     handler = Column(String)  # Handler class
     config_yaml = Column(String)  # Configuration file
@@ -37,17 +39,16 @@ class Step(common.Base, common.CMTable):
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
     superseded = Column(Boolean)  # Has this been superseded
-    previous_step_id = Column(Integer)
-    db_id: DbId = composite(DbId, p_id, c_id, id)
+    db_id: DbId = composite(DbId, p_id, c_id, s_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
-    c_: Campaign = relationship("Campaign", back_populates="s_")
-    g_: Iterable = relationship("Group", back_populates="s_")
-    w_: Iterable = relationship("Workflow", back_populates="s_")
-    scripts_: Iterable = relationship("Script", back_populates="s_")
-    jobs_: Iterable = relationship("Job", back_populates="s_")
-    depend_: Iterable = relationship("Dependency", back_populates="s_")
+    c_: Campaign = relationship("Campaign", back_populates="g_")
+    s_: Step = relationship("Step", back_populates="g_")
+    w_: Iterable = relationship("Workflow", back_populates="g_")
+    scripts_: Iterable = relationship("Script", back_populates="g_")
+    jobs_: Iterable = relationship("Job", back_populates="g_")
+    depend_: Iterable = relationship("Dependency", back_populates="g_")
 
-    match_keys = [p_id, c_id, id]
+    match_keys = [p_id, c_id, s_id, id]
 
     @hybrid_property
     def butler_repo(self) -> Any:
@@ -60,35 +61,30 @@ class Step(common.Base, common.CMTable):
         return self.c_.prod_base_url
 
     @hybrid_property
-    def root_coll(self) -> Any:
-        """Direct access to the root of collection names, for convinience"""
-        return self.c_.root_coll
-
-    @hybrid_property
     def parent_id(self) -> Any:
-        """Maps c_id to parent_id for consistency"""
-        return self.c_id
+        """Maps s_id to parent_id for consistency"""
+        return self.s_id
 
     def __repr__(self) -> str:
         if self.superseded:
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        return f"Step {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
+        return f"Group {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""
-        stream.write(f"  {self}\n")
+        stream.write(f"    {self}\n")
         for script in self.scripts_:
-            stream.write(f"    -{script}\n")
-        for group in self.g_:
-            group.print_tree(stream)
+            stream.write(f"      -{script}\n")
+        for workflow in self.w_:
+            stream.write(f"      {workflow}")
 
     def children(self) -> Iterable:
-        """Maps self.g_ to self.children() for consistency"""
-        for group in self.g_:
-            yield group
+        """Maps self.w_ to self.children() for consistency"""
+        for workflow in self.w_:
+            yield workflow
 
     def sub_iterators(self) -> list[Iterable]:
         """Iterators over sub-entries, used for recursion"""
-        return [self.w_, self.g_]
+        return [self.w_]

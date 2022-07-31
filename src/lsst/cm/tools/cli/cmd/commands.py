@@ -2,6 +2,7 @@ import sys
 from typing import Any
 
 import click
+
 from lsst.cm.tools.cli.opt.options import (
     butler_option,
     campaign_option,

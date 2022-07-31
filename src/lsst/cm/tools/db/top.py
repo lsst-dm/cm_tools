@@ -1,5 +1,8 @@
 from typing import Any
 
+from sqlalchemy import Table, create_engine
+from sqlalchemy_utils import create_database, database_exists
+
 from lsst.cm.tools.core.utils import LevelEnum, TableEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
@@ -10,8 +13,6 @@ from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
-from sqlalchemy import Table, create_engine
-from sqlalchemy_utils import create_database, database_exists
 
 
 def create_db(engine: Any) -> None:

@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, TextIO
 
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import composite, relationship
+
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db import common
@@ -9,9 +13,6 @@ from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import composite, relationship
 
 
 class Workflow(common.Base, common.CMTable):

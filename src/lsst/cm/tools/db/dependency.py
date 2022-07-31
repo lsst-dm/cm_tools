@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from sqlalchemy import Column, ForeignKey, Integer, func
+from sqlalchemy.orm import composite, relationship
+
 from lsst.cm.tools.core.db_interface import DbInterface, DependencyBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum
@@ -11,8 +14,6 @@ from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
-from sqlalchemy import Column, ForeignKey, Integer, func
-from sqlalchemy.orm import composite, relationship
 
 
 class Dependency(DependencyBase, common.Base):

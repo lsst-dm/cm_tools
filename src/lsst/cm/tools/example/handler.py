@@ -3,6 +3,7 @@ from collections import OrderedDict
 from typing import Any, Iterable
 
 import yaml
+
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
