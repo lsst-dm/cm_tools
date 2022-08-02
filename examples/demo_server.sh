@@ -8,6 +8,6 @@ config="examples/example_config.yaml"
 command="cm"
 
 ${command} create
-${command} insert --level production --production_name ${p_name}
-${command} insert --level campaign --production_name ${p_name} --campaign_name ${c_name} --handler ${handler} --config_yaml ${config}
-${command} daemon --production_name ${p_name} --campaign_name ${c_name} &
+${command} insert --level production --production-name ${p_name}
+${command} insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
+${command} daemon --production-name ${p_name} --campaign-name ${c_name} &

@@ -22,7 +22,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.scripts]
-cm = "lsst.cm.tools.cli.cm:main"
+cm = "lsst.cm.tools.cli.commands:cli"
 
 [build-system]
 requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
