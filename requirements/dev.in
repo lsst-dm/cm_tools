@@ -11,6 +11,7 @@ asgi-lifespan
 coverage[toml]
 mypy
 pre-commit
+pydocstyle[toml]
 pylint
 pytest
 pytest-cov

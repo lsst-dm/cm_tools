@@ -333,13 +333,10 @@ def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
 def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     """Run the validation scripts for an entry
 
-    This will take an entry from
-    `StatusEnum.completed` to
-
+    This will take an entry from `StatusEnum.completed` to:
     `StatusEnum.validating` if the validation scripts are run asynchronously
     `StatusEnum.accepted` if the validation scripts are completed
     """
-
     assert entry.status == StatusEnum.completed
     validate_scripts = handler.validate_script_hook(dbi, entry)
     if validate_scripts:
@@ -418,17 +415,20 @@ def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
 
 
 def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType) -> None:
+    """Rollback scripts associated with an entry"""
     for script in entry.scripts_:
         if script.script_type == script_type:
             Script.rollback_script(dbi, entry, script)
 
 
 def rollback_jobs(dbi: DbInterface, entry: Any) -> None:
+    """Rollback jobs associated with an entry"""
     for job in entry.jobs_:
         Job.rollback_script(dbi, entry, job)
 
 
 def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) -> list[DbId]:
+    """Rollback all members of an entry collection"""
     db_id_list: list[DbId] = []
     for entry in itr:
         if entry.status.value <= to_status.value:
@@ -464,6 +464,7 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
 
 
 def supersede_children(dbi: DbInterface, itr: Iterable) -> list[DbId]:
+    """Supersede all members of and entry collection"""
     db_id_list: list[DbId] = []
     for entry in itr:
         handler = entry.get_handler()
@@ -472,7 +473,7 @@ def supersede_children(dbi: DbInterface, itr: Iterable) -> list[DbId]:
 
 
 def supersede_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
-    """Roll-back an entry to a lower status"""
+    """Supersede an entry"""
     entry.update_values(dbi, entry.id, superseded=True)
     handler.supersede_hook(dbi, entry)
     return [entry.db_id]

@@ -8,6 +8,7 @@ from lsst.cm.tools.example.handler import ExampleGroupHandler
 
 
 class ExampleExtraStepHandler(GenericEntryHandlerMixin, StepHandler):
+    """Example extra step handler"""
 
     group_handler_class = ExampleGroupHandler().get_handler_class_name()
 

@@ -34,18 +34,21 @@ class MWOptionDecorator:
 
     def name(self) -> str | None:
         """Get the name that will be passed to the command function for this
-        option."""
+        option.
+        """
         return self._name
 
     def opts(self) -> list[str]:
         """Get the flags that will be used for this option on the command
-        line."""
+        line.
+        """
         return self._opts
 
     @property
     def help(self) -> str:
         """Get the help text for this option. Returns an empty string if no
-        help was defined."""
+        help was defined.
+        """
         return self.partialOpt.keywords.get("help", "")
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:

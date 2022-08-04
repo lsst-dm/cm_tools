@@ -247,7 +247,8 @@ class ScriptMethod(enum.Enum):
 
 def safe_makedirs(path: StrOrBytesPath) -> None:
     """Utility function to make directory and catch exception
-    if it already exists"""
+    if it already exists
+    """
     try:
         os.makedirs(path)
     except OSError:

@@ -18,6 +18,7 @@ from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
 class ExampleJobHandler(JobHandler):
+    """Example job callback handler"""
 
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()
@@ -51,6 +52,7 @@ class ExampleJobHandler(JobHandler):
 
 
 class ExampleWorkflowHander(GenericEntryHandlerMixin, WorkflowHandler):
+    """Example workflow callback handler"""
 
     job_handler_class = ExampleJobHandler().get_handler_class_name()
 
@@ -59,6 +61,7 @@ class ExampleWorkflowHander(GenericEntryHandlerMixin, WorkflowHandler):
 
 
 class ExampleGroupHandler(GenericEntryHandlerMixin, GroupHandler):
+    """Example group callback handler"""
 
     workflow_handler_class = ExampleWorkflowHander().get_handler_class_name()
 
@@ -67,6 +70,7 @@ class ExampleGroupHandler(GenericEntryHandlerMixin, GroupHandler):
 
 
 class ExampleStep1Handler(GenericEntryHandlerMixin, StepHandler):
+    """Example step handler (1 of 3)"""
 
     group_handler_class = ExampleGroupHandler().get_handler_class_name()
 
@@ -83,6 +87,7 @@ class ExampleStep1Handler(GenericEntryHandlerMixin, StepHandler):
 
 
 class ExampleStep2Handler(GenericEntryHandlerMixin, StepHandler):
+    """Example step handler (2 of 3)"""
 
     group_handler_class = ExampleGroupHandler().get_handler_class_name()
 
@@ -99,6 +104,7 @@ class ExampleStep2Handler(GenericEntryHandlerMixin, StepHandler):
 
 
 class ExampleStep3Handler(GenericEntryHandlerMixin, StepHandler):
+    """Example step handler (3 of 3)"""
 
     group_handler_class = ExampleGroupHandler().get_handler_class_name()
 
@@ -115,6 +121,7 @@ class ExampleStep3Handler(GenericEntryHandlerMixin, StepHandler):
 
 
 class ExampleHandler(GenericEntryHandlerMixin, CampaignHandler):
+    """Example campaign handler"""
 
     step_dict = OrderedDict(
         [

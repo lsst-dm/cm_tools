@@ -30,7 +30,7 @@ from .options import (
 
 @click.group()
 def cli() -> None:
-    """campaign management tool"""
+    """Campaign management tool"""
     pass
 
 
@@ -38,7 +38,7 @@ def cli() -> None:
 @db_option()
 @echo_option()
 def create(db: str, echo: bool) -> None:
-    """create backing database"""
+    """Create backing database"""
     SQLAlchemyInterface(db, echo=echo, create=True)
 
 
@@ -60,6 +60,7 @@ def create(db: str, echo: bool) -> None:
 def insert(
     level: LevelEnum, db: str, handler: str, config_yaml: str, no_submit: bool, echo: bool, **kwargs: Any
 ) -> None:
+    """Insert a new database entry at a particular level"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     if level != LevelEnum.production:
@@ -84,6 +85,7 @@ def insert(
 @db_option()
 @echo_option()
 def print_tree(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+    """Print a database table from a given entry in a tree-like format"""
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
     iface.print_tree(sys.stdout, level, the_db_id)
@@ -100,6 +102,7 @@ def print_tree(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
 @db_option()
 @echo_option()
 def print(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+    """Print a database entry or entries"""
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
     iface.print_(sys.stdout, level, the_db_id)
@@ -110,6 +113,7 @@ def print(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
 @db_option()
 @echo_option()
 def print_table(table: TableEnum, db: str, echo: bool) -> None:
+    """Print a database table"""
     iface = SQLAlchemyInterface(db, echo=echo)
     iface.print_table(sys.stdout, table)
 
@@ -126,6 +130,7 @@ def print_table(table: TableEnum, db: str, echo: bool) -> None:
 @nosubmit_option()
 @echo_option()
 def prepare(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+    """Prepare a database entry for execution"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -152,6 +157,7 @@ def prepare(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: An
 @db_option()
 @echo_option()
 def queue(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+    """Queue all the ready jobs matching the selection"""
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
     iface.queue_jobs(level, the_db_id)
@@ -170,6 +176,7 @@ def queue(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
 @nosubmit_option()
 @max_running_option()
 def launch(level: LevelEnum, db: str, echo: bool, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+    """Launch all the pending jobs matching the selection"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -188,6 +195,7 @@ def launch(level: LevelEnum, db: str, echo: bool, no_submit: bool, max_running: 
 @nosubmit_option()
 @echo_option()
 def check(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+    """Check all database entries at a particular level"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -206,6 +214,7 @@ def check(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any)
 @nosubmit_option()
 @echo_option()
 def accept(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+    """Accept completed entries at a particular level"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -224,6 +233,7 @@ def accept(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any
 @nosubmit_option()
 @echo_option()
 def reject(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+    """Reject entries at a particular level"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -242,6 +252,9 @@ def reject(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any
 @nosubmit_option()
 @echo_option()
 def supersede(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+    """Mark entries as superseded so that they will be ignored in subsequent
+    processing
+    """
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -263,6 +276,7 @@ def supersede(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: 
 def rollback(
     level: LevelEnum, status: StatusEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any
 ) -> None:
+    """Rollback entries at a particular level"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
@@ -282,6 +296,7 @@ def rollback(
 @echo_option()
 @max_running_option()
 def fake_run(level: LevelEnum, status: StatusEnum, db: str, echo: bool, **kwargs: Any) -> None:
+    """Pretend to run workflows, this is for testing"""
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
     iface.fake_run(level, the_db_id, status)
@@ -296,6 +311,7 @@ def fake_run(level: LevelEnum, status: StatusEnum, db: str, echo: bool, **kwargs
 @nosubmit_option()
 @max_running_option()
 def daemon(db: str, echo: bool, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+    """Run a loop"""
     Handler.no_submit = no_submit
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(LevelEnum.campaign, **kwargs)
