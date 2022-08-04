@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Optional, TextIO
+from typing import Any, Iterable, TextIO
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import declarative_base
@@ -17,7 +17,10 @@ class SQLTableMixin:
     """
 
     depend_: Iterable
-    id: Optional[int]
+    id: int | None
+
+    def __init__(self, id: int) -> None:
+        self.id = id
 
     @classmethod
     def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
@@ -53,9 +56,9 @@ class SQLScriptMixin(SQLTableMixin):
     need for Script and Workflow objects
     """
 
-    id: Optional[int]
-    handler: Optional[str]
-    config_yaml: Optional[str]
+    id: int | None
+    handler: str | None
+    config_yaml: str | None
     status: StatusEnum
 
     def get_handler(self) -> Handler:
@@ -92,11 +95,11 @@ class CMTable(SQLTableMixin, CMTableBase):
 
     level = LevelEnum.production
 
-    name: Optional[str]
-    handler: Optional[str]
-    config_yaml: Optional[str]
+    name: str | None
+    handler: str | None
+    config_yaml: str | None
     match_keys: list[str] = []
-    parent_id: Optional[Any]
+    parent_id: Any
 
     def get_handler(self) -> Handler:
         return Handler.get_handler(self.handler, self.config_yaml)
@@ -137,7 +140,7 @@ def return_count(dbi: DbInterface, count: Any) -> int:
     return count_result.scalar()
 
 
-def return_first_column(dbi: DbInterface, sel: Any) -> Optional[int]:
+def return_first_column(dbi: DbInterface, sel: Any) -> int | None:
     """Returns the first column in the first row matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)

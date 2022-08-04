@@ -48,7 +48,7 @@ class SQLAlchemyInterface(DbInterface):
         g_id = self._get_id(LevelEnum.group, s_id, kwargs.get("group_name"))
         if level == LevelEnum.group:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
-        w_id = self._get_id(LevelEnum.workflow, g_id, "%02i" % kwargs.get("workflow_idx"))
+        w_id = self._get_id(LevelEnum.workflow, g_id, "%02i" % kwargs.get("workflow_idx", 0))
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> DbId:
@@ -231,6 +231,6 @@ class SQLAlchemyInterface(DbInterface):
             sel = select([table.id]).where(and_(parent_field == parent_id, table.name == match_name))
         return common.return_first_column(self, sel)
 
-    def _verify_entry(self, entry, level: LevelEnum, db_id: DbId) -> None:
+    def _verify_entry(self, entry: int | None, level: LevelEnum, db_id: DbId) -> None:
         if entry is None:  # pragma: no cover
             raise ValueError(f"Failed to get entry for {db_id} at {level.name}")
