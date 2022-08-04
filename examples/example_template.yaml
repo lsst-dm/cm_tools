@@ -6,5 +6,5 @@ includeConfigs:
 project: example
 campaign: example/test
 
-saveClusteredQgraph: True
-saveGenericWorkflow: True
+saveClusteredQgraph: true
+saveGenericWorkflow: true
