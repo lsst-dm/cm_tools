@@ -23,3 +23,17 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.27.1
+    hooks:
+      - id: yamllint
+
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.1.1
+    hooks:
+      - id: pydocstyle
+        additional_dependencies:
+          - toml
+        args:
+          - --match='(?!test_).*\.py'

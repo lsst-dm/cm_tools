@@ -2,6 +2,7 @@ import sys
 from typing import Any
 
 import pytest
+
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import CMTableBase, DbId, DbInterface, DependencyBase, ScriptBase
 from lsst.cm.tools.core.handler import EntryHandlerBase, Handler, JobHandlerBase, ScriptHandlerBase

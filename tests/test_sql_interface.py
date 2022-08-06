@@ -10,7 +10,7 @@ from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
-def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_name) -> None:
+def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_name: str) -> None:
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
     iface.insert(

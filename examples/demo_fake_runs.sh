@@ -2,8 +2,8 @@ p_name="example"
 c_name="test"
 command="cm"
 
-${command} fake_run --level campaign --production_name ${p_name} --campaign_name ${c_name}
-${command} print_table --table campaign
-${command} print_table --table step
-${command} print_table --table group
-${command} print_table --table workflow
+${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+${command} print-table --table campaign
+${command} print-table --table step
+${command} print-table --table group
+${command} print-table --table workflow
