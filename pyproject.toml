@@ -94,7 +94,7 @@ line_length = 110
 addopts = [
     "--cov=src/lsst/cm/tools",
     "--cov-branch",
-    "--cov-report="
+    "--cov-report=html"
 ]
 flake8-ignore = "E203"
 
