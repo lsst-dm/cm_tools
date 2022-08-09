@@ -1,0 +1,90 @@
+campaign:
+    root_coll: 'cm'
+    data_query: "instrument = 'HSC' and exposure < 500"
+    input_type: tagged
+    output_type: chained
+    templates:
+        coll_source: /prod/raw/all
+        coll_in: "{root_coll}/{fullname}_input"
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_ancil: "{root_coll}/{fullname}_ancil"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    prepare:
+        prepare:
+            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+            stamp: running
+            fake: true
+        ancil:
+            class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
+            stamp: running
+            fake: true
+    collect:
+        collect:
+            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
+            stamp: completed
+            fake: true
+    validate:
+        validate:
+            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+            stamp: accepted
+            fake: true
+step:
+    input_type: source
+    output_type: chained
+    templates:
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    prepare:
+        prepare:
+            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+            stamp: completed
+            fake: true
+    collect:
+        collect:
+            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
+            stamp: completed
+            fake: true
+    validate:
+        validate:
+            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+            stamp: accepted
+            fake: true
+group:
+    input_type: tagged
+    output_type: chained
+    templates:
+        coll_in: "{root_coll}/{fullname}_input"
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    prepare:
+        prepare:
+            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+            stamp: completed
+            fake: true
+    collect:
+        collect:
+            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
+            stamp: completed
+            fake: true
+    validate:
+        validate:
+            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+            stamp: reviewable
+            fake: true
+workflow:
+    input_type: source
+    output_type: run
+    templates:
+        coll_out: "{root_coll}/{fullname}_ouput"
+ancil:
+    collections:
+    - /prod/calib/some_calib
+    - /prod/calib/other_calib
+    - /prod/skymaps
+job:
+    bps_template_yaml: "examples/example_template.yaml"
+    sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
+    pipeline_yaml:
+        step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
+        step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
+        step3: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step3"
