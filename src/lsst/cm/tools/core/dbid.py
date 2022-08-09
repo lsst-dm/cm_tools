@@ -70,15 +70,15 @@ class DbId:
         Parameters
         ----------
         level : LevelEnum
-            The level were are adding the key at
+            Level we are adding the key at
 
         row_id : int
-            The primary key we are adding
+            Primary key we are adding
 
         Returns
         -------
         new_id : DbId
-            The extended DbId
+            Extended DbId
         """
         if level == LevelEnum.production:
             return DbId(p_id=row_id)

@@ -58,7 +58,7 @@ def make_butler_associate_command(
     Parameters
     ----------
     butler_repo : str
-        The butler repo being used
+        Butler repo being used
 
     coll_in : str
         This will be the name given to the TAGGED collection
@@ -67,12 +67,12 @@ def make_butler_associate_command(
         This is the source collection we are pulling from
 
     data_query : Optional[str]
-        A query that can be used to skim out data from the source collection
+        Query that can be used to skim out data from the source collection
 
     Returns
     -------
     command : str
-        The requested butler command
+        Requested butler command
 
     """
     command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
@@ -87,7 +87,7 @@ def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list
     Parameters
     ----------
     butler_repo : str
-        The butler repo being used
+        Butler repo being used
 
     coll_out : str
         This will be the name given to the CHAINED collection
@@ -98,7 +98,7 @@ def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list
     Returns
     -------
     command : str
-        The requested butler command
+        Requested butler command
     """
     command = f"butler collection-chain {butler_repo} {coll_out}"
     for input_coll in input_colls:
@@ -112,7 +112,7 @@ def make_butler_remove_collection_command(butler_repo: str, coll_out: str) -> st
     Parameters
     ----------
     butler_repo : str
-        The butler repo being used
+        Butler repo being used
 
     coll_out : str
         This collection will be removed
@@ -120,7 +120,7 @@ def make_butler_remove_collection_command(butler_repo: str, coll_out: str) -> st
     Returns
     -------
     command : str
-        The requested butler command
+        Requested butler command
     """
     command = f"butler remove-collection {butler_repo} {coll_out}"
     return command
@@ -132,7 +132,7 @@ def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -
     Parameters
     ----------
     butler_repo : str
-        The butler repo being used
+        Butler repo being used
 
     coll_validate : str
         Where to write the validation
@@ -143,25 +143,24 @@ def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -
     Returns
     -------
     command : str
-        The requested command
-
+        Requested command
     """
     command = f"validate {butler_repo} --output {coll_validate} {coll_out}"
     return command
 
 
 def make_bps_command(config_url: str) -> str:
-    """Build and return a butler chain-collection command
+    """Build and return command to submit a bps job
 
     Parameters
     ----------
     config_url : str
-        The configuration file
+        Configuration file
 
     Returns
     -------
     command : str
-        The requested command
+        Requested command
     """
     return f"bps submit {os.path.abspath(config_url)}"
 
@@ -169,11 +168,16 @@ def make_bps_command(config_url: str) -> str:
 def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
     """Write a shell script with a single command
 
+    This wraps the commond in some tooling needed
+    by the CM tooling
+
     Parameters
     ----------
     script: ScriptBase
+        Database entry we are writing script for
 
     command: str
+        Command to run
 
     Keywords
     --------

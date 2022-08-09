@@ -58,7 +58,7 @@ class Handler:
         Returns
         -------
         handler : Handler
-            The requested handler
+            Requested handler
 
         Notes
         -----
@@ -108,7 +108,7 @@ class Handler:
         Parameters
         ----------
         config_url : str
-            The URL of the configuration file
+            URL of the configuration file
         """
         # config_url should always be set
         assert config_url is not None
@@ -122,10 +122,10 @@ class Handler:
         Parameters
         ----------
         varname : str
-            The name of the parameter requested
+            Name of the parameter requested
 
         default : Any
-            The default value of the parameter in question
+            Default value of the parameter in question
 
         Keywords
         --------
@@ -134,7 +134,7 @@ class Handler:
         Returns
         -------
         par_value : Any
-            The value of the requested parameter
+            Value of the requested parameter
 
         Notes
         -----
@@ -154,12 +154,12 @@ class Handler:
         Parameters
         ----------
         key : str
-            The name of the keyword requested
+            Name of the keyword requested
 
         Returns
         -------
         value : Any
-            The value of the request keyword
+            Value of the request keyword
 
         Raises
         ------
@@ -177,7 +177,7 @@ class Handler:
         Parameters
         ----------
         template_str : str
-            template to use
+            Template to use
 
         Keywords
         --------
@@ -186,12 +186,12 @@ class Handler:
         Returns
         -------
         value : str
-            The formatted string
+            Formatted string
 
         Raises
         ------
         KeyError :
-            The formatting failed
+            Formatting failed because of missing key
         """
         try:
             return template_str.format(**kwargs)
@@ -201,6 +201,8 @@ class Handler:
     def resolve_templated_strings(self, **kwargs: Any) -> dict[str, Any]:
         """Utility function resolve a list of templated names
 
+        This will format all the strings listed in `self.config.templates`
+
         Keywords
         --------
         These can be used in the formating
@@ -208,12 +210,12 @@ class Handler:
         Returns
         -------
         values : dict[str, Any]
-            The formatted strings
+            Formatted strings
 
         Raises
         ------
         KeyError :
-            The formatting failed
+            Formatting failed because of missing key
         """
         template_names = self.config.get("templates", {})
         return {key_: self.resolve_templated_string(val_, **kwargs) for key_, val_ in template_names.items()}
@@ -242,7 +244,7 @@ class ScriptHandlerBase(Handler):
             Interface to the database we are using
 
         parent: Any
-            The parent entry the new script is associated with
+            Parent entry the new script is associated with
 
         Keywords
         --------
@@ -251,7 +253,7 @@ class ScriptHandlerBase(Handler):
         Returns
         -------
         new_entry : ScriptBase
-            The new entry
+            New entry
         """
         raise NotImplementedError()
 
@@ -264,10 +266,10 @@ class ScriptHandlerBase(Handler):
             Interface to the database we updated
 
         parent: Any
-            The parent entry the script is associated with
+            Parent entry the script is associated with
 
         script: ScriptBase
-            The database entry for the script
+            Database entry for the script
 
         Keywords
         --------
@@ -278,7 +280,7 @@ class ScriptHandlerBase(Handler):
     def fake_run_hook(
         self, dbi: DbInterface, script: ScriptBase, status: StatusEnum = StatusEnum.completed
     ) -> None:
-        """Used for testing, falsely writes a log file that claims
+        """Used for testing, falsely writes a stamp file that claims
         script is completed
 
         Parameters
@@ -287,10 +289,10 @@ class ScriptHandlerBase(Handler):
             Interface to the database we updated
 
         script: ScriptBase
-            The database entry for the script
+            Database entry for the script
 
         status: StatusEnum
-            The status to set
+            Status to set
         """
         raise NotImplementedError()
 
@@ -303,7 +305,7 @@ class ScriptHandlerBase(Handler):
             Interface to the database we updated
 
         script: ScriptBase
-            The database entry for the script
+            Database entry for the script
 
         Returns
         -------
@@ -331,7 +333,7 @@ class JobHandlerBase(Handler):
             Interface to the database we are using
 
         parent: Any
-            The parent entry the new script is associated with
+            Parent entry the new script is associated with
 
         Keywords
         --------
@@ -340,23 +342,23 @@ class JobHandlerBase(Handler):
         Returns
         -------
         new_entry : JobBase
-            The new entry
+            New entry
         """
         raise NotImplementedError()
 
     def write_job_hook(self, dbi: DbInterface, parent: Any, job: JobBase, **kwargs: Any) -> None:
-        """Write the script to run a workflow
+        """Write a `job` script to run a workflow
 
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         parent: Any
-            The parent entry the script is associated with
+            Parent entry the script is associated with
 
         job: JobBase
-            The database entry for the job
+            Database entry for the job
 
         Keywords
         --------
@@ -373,26 +375,29 @@ class JobHandlerBase(Handler):
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         job: JobBase
-            The database entry for the script
+            Database entry for the script
 
         status: StatusEnum
-            The status to set
+            Status to set
         """
         raise NotImplementedError()
 
     def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
-        """Launched the job
+        """Launch the job
+
+        This will submit the job to the workflow manager
+        (e.g., PanDa or whatever)
 
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         job: JobBase
-            The database entry for the script
+            Database entry for the job
 
         Returns
         -------
@@ -429,7 +434,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         parent: Any
-            The parent entry this entry is associated with
+            Parent entry this entry is associated with
 
         Keywords
         --------
@@ -438,7 +443,7 @@ class EntryHandlerBase(Handler):
         Returns
         -------
         new_entry : CMTable
-            The new entry
+            New entry
         """
         raise NotImplementedError()
 
@@ -451,7 +456,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -469,7 +474,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -490,7 +495,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -508,7 +513,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -518,7 +523,7 @@ class EntryHandlerBase(Handler):
         raise NotImplementedError()
 
     def collect(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Check this entry and any children
+        """Run collection scripts for this entry and any children
 
         Parameters
         ----------
@@ -526,7 +531,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -544,7 +549,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -562,7 +567,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -580,7 +585,7 @@ class EntryHandlerBase(Handler):
             Interface to the database we are using
 
         entry: Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -624,10 +629,10 @@ class EntryHandlerBase(Handler):
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry we are preparing
+            Entry in question
 
         Returns
         -------
@@ -639,13 +644,15 @@ class EntryHandlerBase(Handler):
     def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         """Called when all the childern of a particular entry are finished
 
+        Does any collection of results from children.
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry we are preparing
+            Entry in question
 
         Returns
         -------
@@ -657,13 +664,16 @@ class EntryHandlerBase(Handler):
     def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         """Called to validate an entry once the results have been collected
 
+        This runs after collect() to make it easier to
+        run validation on the collected results
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -678,10 +688,10 @@ class EntryHandlerBase(Handler):
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -693,39 +703,48 @@ class EntryHandlerBase(Handler):
     def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
         """Called when a particular entry is accepted
 
+        Allows users to do any extra operations associated
+        with accepting the entry
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
         """
         raise NotImplementedError()
 
     def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
         """Called when a particular entry is rejected
 
+        Allows users to do any extra operations associated
+        with rejecting the entry
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
         """
         raise NotImplementedError()
 
     def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
         """Called when a particular entry is superseded
 
+        Allows users to do any extra operations associated
+        with superseding the entry
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
         """
         raise NotImplementedError()
 
@@ -735,16 +754,20 @@ class EntryHandlerBase(Handler):
         Calling this function can result in scripts and child entries
         being marked as `superseded`, and be ignored by further processing.
 
+        This will iterate from the current status to the
+        requested status, marking as superseded any scripts and children
+        that were produced when originally moving to the higher state.
+
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
+            Entry in question
 
         to_status : StatusEnum
-            The status we want to roll back to
+            Status we want to roll back to
 
         Returns
         -------
@@ -754,21 +777,18 @@ class EntryHandlerBase(Handler):
         raise NotImplementedError()
 
     def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Called to 'roll-back' a partiuclar entry
+        """Called to mark an entry as superseded
 
-        Calling this function can result in scripts and child entries
-        being marked as `superseded`, and be ignored by further processing.
+        Superseded entries are ignored in futher processing, and
+        do not prevent parent entries for continuing.
 
         Parameters
         ----------
         dbi : DbInterface
-            Interface to the database we updated
+            Interface to the database we are using
 
         entry : Any
-            The entry in question
-
-        to_status : StatusEnum
-            The status we want to roll back to
+            Entry in question
 
         Returns
         -------

@@ -32,7 +32,7 @@ class Checker:
         Returns
         -------
         check : Checker
-            The requested Checker
+            Requested Checker
 
         Notes
         -----
@@ -67,6 +67,6 @@ class Checker:
         Returns
         -------
         status : StatusEnum
-            The status of the script
+            Status of the script
         """
         raise NotImplementedError()

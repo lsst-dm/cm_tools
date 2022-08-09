@@ -29,7 +29,7 @@ class TableBase:
         Returns
         -------
         new_entry : Any
-            The newly inserted entry
+            Newly inserted entry
         """
         raise NotImplementedError()
 
@@ -43,7 +43,7 @@ class TableBase:
             Interface to the database
 
         row_id : int
-            The id of the entry we are updating
+            Id of the entry we are updating
 
         Keywords
         --------
@@ -80,7 +80,7 @@ class ScriptBase(TableBase):
             Interface to the database
 
         entry : ScriptBase
-            The entry in question
+            Entry in question
 
         Returns
         -------
@@ -102,10 +102,10 @@ class ScriptBase(TableBase):
             Interface to the database we updated
 
         entry : Any
-            The entry associated to the script
+            Entry associated to the script
 
         script : ScriptBase
-            The script we are rolling back
+            Script we are rolling back
         """
         raise NotImplementedError()
 
@@ -143,7 +143,7 @@ class DependencyBase:
         Returns
         -------
         depend : DependencyBase
-            The newly create dependency
+            Newly create dependency
         """
         raise NotImplementedError()
 
@@ -198,7 +198,7 @@ class DbInterface:
         Returns
         -------
         db_id : DbId
-            The requested database ID
+            Requested database ID
         """
         raise NotImplementedError()
 
@@ -271,7 +271,7 @@ class DbInterface:
         Parameters
         ----------
         stream : TextIO
-            The stream we will print to
+            Stream we will print to
 
         level: LevelEnum
             Selects which database table to print
@@ -288,7 +288,7 @@ class DbInterface:
         Parameters
         ----------
         stream : TextIO
-            The stream we will print to
+            Stream we will print to
 
         which_table: TableEnum
             Selects which database table to print
@@ -302,7 +302,7 @@ class DbInterface:
         Parameters
         ----------
         stream : TextIO
-            The stream we will print to
+            Stream we will print to
 
         level: LevelEnum
             Selects which database table to start with
@@ -336,7 +336,7 @@ class DbInterface:
             Specifies the parent entry to the entry we are inserting
 
         handler : Handler
-            The callback handler for the entry we are inserting
+            Callback handler for the entry we are inserting
 
         Keywords
         --------
@@ -347,7 +347,7 @@ class DbInterface:
         Returns
         -------
         new_entry : CMTableBase
-            The new entry
+            Newly inserted entry
         """
         raise NotImplementedError()
 
@@ -365,7 +365,7 @@ class DbInterface:
         Returns
         -------
         entries : list[DbId]
-            The entries that were prepared
+            Entries that were prepared
 
         Keywords
         --------
@@ -387,7 +387,7 @@ class DbInterface:
         Returns
         -------
         entries : list[DbId]
-            The entries that were queued
+            Entries that were queued
         """
         raise NotImplementedError()
 
@@ -408,7 +408,7 @@ class DbInterface:
         Returns
         -------
         entries : list[DbId]
-            The entries that were launched
+            Entries that were launched
         """
         raise NotImplementedError()
 
@@ -426,7 +426,7 @@ class DbInterface:
         Returns
         -------
         entries : list[DbId]
-            The entries that were accepted
+            Entries that were accepted
         """
         raise NotImplementedError()
 
@@ -444,7 +444,7 @@ class DbInterface:
         Returns
         -------
         entries : list[DbId]
-            The entries that were rejected
+            Entries that were rejected
         """
         raise NotImplementedError()
 
@@ -460,12 +460,12 @@ class DbInterface:
             Specifies the entries we are rolling back
 
         to_status: StatusEnum
-            The status we are rolling back to
+            Status we are rolling back to
 
         Returns
         -------
         entries : list[DbId]
-            The entries that were rolled back
+            Entries that were rolled back
         """
         raise NotImplementedError()
 
@@ -479,12 +479,12 @@ class DbInterface:
             Selects which database table to search
 
         db_id : DbId
-            Specifies the entries we are rolling back
+            Specifies the entries we are superseding
 
         Returns
         -------
         entries : list[DbId]
-            The entries that were marked
+            Entries that were marked
         """
         raise NotImplementedError()
 
@@ -552,6 +552,6 @@ class DbInterface:
             Time between cycles (in seconds)
 
         n_iter : int
-            number of interations to run, -1 for no limit
+            Number of interations to run, -1 for no limit
         """
         raise NotImplementedError()
