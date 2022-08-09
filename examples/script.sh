@@ -31,3 +31,4 @@ ${command} print-table --table campaign
 ${command} print-table --table step
 ${command} print-table --table group
 ${command} print-table --table workflow
+${command} print-table --table job

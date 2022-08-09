@@ -17,15 +17,15 @@ ${command} insert --level production --production-name ${p_name} --db ${db}
 ${command} insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config} --prod-base-url ${prod_base_url} --db ${db}
 ${command} prepare --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
 
-${command} queue --level campaign --production_name ${p_name} --campaign-name ${c_name} --db ${db}
-${command} launch --level campaign --production_name ${p_name} --campaign-name ${c_name} --db ${db}
-${command} fake_run --level campaign --production_name ${p_name} --campaign-name ${c_name} --db ${db}
+${command} queue --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
+${command} launch --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
+${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
 
 ${command} insert --level group --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group --handler ${group_handler} --config-yaml ${config} --data-query "i == 11" --db ${db}
 ${command} prepare --level group --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group --db ${db}
 ${command} queue --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
 ${command} launch --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
-${command} fake_run --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
+${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
 ${command} accept --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
 
 ${command} print-table --table campaign --db ${db}

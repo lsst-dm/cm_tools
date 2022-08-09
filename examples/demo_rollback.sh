@@ -1,6 +1,3 @@
-\rm cm.db
-\rm -rf archive_failed fail.db
-
 p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
