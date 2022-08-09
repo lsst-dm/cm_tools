@@ -12,11 +12,11 @@ campaign:
     prepare:
         prepare:
             class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: running
+            stamp: ready
             fake: true
         ancil:
             class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
-            stamp: running
+            stamp: ready
             fake: true
     collect:
         collect:

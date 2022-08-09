@@ -136,9 +136,9 @@ def check_jobs(dbi: DbInterface, jobs: Iterable) -> StatusEnum:
             continue
         Job.check_status(dbi, job)
     job_status = extract_job_status(jobs)
-    # assert job_status.size
-    if job_status.size == 0:
-        return StatusEnum.ready
+    # check_jobs should only be called on running workflows
+    # which should have at least 1 job defined
+    assert job_status.size
     if (job_status >= StatusEnum.completed.value).all():
         return StatusEnum.completed
     if (job_status < 0).any():
@@ -197,6 +197,7 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
 
     can_continue = True
     db_id_list = []
+    handler: Handler | None = None
     while can_continue:
         if current_status.bad() or current_status == StatusEnum.accepted:
             break
@@ -205,7 +206,15 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         ]:
             # These require external input, so break
             break
-        handler = entry.get_handler()
+        if current_status in [
+            StatusEnum.ready,
+            StatusEnum.prepared,
+            StatusEnum.populating,
+            StatusEnum.collectable,
+            StatusEnum.completed,
+        ]:
+            if handler is None:
+                handler = entry.get_handler()
         if current_status == StatusEnum.waiting:
             if entry.check_prerequistes(dbi):
                 new_status = StatusEnum.ready
@@ -301,6 +310,7 @@ def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     `StatusEnum.collecting` if the collect scripts are run asynchronously
     `StatusEnum.completed` if the collect scripts are completed
     """
+    # collect_entry should only be called for entries in `collectable` state
     assert entry.status == StatusEnum.collectable
     collect_scripts = handler.collect_script_hook(dbi, entry)
     if collect_scripts:
@@ -318,6 +328,7 @@ def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]
     `StatusEnum.validating` if the validation scripts are run asynchronously
     `StatusEnum.accepted` if the validation scripts are completed
     """
+    # validate_entry should only be called for entries in `completed` state
     assert entry.status == StatusEnum.completed
     validate_scripts = handler.validate_script_hook(dbi, entry)
     if validate_scripts:
@@ -331,6 +342,7 @@ def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]
 def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     """Make all the scripts associated with an entry as accepted"""
     for script in scripts:
+        # accept_scripts should only be called on completed scripts
         assert script.status == StatusEnum.completed
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
@@ -424,7 +436,7 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
         elif status_val == StatusEnum.populating.value:
             rollback_jobs(dbi, entry)
             db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared)
-        elif status_val == StatusEnum.prepared:
+        elif status_val == StatusEnum.prepared.value:
             supersede_children(dbi, entry.children())
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)

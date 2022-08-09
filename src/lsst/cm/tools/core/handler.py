@@ -110,6 +110,7 @@ class Handler:
         config_url : str
             The URL of the configuration file
         """
+        # config_url should always be set
         assert config_url is not None
         if config_url == self._config_url:
             return

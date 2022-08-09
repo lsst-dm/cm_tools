@@ -276,6 +276,16 @@ def test_failed_workflows() -> None:
         iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.failed)
         iface.fake_run(LevelEnum.step, db_s_id)
         iface.accept(LevelEnum.step, db_s_id)
+        db_w_id = iface.get_db_id(
+            LevelEnum.workflow,
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+            workflow_idx=0,
+        )
+        iface.rollback(LevelEnum.workflow, db_w_id, StatusEnum.ready)
+        iface.check(LevelEnum.workflow, db_w_id)
         iface.reject(LevelEnum.group, db_g_id)
         db_g_id_ok = iface.get_db_id(
             LevelEnum.group,
@@ -381,6 +391,9 @@ def test_script_interface() -> None:
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
     iface.prepare(LevelEnum.campaign, db_c_id)
+    iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.running)
+    iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.running)
+    iface.check(LevelEnum.campaign, db_c_id)
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.completed)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
 
@@ -408,8 +421,8 @@ def test_script_interface() -> None:
     iface.print_table(sys.stdout, TableEnum.job)
     iface.print_table(sys.stdout, TableEnum.dependency)
 
-    os.system("\\rm -rf archive_test")
-    os.unlink("fail.db")
+    # os.system("\\rm -rf archive_test")
+    # os.unlink("fail.db")
 
 
 def test_bad_db() -> None:
@@ -428,4 +441,4 @@ def test_table_repr() -> None:
 
 
 if __name__ == "__main__":
-    test_failed_scripts()
+    test_script_interface()

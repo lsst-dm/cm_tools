@@ -60,6 +60,7 @@ class SQLAlchemyInterface(DbInterface):
     def get_entry_from_parent(self, parent_id: DbId, entry_name: str) -> DbId:
         parent_level = parent_id.level()
         child_level = parent_level.child()
+        # This should never be called on workflow level objects
         assert child_level
         table = top.get_table_for_level(child_level)
         sel = select(table).where(
@@ -106,6 +107,8 @@ class SQLAlchemyInterface(DbInterface):
     ) -> CMTableBase:
 
         if parent_db_id is None:
+            # This is only called on production level entries
+            # which don't use handlers
             assert handler is None
             production = Production.insert_values(self, name=kwargs.get("production_name"))
             return production
@@ -113,7 +116,6 @@ class SQLAlchemyInterface(DbInterface):
         return handler.insert(self, parent, **kwargs)
 
     def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
-        assert level != LevelEnum.production
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.prepare(self, entry)
@@ -206,7 +208,7 @@ class SQLAlchemyInterface(DbInterface):
             if script_.name != script_name:
                 continue
             old_status = script_.status
-            if old_status not in [StatusEnum.prepared, StatusEnum.running]:
+            if old_status not in [StatusEnum.ready, StatusEnum.prepared, StatusEnum.running]:
                 continue
             handler = script_.get_handler()
             handler.fake_run_hook(self, script_, status)

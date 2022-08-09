@@ -103,6 +103,8 @@ class WorkflowHandler(EntryHandler):
         raise NotImplementedError()
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
+        # run (and run_hook) should only be called on
+        # entries in the `populating` state
         assert entry.status == StatusEnum.populating
         db_id_list: list[DbId] = []
         for job in entry.jobs_:

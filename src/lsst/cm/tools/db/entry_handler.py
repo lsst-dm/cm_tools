@@ -96,6 +96,8 @@ class EntryHandler(EntryHandlerBase):
         return db_id_list
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
+        # run (and run_hook) should only be called on
+        # entries in the `populating` state
         assert entry.status == StatusEnum.populating
         entry.update_values(dbi, entry.id, status=StatusEnum.running)
         return []
