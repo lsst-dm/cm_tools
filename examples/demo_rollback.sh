@@ -1,11 +1,12 @@
+test_suffix="rollback"
 p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
 config="examples/example_config.yaml"
 command="cm"
-db_path="cm_rollback.db"
+db_path="cm_${test_suffix}.db"
 db="sqlite:///${db_path}"
-prod_base_url="archive_rollback"
+prod_base_url="archive_${test_suffix}"
 
 \rm ${db_path}
 \rm -rf ${prod_base_url}

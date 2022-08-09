@@ -1,12 +1,12 @@
-\rm cm.db
+test_suffix="rejected"
 p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
 config="examples/example_config.yaml"
 command="cm"
-db_path="cm_rejected.db"
+db_path="cm_${test_suffix}.db"
 db="sqlite:///${db_path}"
-prod_base_url="archive_rejected"
+prod_base_url="archive_${test_suffix}"
 
 \rm ${db_path}
 \rm -rf ${prod_base_url}
@@ -18,7 +18,7 @@ ${command} prepare --level campaign --production-name ${p_name} --campaign-name 
 
 ${command} queue --level campaign --fullname ${p_name}/${c_name} --db ${db}
 ${command} launch --level campaign --fullname ${p_name}/${c_name} --db ${db}
-${command} fake_run --level campaign --fullname ${p_name}/${c_name} --db ${db}
+${command} fake-run --level campaign --fullname ${p_name}/${c_name} --db ${db}
 
 ${command} reject --level group --fullname ${p_name}/${c_name}/step1/group_4 --db ${db}
 ${command} accept --level campaign --fullname ${p_name}/${c_name} --db ${db}

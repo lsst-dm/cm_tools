@@ -1,11 +1,12 @@
+test_suffix="insert_group"
 p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
 config="examples/example_config.yaml"
 command="cm"
-db_path="cm_insert_group.db"
+db_path="cm_${test_suffix}.db"
 db="sqlite:///${db_path}"
-prod_base_url="archive_insert_group"
+prod_base_url="archive_${test_suffix}"
 
 group_handler="lsst.cm.tools.example.handler.ExampleGroupHandler"
 

@@ -1,11 +1,14 @@
-\rm cm.db
-\rm -rf archive
-
 p_name="example"
 c_name="test"
 handler="lsst.cm.tools.example.handler.ExampleHandler"
 config="examples/example_config.yaml"
 command="cm"
+db_path="cm.db"
+db="sqlite:///${db_path}"
+prod_base_url="archive"
+
+\rm ${db_path}
+\rm -rf ${prod_base_url}
 
 ${command} create
 ${command} insert --level production --production-name ${p_name}
