@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import numpy as np
 
@@ -197,7 +197,8 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
 
     can_continue = True
     db_id_list = []
-    handler: Handler | None = None
+    handler: Optional[Handler]
+    handler = None
     while can_continue:
         if current_status.bad() or current_status == StatusEnum.accepted:
             break
