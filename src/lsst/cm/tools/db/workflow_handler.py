@@ -41,8 +41,9 @@ class WorkflowHandler(EntryHandler):
 
     Derived classes will have to:
 
-    1. implement the `write_job_hook` function to write the
-    configuration and shell scripts to run the workflow
+    1. implement the `make_job_handler` function to make
+    the handler that writes the configuration and shell
+    scripts to run the workflow
     """
 
     config_block = "workflow"

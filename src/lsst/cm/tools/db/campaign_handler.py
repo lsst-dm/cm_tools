@@ -30,7 +30,6 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.entry_handler import EntryHandler
-from lsst.cm.tools.db.handler_utils import prepare_entry
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 
@@ -119,6 +118,3 @@ class CampaignHandler(EntryHandler):
                 prereq = dbi.get_entry_from_parent(campaign.db_id, prereq_step)
                 Dependency.add_prerequisite(dbi, new_step.db_id, prereq.db_id)
         return out_dict
-
-    def prepare(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        return prepare_entry(dbi, self, entry)

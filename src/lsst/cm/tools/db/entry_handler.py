@@ -33,7 +33,7 @@ class EntryHandler(EntryHandlerBase):
     Derived classes will have to:
 
     1. implement the `xxx_hook` functions.
-    2. implement the `insert` and `prepare` functions
+    2. implement the `make_children` function
     """
 
     def prepare(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:

@@ -50,7 +50,7 @@ def get_table_for_level(level: LevelEnum) -> Table:
 
 
 def get_table(which_table: TableEnum) -> Table:
-    """Return the Table corresponding to a `level`"""
+    """Return the Table corresponding to `which_table`"""
     all_tables = {
         TableEnum.production: Production,
         TableEnum.campaign: Campaign,
