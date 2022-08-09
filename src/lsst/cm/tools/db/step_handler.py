@@ -29,7 +29,6 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
-from lsst.cm.tools.db.handler_utils import prepare_entry
 from lsst.cm.tools.db.step import Step
 
 
@@ -75,20 +74,9 @@ class StepHandler(EntryHandler):
         insert_fields.update(**coll_names)
         return Step.insert_values(dbi, **insert_fields)
 
-    def prepare(self, dbi: DbInterface, entry: Step) -> list[DbId]:
-        db_id_list = prepare_entry(dbi, self, entry)
-        if not db_id_list:
-            return db_id_list
+    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         self.make_groups(dbi, entry)
-        db_id_list.append(entry.db_id)
-        for group_ in entry.g_:
-            status = group_.status
-            if status == StatusEnum.waiting:
-                if not group_.check_prerequistes(dbi):  # pragma: no cover
-                    raise RuntimeError("We are not expecting groups to have prerequistes")
-            group_handler = group_.get_handler()
-            db_id_list += group_handler.prepare(dbi, group_)
-        return db_id_list
+        return self.prepare_children(dbi, entry)
 
     def make_groups(self, dbi: DbInterface, entry: Step) -> dict[str, Group]:
         """Called to set up the groups needed to process this step

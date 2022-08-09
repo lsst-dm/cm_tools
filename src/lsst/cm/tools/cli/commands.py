@@ -21,6 +21,7 @@ from .options import (
     nosubmit_option,
     prod_base_option,
     production_option,
+    script_option,
     status_option,
     step_option,
     table_option,
@@ -300,6 +301,28 @@ def fake_run(level: LevelEnum, status: StatusEnum, db: str, echo: bool, **kwargs
     iface = SQLAlchemyInterface(db, echo=echo)
     the_db_id = iface.get_db_id(level, **kwargs)
     iface.fake_run(level, the_db_id, status)
+
+
+@cli.command()
+@level_option()
+@fullname_option()
+@production_option()
+@campaign_option()
+@step_option()
+@group_option()
+@workflow_option()
+@script_option()
+@status_option()
+@db_option()
+@echo_option()
+@max_running_option()
+def fake_script(
+    level: LevelEnum, status: StatusEnum, db: str, echo: bool, script_name: str, **kwargs: Any
+) -> None:
+    """Pretend to run workflows, this is for testing"""
+    iface = SQLAlchemyInterface(db, echo=echo)
+    the_db_id = iface.get_db_id(level, **kwargs)
+    iface.fake_script(level, the_db_id, script_name, status)
 
 
 @cli.command()

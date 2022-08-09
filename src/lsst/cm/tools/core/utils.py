@@ -33,6 +33,10 @@ class StatusEnum(enum.Enum):
         If all the prepare scripts have been completed can move to `prepared`
 
     prepared = 3  # Inputs have been prepared
+        -> make_children()
+        This will make any child entries
+
+    populating = 4  # Making and preparing child entries
         -> run()
         This will mark the entry as running and allow
         for batch job submission
@@ -77,13 +81,14 @@ class StatusEnum(enum.Enum):
     ready = 1
     preparing = 2
     prepared = 3
-    running = 4
-    collectable = 5
-    collecting = 6
-    completed = 7
-    validating = 8
-    reviewable = 9
-    accepted = 10
+    populating = 4
+    running = 5
+    collectable = 6
+    collecting = 7
+    completed = 8
+    validating = 9
+    reviewable = 10
+    accepted = 11
 
     def bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""

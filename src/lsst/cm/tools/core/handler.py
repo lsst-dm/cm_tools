@@ -442,7 +442,25 @@ class EntryHandlerBase(Handler):
         raise NotImplementedError()
 
     def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Prepare an entry and any children
+        """Prepare an entry
+
+        Parameters
+        ----------
+        dbi: DbInterface
+            Interface to the database we are using
+
+        entry: Any
+            The entry in question
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            All of the affected entries
+        """
+        raise NotImplementedError()
+
+    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        """Make and prepare any child entries
 
         Parameters
         ----------

@@ -215,6 +215,9 @@ def check_entry(dbi: DbInterface, entry: Any) -> list[DbId]:
         elif current_status == StatusEnum.preparing:
             new_status = check_prepare_scripts(dbi, entry)
         elif current_status == StatusEnum.prepared:
+            handler.make_children(dbi, entry)
+            new_status = StatusEnum.populating
+        elif current_status == StatusEnum.populating:
             handler.run(dbi, entry)
             new_status = StatusEnum.running
         elif current_status == StatusEnum.running:
@@ -289,17 +292,6 @@ def run_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     return handler.run_hook(dbi, entry)
 
 
-def run_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
-    """Call run_entry on all the children of given entry"""
-    db_id_list: list[DbId] = []
-    for child in children:
-        if child.status != StatusEnum.prepared:
-            continue
-        handler = child.get_handler()
-        db_id_list += run_entry(dbi, handler, child)
-    return db_id_list
-
-
 def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     """Collect the data from the children of an entry
 
@@ -319,17 +311,6 @@ def collect_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     return [entry.db_id]
 
 
-def collect_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
-    """Call collect_entry on all the children of given entry"""
-    db_id_list: list[DbId] = []
-    for child in children:
-        if child.status != StatusEnum.collectable:
-            continue
-        handler = child.get_handler()
-        db_id_list += collect_entry(dbi, handler, child)
-    return db_id_list
-
-
 def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     """Run the validation scripts for an entry
 
@@ -345,17 +326,6 @@ def validate_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]
         status = StatusEnum.accepted
     entry.update_values(dbi, entry.id, status=status)
     return [entry.db_id]
-
-
-def validate_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
-    """Call validate_entry on all the children of given entry"""
-    db_id_list: list[DbId] = []
-    for child in children:
-        if child.status != StatusEnum.completed:
-            continue
-        handler = child.get_handler()
-        db_id_list += validate_entry(dbi, handler, child)
-    return db_id_list
 
 
 def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
@@ -451,12 +421,13 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
             rollback_scripts(dbi, entry, ScriptType.validate)
         elif status_val == StatusEnum.collectable.value:
             rollback_scripts(dbi, entry, ScriptType.collect)
-        elif status_val == StatusEnum.prepared.value:
+        elif status_val == StatusEnum.populating.value:
             rollback_jobs(dbi, entry)
             db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared)
+        elif status_val == StatusEnum.prepared:
+            supersede_children(dbi, entry.children())
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)
-            supersede_children(dbi, entry.children())
         db_id_list.append(entry.db_id)
         status_val -= 1
     entry.update_values(dbi, entry.id, status=to_status)

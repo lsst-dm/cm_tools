@@ -183,18 +183,34 @@ class SQLAlchemyInterface(DbInterface):
         db_id_list = handler.supersede(self, entry)
         return db_id_list
 
-    def fake_run(
-        self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
-    ) -> list[DbId]:
+    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
         entry = self.get_entry(level, db_id)
-        db_id_list: list[DbId] = []
+        db_id_list: list[int] = []
         for job_ in entry.jobs_:
             old_status = job_.status
             if old_status not in [StatusEnum.prepared, StatusEnum.running]:
                 continue
             handler = job_.get_handler()
             handler.fake_run_hook(self, job_, status)
-            db_id_list.append(job_.w_.db_id)
+            db_id_list.append(job_.id)
+        if db_id_list:
+            self.check(level, db_id)
+        return db_id_list
+
+    def fake_script(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for script_ in entry.scripts_:
+            if script_.name != script_name:
+                continue
+            old_status = script_.status
+            if old_status not in [StatusEnum.prepared, StatusEnum.running]:
+                continue
+            handler = script_.get_handler()
+            handler.fake_run_hook(self, script_, status)
+            db_id_list.append(script_.id)
         if db_id_list:
             self.check(level, db_id)
         return db_id_list

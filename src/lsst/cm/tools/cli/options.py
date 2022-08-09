@@ -165,3 +165,8 @@ workflow_option = MWOptionDecorator(
     type=int,
     help="Workflow index.",
 )
+
+script_option = MWOptionDecorator(
+    "--script-name",
+    help="Script name.",
+)

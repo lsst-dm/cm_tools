@@ -78,6 +78,10 @@ class CampaignHandler(EntryHandler):
         campaign = Campaign.insert_values(dbi, **insert_fields)
         return campaign
 
+    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+        self.make_steps(dbi, entry)
+        return self.prepare_children(dbi, entry)
+
     def make_steps(self, dbi: DbInterface, campaign: Campaign) -> dict[str, Step]:
         """Called to set up the Steps needed to process this campaign
 
@@ -117,15 +121,4 @@ class CampaignHandler(EntryHandler):
         return out_dict
 
     def prepare(self, dbi: DbInterface, entry: Campaign) -> list[DbId]:
-        db_id_list = prepare_entry(dbi, self, entry)
-        if not db_id_list:
-            return db_id_list
-        self.make_steps(dbi, entry)
-        for step_ in entry.s_:
-            status = step_.status
-            if status == StatusEnum.waiting:
-                if not step_.check_prerequistes(dbi):
-                    continue
-            step_handler = step_.get_handler()
-            db_id_list += step_handler.prepare(dbi, step_)
-        return db_id_list
+        return prepare_entry(dbi, self, entry)

@@ -27,7 +27,6 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
-from lsst.cm.tools.db.handler_utils import prepare_entry
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
@@ -75,12 +74,9 @@ class GroupHandler(EntryHandler):
         insert_fields.update(**coll_names)
         return Group.insert_values(dbi, **insert_fields)
 
-    def prepare(self, dbi: DbInterface, entry: Group) -> list[DbId]:
-        db_id_list = prepare_entry(dbi, self, entry)
-        if not db_id_list:
-            return db_id_list
+    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         workflow_handler = self.make_workflow_handler()
-        workflow = workflow_handler.insert(
+        workflow_handler.insert(
             dbi,
             entry,
             production_name=entry.p_.name,
@@ -88,8 +84,7 @@ class GroupHandler(EntryHandler):
             step_name=entry.s_.name,
             group_name=entry.name,
         )
-        db_id_list.append(workflow.db_id)
-        return db_id_list
+        return self.prepare_children(dbi, entry)
 
     def make_workflow_handler(self) -> WorkflowHandler:
         """Return a WorkflowHandler to manage the

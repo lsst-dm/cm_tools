@@ -488,7 +488,9 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
+    def fake_run(
+        self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
+    ) -> list[DbId]:
         """Pretend to run workflows, this is for testing
 
         Parameters
@@ -501,6 +503,37 @@ class DbInterface:
 
         status: StatusEnum
             Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the workflows that were affected
+        """
+        raise NotImplementedError()
+
+    def fake_script(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Pretend to run scripts, this is for testing
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        script_name : str
+            Specifies which types of scripts to fake
+
+        status: StatusEnum
+            Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the scripts that were affected
         """
         raise NotImplementedError()
 

@@ -11,16 +11,14 @@ from lsst.cm.tools.db.handler_utils import (
     accept_entry,
     check_entries,
     check_entry,
-    collect_children,
     collect_entry,
+    prepare_entry,
     reject_entry,
     rollback_children,
     rollback_entry,
-    run_children,
     run_entry,
     supersede_children,
     supersede_entry,
-    validate_children,
     validate_entry,
 )
 
@@ -38,12 +36,25 @@ class EntryHandler(EntryHandlerBase):
     2. implement the `insert` and `prepare` functions
     """
 
-    def run(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+    def prepare(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+        return prepare_entry(dbi, self, entry)
+
+    def prepare_children(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         db_id_list: list[DbId] = []
-        for itr in entry.sub_iterators():
-            db_id_list += run_children(dbi, itr)
-        db_id_list += run_entry(dbi, self, entry)
+        for child in entry.children():
+            status = child.status
+            if status == StatusEnum.waiting:
+                if not child.check_prerequistes(dbi):
+                    continue
+            child_handler = child.get_handler()
+            child_id_list = child_handler.prepare(dbi, child)
+            if child_id_list:
+                child_handler.check(dbi, child)
+            db_id_list += child_id_list
         return db_id_list
+
+    def run(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+        return run_entry(dbi, self, entry)
 
     def check(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         db_id_list: list[DbId] = []
@@ -53,18 +64,10 @@ class EntryHandler(EntryHandlerBase):
         return db_id_list
 
     def collect(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        for itr in entry.sub_iterators():
-            db_id_list += collect_children(dbi, itr)
-        db_id_list += collect_entry(dbi, self, entry)
-        return db_id_list
+        return collect_entry(dbi, self, entry)
 
     def validate(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        for itr in entry.sub_iterators():
-            db_id_list += validate_children(dbi, itr)
-        db_id_list += validate_entry(dbi, self, entry)
-        return db_id_list
+        return validate_entry(dbi, self, entry)
 
     def accept(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         db_id_list: list[DbId] = []
@@ -93,7 +96,7 @@ class EntryHandler(EntryHandlerBase):
         return db_id_list
 
     def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        assert entry.status == StatusEnum.prepared
+        assert entry.status == StatusEnum.populating
         entry.update_values(dbi, entry.id, status=StatusEnum.running)
         return []
 

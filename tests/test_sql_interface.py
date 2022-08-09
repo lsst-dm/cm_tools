@@ -335,7 +335,68 @@ def test_failed_scripts() -> None:
         )
         iface.check(LevelEnum.group, db_g_id)
         iface.rollback(LevelEnum.group, db_g_id, StatusEnum.ready)
-        # iface.prepare(LevelEnum.group, db_g_id)
+        iface.prepare(LevelEnum.group, db_g_id)
+
+    import sys
+
+    iface.print_table(sys.stdout, TableEnum.production)
+    iface.print_table(sys.stdout, TableEnum.campaign)
+    iface.print_table(sys.stdout, TableEnum.step)
+    iface.print_table(sys.stdout, TableEnum.group)
+    iface.print_table(sys.stdout, TableEnum.workflow)
+    iface.print_table(sys.stdout, TableEnum.script)
+    iface.print_table(sys.stdout, TableEnum.job)
+    iface.print_table(sys.stdout, TableEnum.dependency)
+
+    os.system("\\rm -rf archive_test")
+    os.unlink("fail.db")
+
+
+def test_script_interface() -> None:
+
+    try:
+        os.unlink("fail.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+
+    iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+
+    config_yaml = "examples/example_test_scripts.yaml"
+    handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    the_handler = Handler.get_handler(handler_class, config_yaml)
+
+    top_db_id = None
+    iface.insert(top_db_id, None, production_name="example")
+
+    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    iface.insert(
+        db_p_id,
+        the_handler,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        prod_base_url="archive_test",
+    )
+
+    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+    iface.prepare(LevelEnum.campaign, db_c_id)
+    iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.completed)
+    iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(
+            LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
+        )
+        iface.queue_jobs(LevelEnum.campaign, db_c_id)
+        iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
+        iface.fake_run(LevelEnum.step, db_s_id)
+        iface.check(LevelEnum.step, db_s_id)
+        iface.fake_script(LevelEnum.step, db_s_id, "collect", StatusEnum.completed)
+        iface.check(LevelEnum.step, db_s_id)
+        iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.completed)
+        iface.check(LevelEnum.step, db_s_id)
+
     import sys
 
     iface.print_table(sys.stdout, TableEnum.production)
