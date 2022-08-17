@@ -69,6 +69,7 @@ class WorkflowHandler(EntryHandler):
             g_id=parent.id,
             idx=workflow_idx,
             coll_in=parent.coll_in,
+            coll_out=parent.coll_out,
             data_query=kwargs.get("data_query"),
             status=StatusEnum.ready,
             handler=self.get_handler_class_name(),
