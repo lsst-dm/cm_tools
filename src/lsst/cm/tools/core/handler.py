@@ -258,7 +258,7 @@ class ScriptHandlerBase(Handler):
         raise NotImplementedError()
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        """Write the script to run a workflow
+        """Write a script to maninpulate data / collections
 
         Parameters
         ----------
