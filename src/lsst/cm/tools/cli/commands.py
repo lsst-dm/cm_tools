@@ -3,138 +3,114 @@ from typing import Any
 
 import click
 
+from lsst.cm.tools.core.db_interface import DbInterface
+
 from ..core.handler import Handler
 from ..core.utils import LevelEnum, StatusEnum, TableEnum
-from ..db.sqlalch_interface import SQLAlchemyInterface
-from .options import (
-    butler_option,
-    campaign_option,
-    config_option,
-    data_query_option,
-    db_option,
-    echo_option,
-    fullname_option,
-    group_option,
-    handler_option,
-    level_option,
-    max_running_option,
-    nosubmit_option,
-    prod_base_option,
-    production_option,
-    script_option,
-    status_option,
-    step_option,
-    table_option,
-    workflow_option,
-)
+from . import options
 
 
 @click.group()
+@click.version_option(package_name="lsst.cm.tools")
 def cli() -> None:
     """Campaign management tool"""
     pass
 
 
 @cli.command()
-@db_option()
-@echo_option()
-def create(db: str, echo: bool) -> None:
+@options.dbi(create=True)
+def create(dbi: DbInterface) -> None:
     """Create backing database"""
-    SQLAlchemyInterface(db, echo=echo, create=True)
+    pass
 
 
 @cli.command()
-@level_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@data_query_option()
-@butler_option()
-@prod_base_option()
-@workflow_option()
-@handler_option()
-@config_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
+@options.dbi()
+@options.level()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.data_query()
+@options.butler()
+@options.prod_base()
+@options.workflow()
+@options.handler()
+@options.config()
+@options.nosubmit()
 def insert(
-    level: LevelEnum, db: str, handler: str, config_yaml: str, no_submit: bool, echo: bool, **kwargs: Any
+    dbi: DbInterface,
+    level: LevelEnum,
+    handler: str,
+    config_yaml: str,
+    no_submit: bool,
+    **kwargs: Any,
 ) -> None:
     """Insert a new database entry at a particular level"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
     if level != LevelEnum.production:
         assert config_yaml is not None
         assert handler is not None
         the_handler = Handler.get_handler(handler, config_yaml)
-        the_db_id = iface.get_db_id(level, **kwargs)
+        the_db_id = dbi.get_db_id(level, **kwargs)
     else:
         the_db_id = None
         the_handler = None
-    iface.insert(the_db_id, the_handler, **kwargs)
+    dbi.insert(the_db_id, the_handler, **kwargs)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@echo_option()
-def print_tree(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+def print_tree(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
     """Print a database table from a given entry in a tree-like format"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.print_tree(sys.stdout, level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.print_tree(sys.stdout, level, the_db_id)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@echo_option()
-def print(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+def print(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
     """Print a database entry or entries"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.print_(sys.stdout, level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.print_(sys.stdout, level, the_db_id)
 
 
 @cli.command()
-@table_option()
-@db_option()
-@echo_option()
-def print_table(table: TableEnum, db: str, echo: bool) -> None:
+@options.dbi()
+@options.table()
+def print_table(dbi: DbInterface, table: TableEnum) -> None:
     """Print a database table"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    iface.print_table(sys.stdout, table)
+    dbi.print_table(sys.stdout, table)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def prepare(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+def prepare(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
     """Prepare a database entry for execution"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
+    the_db_id = dbi.get_db_id(level, **kwargs)
     id_args = [
         "production_name",
         "campaign_name",
@@ -144,198 +120,176 @@ def prepare(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: An
     all_args = kwargs.copy()
     for arg_ in id_args:
         all_args.pop(arg_)
-    iface.prepare(level, the_db_id, **all_args)
+    dbi.prepare(level, the_db_id, **all_args)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@echo_option()
-def queue(level: LevelEnum, db: str, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+def queue(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
     """Queue all the ready jobs matching the selection"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.queue_jobs(level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.queue_jobs(level, the_db_id)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@echo_option()
-@nosubmit_option()
-@max_running_option()
-def launch(level: LevelEnum, db: str, echo: bool, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+@options.max_running()
+def launch(dbi: DbInterface, level: LevelEnum, no_submit: bool, max_running: int, **kwargs: Any) -> None:
     """Launch all the pending jobs matching the selection"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.launch_jobs(level, the_db_id, max_running)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.launch_jobs(level, the_db_id, max_running)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def check(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+def check(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
     """Check all database entries at a particular level"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.check(level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.check(level, the_db_id)
 
 
 @cli.command("accept")
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def accept(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+def accept(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
     """Accept completed entries at a particular level"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.accept(level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.accept(level, the_db_id)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def reject(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+def reject(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
     """Reject entries at a particular level"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.reject(level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.reject(level, the_db_id)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def supersede(level: LevelEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.nosubmit()
+def supersede(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
     """Mark entries as superseded so that they will be ignored in subsequent
     processing
     """
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.supersede(level, the_db_id)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.supersede(level, the_db_id)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@status_option()
-@db_option()
-@nosubmit_option()
-@echo_option()
-def rollback(
-    level: LevelEnum, status: StatusEnum, db: str, no_submit: bool, echo: bool, **kwargs: Any
-) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.status()
+@options.nosubmit()
+def rollback(dbi: DbInterface, level: LevelEnum, status: StatusEnum, no_submit: bool, **kwargs: Any) -> None:
     """Rollback entries at a particular level"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.rollback(level, the_db_id, status)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.rollback(level, the_db_id, status)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@status_option()
-@db_option()
-@echo_option()
-@max_running_option()
-def fake_run(level: LevelEnum, status: StatusEnum, db: str, echo: bool, **kwargs: Any) -> None:
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.status()
+@options.max_running()
+def fake_run(dbi: DbInterface, level: LevelEnum, status: StatusEnum, **kwargs: Any) -> None:
     """Pretend to run workflows, this is for testing"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.fake_run(level, the_db_id, status)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.fake_run(level, the_db_id, status)
 
 
 @cli.command()
-@level_option()
-@fullname_option()
-@production_option()
-@campaign_option()
-@step_option()
-@group_option()
-@workflow_option()
-@script_option()
-@status_option()
-@db_option()
-@echo_option()
-@max_running_option()
+@options.dbi()
+@options.level()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.status()
+@options.max_running()
 def fake_script(
-    level: LevelEnum, status: StatusEnum, db: str, echo: bool, script_name: str, **kwargs: Any
+    dbi: DbInterface, level: LevelEnum, status: StatusEnum, script_name: str, **kwargs: Any
 ) -> None:
     """Pretend to run workflows, this is for testing"""
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(level, **kwargs)
-    iface.fake_script(level, the_db_id, script_name, status)
+    the_db_id = dbi.get_db_id(level, **kwargs)
+    dbi.fake_script(level, the_db_id, script_name, status)
 
 
 @cli.command()
-@fullname_option()
-@production_option()
-@campaign_option()
-@db_option()
-@echo_option()
-@nosubmit_option()
-@max_running_option()
-def daemon(db: str, echo: bool, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.nosubmit()
+@options.max_running()
+def daemon(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -> None:
     """Run a loop"""
     Handler.no_submit = no_submit
-    iface = SQLAlchemyInterface(db, echo=echo)
-    the_db_id = iface.get_db_id(LevelEnum.campaign, **kwargs)
-    iface.daemon(the_db_id, max_running)
+    the_db_id = dbi.get_db_id(LevelEnum.campaign, **kwargs)
+    dbi.daemon(the_db_id, max_running)
