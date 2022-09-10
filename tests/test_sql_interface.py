@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 
@@ -347,8 +348,6 @@ def test_failed_scripts() -> None:
         iface.rollback(LevelEnum.group, db_g_id, StatusEnum.ready)
         iface.prepare(LevelEnum.group, db_g_id)
 
-    import sys
-
     iface.print_table(sys.stdout, TableEnum.production)
     iface.print_table(sys.stdout, TableEnum.campaign)
     iface.print_table(sys.stdout, TableEnum.step)
@@ -410,8 +409,6 @@ def test_script_interface() -> None:
         iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.completed)
         iface.check(LevelEnum.step, db_s_id)
 
-    import sys
-
     iface.print_table(sys.stdout, TableEnum.production)
     iface.print_table(sys.stdout, TableEnum.campaign)
     iface.print_table(sys.stdout, TableEnum.step)
@@ -438,7 +435,3 @@ def test_table_repr() -> None:
 
     script = Script(status=StatusEnum.ready)
     assert repr(script)
-
-
-if __name__ == "__main__":
-    test_script_interface()
