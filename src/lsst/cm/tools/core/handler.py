@@ -30,6 +30,7 @@ class Handler:
 
     handler_cache: dict[str, Handler] = {}
 
+    config_cache: dict[str, Any] = {}
     config_block = ""
 
     no_submit = False
@@ -95,11 +96,14 @@ class Handler:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
         self._config = self.default_config.copy()
-        with open(self._config_url, "rt", encoding="utf-8") as config_file:
-            read_config = yaml.safe_load(config_file)
-            my_block = read_config.get(self.config_block)
-            if my_block:
-                self._config.update(**my_block)
+        cached_config = Handler.config_cache.get(config_url)
+        if cached_config is None:
+            with open(config_url, "rt", encoding="utf-8") as config_file:
+                cached_config = yaml.safe_load(config_file)
+            Handler.config_cache[config_url] = cached_config
+        my_block = cached_config.get(self.config_block)
+        if my_block:
+            self._config.update(**my_block)
 
     def update_config(self, config_url: str) -> None:
         """Update this handler's configuration by reading a
