@@ -17,3 +17,6 @@ archive*/
 
 # MacOS
 .DS_Store
+
+# examples
+/examples/output/
