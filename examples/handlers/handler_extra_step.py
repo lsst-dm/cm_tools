@@ -1,10 +1,11 @@
 from typing import Any, Iterable
 
+from handler import ExampleGroupHandler
+
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.db.entry_handler import GenericEntryHandlerMixin
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.step_handler import StepHandler
-from lsst.cm.tools.example.handler import ExampleGroupHandler
 
 
 class ExampleExtraStepHandler(GenericEntryHandlerMixin, StepHandler):

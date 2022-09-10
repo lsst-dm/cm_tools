@@ -87,17 +87,19 @@ def test_full_example() -> None:
     os.system("\\rm -rf archive_test")
 
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
 
     top_db_id = None
     iface.insert(top_db_id, None, production_name="example")
 
-    config_yaml = "examples/example_config.yaml"
-    handler1_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    config_yaml = "example_config.yaml"
+    handler1_class = "handler.ExampleHandler"
     handler1 = Handler.get_handler(handler1_class, config_yaml)
     run_production(iface, handler1, "test1")
 
-    config_yaml2 = "examples/example_config2.yaml"
-    handler2_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    config_yaml2 = "example_config2.yaml"
+    handler2_class = "handler.ExampleHandler"
     handler2 = Handler.get_handler(handler2_class, config_yaml2)
     run_production(iface, handler2, "test2")
 
@@ -223,9 +225,11 @@ def test_failed_workflows() -> None:
     os.system("\\rm -rf archive_test")
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
 
-    config_yaml = "examples/example_config.yaml"
-    handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    config_yaml = "example_config.yaml"
+    handler_class = "handler.ExampleHandler"
     the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
@@ -315,9 +319,11 @@ def test_failed_scripts() -> None:
     os.system("\\rm -rf archive_test")
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
 
-    config_yaml = "examples/example_failed_script.yaml"
-    handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    config_yaml = "example_failed_script.yaml"
+    handler_class = "handler.ExampleHandler"
     the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
@@ -370,9 +376,11 @@ def test_script_interface() -> None:
     os.system("\\rm -rf archive_test")
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
 
-    config_yaml = "examples/example_test_scripts.yaml"
-    handler_class = "lsst.cm.tools.example.handler.ExampleHandler"
+    config_yaml = "example_test_scripts.yaml"
+    handler_class = "handler.ExampleHandler"
     the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
