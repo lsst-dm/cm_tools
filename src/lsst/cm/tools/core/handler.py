@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import types
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -9,6 +10,8 @@ from lsst.utils.introspection import get_full_type_name
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
+
+from .utils import add_sys_path
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
@@ -34,6 +37,8 @@ class Handler:
     config_block = ""
 
     no_submit = False
+    plugin_dir: str | None = None
+    config_dir: str | None = None
 
     def __init__(self) -> None:
         self._config_url: Optional[str] = None
@@ -70,7 +75,8 @@ class Handler:
         """
         cached_handler = Handler.handler_cache.get(class_name)
         if cached_handler is None:
-            handler_class = doImport(class_name)
+            with add_sys_path(Handler.plugin_dir):
+                handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):
                 raise TypeError()
             cached_handler = handler_class()
@@ -96,6 +102,8 @@ class Handler:
         """Utility function to read and cache a configuration from a URL"""
         self._config_url = config_url
         self._config = self.default_config.copy()
+        if Handler.config_dir is not None:
+            config_url = os.path.join(Handler.config_dir, config_url)
         cached_config = Handler.config_cache.get(config_url)
         if cached_config is None:
             with open(config_url, "rt", encoding="utf-8") as config_file:

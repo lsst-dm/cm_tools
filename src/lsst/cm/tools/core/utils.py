@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import enum
 import os
-from typing import TYPE_CHECKING, Optional
+import sys
+from typing import TYPE_CHECKING, Iterator, Optional
 
 if TYPE_CHECKING:  # pragma: no cover
     from _typeshed import StrOrBytesPath
@@ -258,3 +260,17 @@ def safe_makedirs(path: StrOrBytesPath) -> None:
         os.makedirs(path)
     except OSError:
         pass
+
+
+@contextlib.contextmanager
+def add_sys_path(path: os.PathLike | str | None) -> Iterator[None]:
+    """Temporarily add the given path to `sys.path`."""
+    if path is None:
+        yield
+    else:
+        path = os.fspath(path)
+        try:
+            sys.path.insert(0, path)
+            yield
+        finally:
+            sys.path.remove(path)
