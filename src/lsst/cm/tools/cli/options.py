@@ -1,10 +1,36 @@
 from enum import Enum
-from functools import partial
-from typing import Any, Type, TypeVar
+from functools import partial, wraps
+from typing import Any, Callable, Type, TypeVar, cast
 
 import click
+from click.decorators import F
 
+from ..core.db_interface import DbInterface
+from ..core.handler import Handler
 from ..core.utils import LevelEnum, StatusEnum, TableEnum
+from ..db.sqlalch_interface import SQLAlchemyInterface
+
+__all__ = [
+    "butler",
+    "campaign",
+    "config",
+    "data_query",
+    "dbi",
+    "fullname",
+    "group",
+    "handler",
+    "level",
+    "max_running",
+    "nosubmit",
+    "prod_base",
+    "production",
+    "script",
+    "status",
+    "step",
+    "table",
+    "workflow",
+]
+
 
 EnumType_co = TypeVar("EnumType_co", bound=Type[Enum], covariant=True)
 
@@ -21,152 +47,177 @@ class EnumChoice(click.Choice):
         return self._enum.__members__[converted_str]
 
 
-class MWOptionDecorator:
-    """Wraps the click.option decorator to enable shared options to be declared
-    and allows inspection of the shared option.
-    """
+class PartialOption:
+    """Wraps click.option with partial arguments for convenient reuse"""
 
     def __init__(self, *param_decls: Any, **kwargs: Any) -> None:
-        self.partialOpt = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
-        opt = click.Option(param_decls, **kwargs)
-        self._name = opt.name
-        self._opts = opt.opts
-
-    def name(self) -> str | None:
-        """Get the name that will be passed to the command function for this
-        option.
-        """
-        return self._name
-
-    def opts(self) -> list[str]:
-        """Get the flags that will be used for this option on the command
-        line.
-        """
-        return self._opts
-
-    @property
-    def help(self) -> str:
-        """Get the help text for this option. Returns an empty string if no
-        help was defined.
-        """
-        return self.partialOpt.keywords.get("help", "")
+        self._partial = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.partialOpt(*args, **kwargs)
+        return self._partial(*args, **kwargs)
 
 
-echo_option = MWOptionDecorator(
+echo = PartialOption(
     "--echo",
-    is_flag=True,
     help="Echo DB commands",
+    is_flag=True,
 )
 
-recurse_option = MWOptionDecorator(
+recurse = PartialOption(
     "--recurse",
     is_flag=True,
     help="Recurvisely execute command",
 )
 
-nosubmit_option = MWOptionDecorator(
+nosubmit = PartialOption(
     "--no-submit",
     is_flag=True,
     help="Don't submit jobs and scripts",
 )
 
-level_option = MWOptionDecorator(
+level = PartialOption(
     "--level",
     type=EnumChoice(LevelEnum),
     default="group",
     help="Which level to match.",
 )
 
-table_option = MWOptionDecorator(
+table = PartialOption(
     "--table",
     type=EnumChoice(TableEnum),
     default="workflow",
     help="Which database table to manipulate.",
 )
 
-status_option = MWOptionDecorator(
+status = PartialOption(
     "--status",
     type=EnumChoice(StatusEnum),
     default="completed",
     help="Status level to set.",
 )
 
-max_running_option = MWOptionDecorator(
+max_running = PartialOption(
     "--max-running",
     default=50,
     help="Maximum number of running workflows.",
 )
 
-butler_option = MWOptionDecorator(
+butler = PartialOption(
     "--butler-repo",
     default="repo",
     help="URL for butler.",
 )
 
-prod_base_option = MWOptionDecorator(
+prod_base = PartialOption(
     "--prod-base-url",
-    default="archive",
     help="URL for production area base",
+    default="archive",
+    envvar="CM_PROD_URL",
+    show_envvar=True,
+    show_default=True,
 )
 
-db_option = MWOptionDecorator(
+db = PartialOption(
     "--db",
-    default="sqlite:///cm.db",
     help="URL for campaign management database.",
+    default="sqlite:///cm.db",
+    envvar="CM_DB",
+    show_envvar=True,
+    show_default=True,
 )
 
-handler_option = MWOptionDecorator(
+handler = PartialOption(
     "--handler",
     default="lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler",
     help="Full import path to callback handler.",
 )
 
-data_query_option = MWOptionDecorator(
+data_query = PartialOption(
     "--data-query",
     help="Data query for entry",
 )
 
-config_option = MWOptionDecorator(
+config = PartialOption(
     "--config-yaml",
-    type=click.Path(exists=True),
+    type=click.Path(),
     help="Configuration Yaml.",
 )
 
-fullname_option = MWOptionDecorator(
+fullname = PartialOption(
     "--fullname",
     help="Full entry name.",
 )
 
-production_option = MWOptionDecorator(
+production = PartialOption(
     "--production-name",
     help="Production name.",
 )
 
-campaign_option = MWOptionDecorator(
+campaign = PartialOption(
     "--campaign-name",
     help="Campaign name.",
 )
 
-step_option = MWOptionDecorator(
+step = PartialOption(
     "--step-name",
     help="Step name.",
 )
 
-group_option = MWOptionDecorator(
+group = PartialOption(
     "--group-name",
     help="Group name.",
 )
 
-workflow_option = MWOptionDecorator(
+workflow = PartialOption(
     "--workflow-idx",
     type=int,
     help="Workflow index.",
 )
 
-script_option = MWOptionDecorator(
+script = PartialOption(
     "--script-name",
     help="Script name.",
 )
+
+plugin_dir = PartialOption(
+    "--plugin-dir",
+    help="Additional directory to search for callback plug-ins.",
+    envvar="CM_PLUGINS",
+    show_envvar=True,
+)
+
+config_dir = PartialOption(
+    "--config-dir",
+    help="Directory root for entry configuration yaml files.",
+    envvar="CM_CONFIGS",
+    show_envvar=True,
+)
+
+
+def dbi(create: bool = False) -> Callable[[F], F]:
+    def decorator(f: F) -> F:
+        @db(expose_value=False, callback=record_meta)
+        @plugin_dir(expose_value=False, callback=record_meta)
+        @config_dir(expose_value=False, callback=record_meta)
+        @echo(expose_value=False, callback=record_meta)
+        @click.option("--dbi", hidden=True, callback=make_dbi)
+        @wraps(f)
+        def wrapper(*args, **kwargs):  # type: ignore
+            return f(*args, **kwargs)
+
+        return cast(F, wrapper)
+
+    def record_meta(ctx: click.Context, param: click.Parameter, value: Any) -> None:
+        if value and param.name:
+            ctx.meta[param.name] = value
+
+    def make_dbi(ctx: click.Context, param: click.Parameter, value: Any) -> DbInterface:
+        db_url = ctx.meta.get("db", param.get_default(ctx))
+        plugin_dir = ctx.meta.get("plugin_dir", param.get_default(ctx))
+        config_dir = ctx.meta.get("config_dir", param.get_default(ctx))
+        echo = ctx.meta.get("echo", param.get_default(ctx))
+        Handler.plugin_dir = plugin_dir
+        Handler.config_dir = config_dir
+        return SQLAlchemyInterface(db_url, echo=echo, create=create)
+
+    return decorator

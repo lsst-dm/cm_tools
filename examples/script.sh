@@ -1,37 +1,43 @@
+#!/usr/bin/env bash
+
+EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
+
+db_path="$EXAMPLES/output/cm.db"
+handler="handler.ExampleHandler"
+config="example_config.yaml"
 p_name="example"
 c_name="test"
-handler="lsst.cm.tools.example.handler.ExampleHandler"
-config="examples/example_config.yaml"
-command="cm"
-db_path="cm.db"
-db="sqlite:///${db_path}"
-prod_base_url="archive"
 
-\rm ${db_path}
-\rm -rf ${prod_base_url}
+export CM_DB="sqlite:///${db_path}"
+export CM_PLUGINS="$EXAMPLES/handlers"
+export CM_CONFIGS="$EXAMPLES/configs"
+export CM_PROD_URL="$EXAMPLES/output/archive"
 
-${command} create
-${command} insert --level production --production-name ${p_name}
-${command} insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
-${command} prepare --level campaign --production-name ${p_name} --campaign-name ${c_name}
+rm -rf "$db_path" "$CM_PROD_URL"
+mkdir -p "$EXAMPLES/output"
 
-${command} queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm create
+cm insert --level production --production-name ${p_name}
+cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
+cm prepare --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
-${command} queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
-${command} queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-${command} accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
-${command} print-table --table campaign
-${command} print-table --table step
-${command} print-table --table group
-${command} print-table --table workflow
-${command} print-table --table job
+cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+
+cm print-table --table campaign
+cm print-table --table step
+cm print-table --table group
+cm print-table --table workflow
+cm print-table --table job

@@ -1,4 +1,4 @@
-[flake8] # flake8 is our last non-pyproject.toml holdout...
+[flake8]
 max-line-length = 110
 max-doc-length = 79
 extend-ignore = E203

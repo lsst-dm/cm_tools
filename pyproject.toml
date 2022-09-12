@@ -6,6 +6,7 @@ requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [
     { name = "Eric Charles", email = "echarles@slac.stanford.edu" },
+    { name = "Sierra Villarreal", email = "sierrav@slac.stanford.edu" },
     { name = "Fritz Mueller", email = "fritzm@slac.stanford.edu" }
 ]
 classifiers = [
@@ -96,7 +97,6 @@ addopts = [
     "--cov-branch",
     "--cov-report=html"
 ]
-flake8-ignore = "E203"
 
 [tool.mypy]
 disallow_untyped_defs = true
