@@ -1,14 +1,22 @@
-test_suffix="server"
+#!/usr/bin/env bash
+
+EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
+
+db_path="$EXAMPLES/output/cm_server.db"
+handler="handler.ExampleHandler"
+config="example_config.yaml"
 p_name="example"
 c_name="test"
-handler="lsst.cm.tools.example.handler.ExampleHandler"
-config="examples/example_config.yaml"
-command="cm"
-db_path="cm_${test_suffix}.db"
-db="sqlite:///${db_path}"
-prod_base_url="archive_${test_suffix}"
 
-${command} create --db ${db}
-${command} insert --level production --production-name ${p_name} --db ${db}
-${command} insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config} --db ${db}
-${command} daemon --production-name ${p_name} --campaign-name ${c_name} --db ${db} &
+export CM_DB="sqlite:///${db_path}"
+export CM_PLUGINS="$EXAMPLES/handlers"
+export CM_CONFIGS="$EXAMPLES/configs"
+export CM_PROD_URL="$EXAMPLES/output/archive_server"
+
+rm -rf "$db_path" "$CM_PROD_URL"
+mkdir -p "$EXAMPLES/output"
+
+cm create
+cm insert --level production --production-name ${p_name}
+cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
+cm daemon --production-name ${p_name} --campaign-name ${c_name} &

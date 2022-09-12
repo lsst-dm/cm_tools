@@ -22,6 +22,20 @@ group:
         coll_in: "{root_coll}/{fullname}_input"
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_validate: "{root_coll}/{fullname}_validate"
+    prepare:
+        prepare:
+            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+            stamp: failed
+            fake: true
+    collect:
+        collect:
+            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
+            stamp: completed
+    validate:
+        validate:
+            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+            stamp: accepted
+            fake: true
 workflow:
     input_type: source
     output_type: run
@@ -33,7 +47,7 @@ ancil:
     - /prod/calib/other_calib
     - /prod/skymaps
 job:
-    bps_template_yaml: "examples/example_template.yaml"
+    bps_template_yaml: "${CM_CONFIGS}/example_template.yaml"
     sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
     pipeline_yaml:
         step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"

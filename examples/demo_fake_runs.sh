@@ -1,12 +1,18 @@
-test_suffix="server"
+#!/usr/bin/env bash
+
+EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
+
+db_path="$EXAMPLES/output/cm_server.db"
 p_name="example"
 c_name="test"
-command="cm"
-db_path="cm_${test_suffix}.db"
-db="sqlite:///${db_path}"
 
-${command} fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name} --db ${db}
-${command} print-table --table campaign --db ${db}
-${command} print-table --table step --db ${db}
-${command} print-table --table group --db ${db}
-${command} print-table --table workflow --db ${db}
+export CM_DB="sqlite:///${db_path}"
+export CM_PLUGINS="$EXAMPLES/handlers"
+export CM_CONFIGS="$EXAMPLES/configs"
+export CM_PROD_URL="$EXAMPLES/output/archive"
+
+cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm print-table --table campaign
+cm print-table --table step
+cm print-table --table group
+cm print-table --table workflow
