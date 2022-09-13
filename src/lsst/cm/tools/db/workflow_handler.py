@@ -61,7 +61,7 @@ class WorkflowHandler(EntryHandler):
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
         workflow_idx = len(parent.w_)
         insert_fields = dict(
-            name="%02i" % workflow_idx,
+            name=f"{workflow_idx:02}",
             fullname=self.get_fullname(workflow_idx=workflow_idx, **kwargs),
             p_id=parent.p_.id,
             c_id=parent.c_.id,

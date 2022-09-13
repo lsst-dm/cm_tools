@@ -38,7 +38,7 @@ class Campaign(common.Base, common.CMTable):
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
-    superseded = Column(Boolean)  # Has this been superseded
+    superseded = Column(Boolean, default=False)  # Has this been superseded
     butler_repo = Column(String)  # URL for butler repository
     root_coll = Column(String)  # root for collection names
     prod_base_url = Column(String)  # URL for root of the production area

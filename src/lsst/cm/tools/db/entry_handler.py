@@ -40,18 +40,7 @@ class EntryHandler(EntryHandlerBase):
         return prepare_entry(dbi, self, entry)
 
     def prepare_children(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        for child in entry.children():
-            status = child.status
-            if status == StatusEnum.waiting:
-                if not child.check_prerequistes(dbi):
-                    continue
-            child_handler = child.get_handler()
-            child_id_list = child_handler.prepare(dbi, child)
-            if child_id_list:
-                child_handler.check(dbi, child)
-            db_id_list += child_id_list
-        return db_id_list
+        return check_entries(dbi, entry.children())
 
     def run(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         return run_entry(dbi, self, entry)

@@ -1,6 +1,6 @@
 from typing import Any, Iterable, TextIO
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.orm import declarative_base
 
 from lsst.cm.tools.core.checker import Checker
@@ -25,10 +25,8 @@ class SQLTableMixin:
     @classmethod
     def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
         """Inserts a new row at a given level with values given in kwargs"""
-        counter = func.count(cls.id)
         conn = dbi.connection()
-        next_id = return_count(conn, counter) + 1
-        new_entry = cls(id=next_id, **kwargs)
+        new_entry = cls(**kwargs)
         conn.add(new_entry)
         conn.commit()
         return new_entry
@@ -40,7 +38,6 @@ class SQLTableMixin:
         conn = dbi.connection()
         upd_result = conn.execute(stmt)
         check_result(upd_result)
-        conn.commit()
 
     def check_prerequistes(self, dbi: DbInterface) -> bool:
         """Check the prerequisites of an entry"""
@@ -76,7 +73,6 @@ class SQLScriptMixin(SQLTableMixin):
             conn = dbi.connection()
             upd_result = conn.execute(stmt)
             check_result(upd_result)
-            conn.commit()
         return new_status
 
     @classmethod

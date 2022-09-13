@@ -3,25 +3,23 @@ from typing import Any
 
 import click
 
+from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
 from ..core.utils import LevelEnum, StatusEnum, TableEnum
-from . import options
 
 
 @click.group()
 @click.version_option(package_name="lsst.cm.tools")
 def cli() -> None:
     """Campaign management tool"""
-    pass
 
 
 @cli.command()
 @options.dbi(create=True)
 def create(dbi: DbInterface) -> None:
     """Create backing database"""
-    pass
 
 
 @cli.command()
@@ -83,7 +81,7 @@ def print_tree(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-def print(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
+def print(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:  # pylint: disable=redefined-builtin
     """Print a database entry or entries"""
     the_db_id = dbi.get_db_id(level, **kwargs)
     dbi.print_(sys.stdout, level, the_db_id)

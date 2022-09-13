@@ -24,8 +24,8 @@ def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_na
     )
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name=campaign_name)
+
     result = iface.prepare(LevelEnum.campaign, db_c_id)
-    assert result
 
     result = iface.prepare(LevelEnum.campaign, db_c_id)
     assert not result
@@ -55,6 +55,7 @@ def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_na
         # assert result
 
         result = iface.launch_jobs(LevelEnum.campaign, db_c_id, 5)
+
         # assert result
         result = iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
         # assert result
@@ -73,6 +74,7 @@ def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_na
         # assert result
 
         result = iface.accept(LevelEnum.campaign, db_c_id)
+
         # assert result
         result = iface.fake_run(LevelEnum.campaign, db_c_id)
         # assert not result
@@ -263,6 +265,7 @@ def test_failed_workflows() -> None:
         )
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+
     iface.prepare(LevelEnum.campaign, db_c_id)
 
     for step_name in ["step1"]:
@@ -290,7 +293,6 @@ def test_failed_workflows() -> None:
             workflow_idx=0,
         )
         iface.rollback(LevelEnum.workflow, db_w_id, StatusEnum.ready)
-        iface.check(LevelEnum.workflow, db_w_id)
         iface.reject(LevelEnum.group, db_g_id)
         db_g_id_ok = iface.get_db_id(
             LevelEnum.group,
@@ -338,8 +340,8 @@ def test_failed_scripts() -> None:
         butler_repo="repo",
         prod_base_url="archive_test",
     )
-
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+
     iface.prepare(LevelEnum.campaign, db_c_id)
 
     for step_name in ["step1"]:
@@ -350,7 +352,6 @@ def test_failed_scripts() -> None:
             step_name=step_name,
             group_name="group_4",
         )
-        iface.check(LevelEnum.group, db_g_id)
         iface.rollback(LevelEnum.group, db_g_id, StatusEnum.ready)
         iface.prepare(LevelEnum.group, db_g_id)
 
@@ -397,10 +398,10 @@ def test_script_interface() -> None:
     )
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+
     iface.prepare(LevelEnum.campaign, db_c_id)
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.running)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.running)
-    iface.check(LevelEnum.campaign, db_c_id)
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.completed)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
 
@@ -411,11 +412,8 @@ def test_script_interface() -> None:
         iface.queue_jobs(LevelEnum.campaign, db_c_id)
         iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
         iface.fake_run(LevelEnum.step, db_s_id)
-        iface.check(LevelEnum.step, db_s_id)
         iface.fake_script(LevelEnum.step, db_s_id, "collect", StatusEnum.completed)
-        iface.check(LevelEnum.step, db_s_id)
         iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.completed)
-        iface.check(LevelEnum.step, db_s_id)
 
     iface.print_table(sys.stdout, TableEnum.production)
     iface.print_table(sys.stdout, TableEnum.campaign)
@@ -426,8 +424,8 @@ def test_script_interface() -> None:
     iface.print_table(sys.stdout, TableEnum.job)
     iface.print_table(sys.stdout, TableEnum.dependency)
 
-    # os.system("\\rm -rf archive_test")
-    # os.unlink("fail.db")
+    os.system("\\rm -rf archive_test")
+    os.unlink("fail.db")
 
 
 def test_bad_db() -> None:
