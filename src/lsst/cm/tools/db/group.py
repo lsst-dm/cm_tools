@@ -38,7 +38,7 @@ class Group(common.Base, common.CMTable):
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
     status = Column(Enum(StatusEnum))  # Status flag
-    superseded = Column(Boolean)  # Has this been superseded
+    superseded = Column(Boolean, default=False)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
     c_: Campaign = relationship("Campaign", back_populates="g_")
