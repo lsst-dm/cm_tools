@@ -16,6 +16,15 @@ from lsst.cm.tools.db.step_handler import StepHandler
 from lsst.cm.tools.db.workflow import Workflow
 from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
+if os.environ.get("CM_PROFILE", 0) == "1":  # pragma: no cover
+    NGROUP1 = 500
+    NGROUP2 = 500
+    NGROUP3 = 500
+else:
+    NGROUP1 = 10
+    NGROUP2 = 20
+    NGROUP3 = 20
+
 
 class ExampleJobHandler(JobHandler):
     """Example job callback handler"""
@@ -83,7 +92,7 @@ class ExampleStep1Handler(GenericEntryHandlerMixin, StepHandler):
             step_name=entry.name,
         )
 
-        for i in range(10):
+        for i in range(NGROUP1):
             out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
             yield out_dict
 
@@ -100,7 +109,7 @@ class ExampleStep2Handler(GenericEntryHandlerMixin, StepHandler):
             step_name=entry.name,
         )
 
-        for i in range(20):
+        for i in range(NGROUP2):
             out_dict.update(group_name=f"group_{i}", data_query=f"i == {i}")
             yield out_dict
 
@@ -117,7 +126,7 @@ class ExampleStep3Handler(GenericEntryHandlerMixin, StepHandler):
             step_name=entry.name,
         )
 
-        for i in range(20):
+        for i in range(NGROUP3):
             out_dict.update(group_name=f"group{i}", data_query=f"i == {i}")
             yield out_dict
 
