@@ -48,7 +48,8 @@ class SQLAlchemyInterface(DbInterface):
         g_id = self._get_id(LevelEnum.group, s_id, kwargs.get("group_name"))
         if level == LevelEnum.group:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
-        w_id = self._get_id(LevelEnum.workflow, g_id, "%02i" % kwargs.get("workflow_idx", 0))
+        workflow_idx = kwargs.get("workflow_idx", 0)
+        w_id = self._get_id(LevelEnum.workflow, g_id, f"{workflow_idx:02}")
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> DbId:
@@ -97,6 +98,7 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.check(self, entry)
+        self.connection().commit()
         return db_id_list
 
     def insert(
@@ -111,22 +113,27 @@ class SQLAlchemyInterface(DbInterface):
             # which don't use handlers
             assert handler is None
             production = Production.insert_values(self, name=kwargs.get("production_name"))
+            self.connection().commit()
             return production
         parent = self.get_entry(handler.level.parent(), parent_db_id)
-        return handler.insert(self, parent, **kwargs)
+        ret_val = handler.insert(self, parent, **kwargs)
+        self.connection().commit()
+        self.check(ret_val.level, ret_val.db_id)
+        return ret_val
 
     def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
         entry = self.get_entry(level, db_id)
+        if entry.superseded:
+            return []
         handler = entry.get_handler()
         db_id_list = handler.prepare(self, entry)
-        if db_id_list:
-            self.check(level, db_id)
+        self.connection().commit()
+        self.check(level, db_id)
+        self.check(level, db_id)
         return db_id_list
 
     def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
-        handler = entry.get_handler()
-        handler.check(self, entry)
         db_id_list = []
         for job_ in entry.jobs_:
             status = job_.status
@@ -134,15 +141,14 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             db_id_list.append(job_.db_id)
             Job.update_values(self, job_.id, status=StatusEnum.prepared)
-        if db_id_list:
-            self.check(level, db_id)
+        self.connection().commit()
+        self.check(level, db_id)
         return db_id_list
 
     def launch_jobs(self, level: LevelEnum, db_id: DbId, max_running: int) -> list[DbId]:
         db_id_list: list[DbId] = []
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        handler.check(self, entry)
         n_running = self._count_jobs_at_status(StatusEnum.running)
         if n_running >= max_running:
             return db_id_list
@@ -156,6 +162,7 @@ class SQLAlchemyInterface(DbInterface):
             n_running += 1
             if n_running >= max_running:
                 break
+        self.connection().commit()
         self.check(level, db_id)
         return db_id_list
 
@@ -163,6 +170,7 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.accept(self, entry)
+        self.connection().commit()
         self.check(level, db_id)
         return db_id_list
 
@@ -170,6 +178,7 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.reject(self, entry)
+        self.connection().commit()
         self.check(level, db_id)
         return db_id_list
 
@@ -177,12 +186,14 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.rollback(self, entry, to_status)
+        self.connection().commit()
         return db_id_list
 
     def supersede(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.supersede(self, entry)
+        self.connection().commit()
         return db_id_list
 
     def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
@@ -195,8 +206,8 @@ class SQLAlchemyInterface(DbInterface):
             handler = job_.get_handler()
             handler.fake_run_hook(self, job_, status)
             db_id_list.append(job_.id)
-        if db_id_list:
-            self.check(level, db_id)
+        self.connection().commit()
+        self.check(level, db_id)
         return db_id_list
 
     def fake_script(
@@ -213,8 +224,7 @@ class SQLAlchemyInterface(DbInterface):
             handler = script_.get_handler()
             handler.fake_run_hook(self, script_, status)
             db_id_list.append(script_.id)
-        if db_id_list:
-            self.check(level, db_id)
+        self.check(level, db_id)
         return db_id_list
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
