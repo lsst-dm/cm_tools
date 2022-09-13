@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from sqlalchemy import Column, ForeignKey, Integer, func
+from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import composite, relationship
 
 from lsst.cm.tools.core.db_interface import DbInterface, DependencyBase
@@ -50,11 +50,8 @@ class Dependency(DependencyBase, common.Base):
     @classmethod
     def add_prerequisite(cls, dbi: DbInterface, depend_id: DbId, prereq_id: DbId) -> DependencyBase:
         """Inserts a dependency"""
-        counter = func.count(cls.id)
         conn = dbi.connection()
-        next_id = common.return_count(conn, counter) + 1
         depend = cls(
-            id=next_id,
             p_id=prereq_id[LevelEnum.production],
             c_id=prereq_id[LevelEnum.campaign],
             s_id=prereq_id[LevelEnum.step],
@@ -65,5 +62,4 @@ class Dependency(DependencyBase, common.Base):
             depend_g_id=depend_id[LevelEnum.group],
         )
         conn.add(depend)
-        conn.commit()
         return depend
