@@ -14,6 +14,7 @@ from .utils import add_sys_path
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+    from lsst.cm.tools.core.dbid import DbId
     from lsst.cm.tools.db.common import CMTable
 
 
@@ -307,7 +308,7 @@ class ScriptHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def run(self, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
+    def run(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> StatusEnum:
         """Run the script
 
         Parameters
@@ -315,8 +316,14 @@ class ScriptHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
+        parent : Any
+            Entry associated to this script
+
         script: ScriptBase
             Database entry for the script
+
+        kwargs: Any
+            Passed to the function that writes the script
 
         Returns
         -------
@@ -548,7 +555,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def accept(self, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def accept(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         """Accept this entry and any children
 
         Parameters
@@ -561,12 +568,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        status : StatusEnum
-            Status to set the entry to
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
-    def reject(self, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def reject(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         """Reject this entry and any children
 
         Parameters
@@ -579,8 +586,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        status : StatusEnum
-            Status to set the entry to
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
@@ -738,7 +745,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> StatusEnum:
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
         """Called to 'roll-back' a partiuclar entry
 
         Calling this function can result in scripts and child entries
@@ -761,12 +768,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        status : StatusEnum
-            Status to set the entry to
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> bool:
+    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         """Called to mark an entry as superseded
 
         Superseded entries are ignored in futher processing, and
@@ -782,7 +789,7 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        done : bool
-            True if the entry was successfully superseded
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()

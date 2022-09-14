@@ -466,9 +466,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def fake_run(
-        self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
-    ) -> list[DbId]:
+    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
         """Pretend to run workflows, this is for testing
 
         Parameters
@@ -484,7 +482,7 @@ class DbInterface:
 
         Returns
         -------
-        db_id_list : list[DbId]
+        db_id_list : list[int]
             Ids of the workflows that were affected
         """
         raise NotImplementedError()

@@ -59,27 +59,25 @@ class EntryHandler(EntryHandlerBase):
             return StatusEnum.validating
         return StatusEnum.accepted
 
-    def accept(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+    def accept(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list += accept_children(dbi, itr)
         db_id_list += accept_entry(dbi, self, entry)
         return db_id_list
 
-    def reject(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+    def reject(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
         return reject_entry(dbi, self, entry)
 
     def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> StatusEnum:
         return rollback_entry(dbi, self, entry, to_status)
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> bool:
+    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list += supersede_children(dbi, itr)
         db_id_list += supersede_entry(dbi, self, entry)
-        if db_id_list:
-            return True
-        return False
+        return db_id_list
 
     def rollback_subs(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
         db_id_list: list[DbId] = []

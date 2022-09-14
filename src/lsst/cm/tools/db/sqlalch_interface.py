@@ -94,11 +94,11 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         entry.print_tree(stream)
 
-    def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        db_id_list = handler.check(self, entry)
-        return db_id_list
+        status = handler.check(self, entry)
+        return status
 
     def insert(
         self,
