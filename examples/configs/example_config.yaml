@@ -76,6 +76,12 @@ workflow:
     output_type: run
     templates:
         coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    validate:
+        validate:
+            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+            stamp: completed
+            fake: true
 ancil:
     collections:
     - /prod/calib/some_calib

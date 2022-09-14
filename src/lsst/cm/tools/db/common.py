@@ -127,14 +127,6 @@ def check_result(result: Any) -> None:
     assert result
 
 
-def return_count(dbi: DbInterface, count: Any) -> int:
-    """Returns the number of rows mathcing a selection"""
-    conn = dbi.connection()
-    count_result = conn.execute(count)
-    check_result(count_result)
-    return count_result.scalar()
-
-
 def return_first_column(dbi: DbInterface, sel: Any) -> int | None:
     """Returns the first column in the first row matching a selection"""
     conn = dbi.connection()

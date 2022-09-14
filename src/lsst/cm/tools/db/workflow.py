@@ -39,6 +39,7 @@ class Workflow(common.Base, common.CMTable):
     data_query = Column(String)  # Data query
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
+    coll_validate = Column(String)  # Validate data collection
     status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, g_id, id)

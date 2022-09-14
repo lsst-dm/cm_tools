@@ -61,9 +61,8 @@ def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> StatusEnum
     scripts_status = np.array(
         [x.status.value for x in itr if (x.script_type == script_type) and not x.superseded]
     )
-    if not scripts_status.size:
-        # No scripts to check, return accepted
-        return StatusEnum.accepted
+    # should never be called on entries with no scripts
+    assert scripts_status.size
     if (scripts_status >= StatusEnum.accepted.value).all():
         return StatusEnum.accepted
     if (scripts_status >= StatusEnum.completed.value).all():
@@ -207,17 +206,17 @@ def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -
     if entry.status == status:
         level_counter[entry.level.name] = 1
         has_updates |= func(dbi, entry)
-    for itr in entry.sub_iterators():
+    sub_level = LevelEnum.workflow
+    while sub_level != entry.level:
         counter = 0
-        sub_level = None
-        for entry_ in itr:
-            if entry_.status != status:
-                continue
-            sub_level = entry_.level
-            has_updates |= func(dbi, entry_)
+        matching = dbi.get_matching(sub_level, entry, status)
+        for entry_ in matching:
+            assert entry_[0].status == status
+            has_updates |= func(dbi, entry_[0])
             counter += 1
-        if sub_level is not None:
+        if counter:
             level_counter[sub_level.name] = counter
+        sub_level = sub_level.parent()
     # print(f"  checked {str(level_counter)}: {has_updates}")
     if has_updates:
         dbi.connection().commit()

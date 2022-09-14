@@ -1,9 +1,9 @@
 import os
 import sys
 from time import sleep
-from typing import Any, Optional, TextIO
+from typing import Any, Iterable, Optional, TextIO
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
@@ -79,6 +79,17 @@ class SQLAlchemyInterface(DbInterface):
         entry = common.return_first_column(self, sel)
         self._verify_entry(entry, level, db_id)
         return entry
+
+    def get_matching(self, level: LevelEnum, entry: Any, status: StatusEnum) -> Iterable:
+        table = top.get_table_for_level(level)
+        match_key = table.match_keys[entry.level.value]
+        sel = select(table).where(
+            and_(
+                match_key == entry.id,
+                table.status == status,
+            )
+        )
+        return self.connection().execute(sel)
 
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         table = top.get_table_for_level(level)
@@ -231,11 +242,6 @@ class SQLAlchemyInterface(DbInterface):
             self.print_table(sys.stdout, TableEnum.workflow)
             i_iter -= 1
             sleep(sleep_time)
-
-    def _count_jobs_at_status(self, status: StatusEnum) -> int:
-        table = top.get_table(TableEnum.job)
-        count = func.count(table.status == status)
-        return common.return_count(self, count)
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""

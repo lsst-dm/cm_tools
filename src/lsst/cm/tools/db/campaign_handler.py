@@ -44,7 +44,7 @@ class CampaignHandler(EntryHandler):
             data_query=self.get_config_var("data_query", None, **kwargs),
             root_coll=self.get_config_var("root_coll", "prod", **kwargs),
             p_id=parent.id,
-            status=StatusEnum.ready,
+            status=StatusEnum.waiting,
             butler_repo=kwargs["butler_repo"],
             prod_base_url=kwargs["prod_base_url"],
             handler=self.get_handler_class_name(),

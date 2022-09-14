@@ -144,8 +144,6 @@ class GenericEntryHandlerMixin(EntryHandler):
                 dbi,
                 entry,
                 name=handler_name,
-                prepend=f"# Written by {handler.get_handler_class_name()}",
-                append="# Have a good day",
                 **handler_info,
             )
             scripts.append(script)
@@ -163,6 +161,13 @@ class GenericEntryHandlerMixin(EntryHandler):
                 if script_.name != handler_name:
                     continue
                 handler = script_.get_handler()
-                handler.run(dbi, entry, script_, **handler_info)
+                handler.run(
+                    dbi,
+                    entry,
+                    script_,
+                    prepend=f"# Written by {handler.get_handler_class_name()}",
+                    append="# Have a good day",
+                    **handler_info,
+                )
                 scripts.append(script_)
         return scripts

@@ -77,10 +77,10 @@ class ScriptHandler(ScriptHandlerBase):
             )
         elif parent.level == LevelEnum.workflow:
             insert_fields.update(
-                c_=parent.db_id.c_id,
-                s_=parent.db_id.s_id,
-                g_=parent.db_id.g_id,
-                w_=parent.db_id.w_id,
+                c_id=parent.db_id.c_id,
+                s_id=parent.db_id.s_id,
+                g_id=parent.db_id.g_id,
+                w_id=parent.db_id.w_id,
             )
         script_data = self.resolve_templated_strings(
             prod_base_url=parent.prod_base_url,
