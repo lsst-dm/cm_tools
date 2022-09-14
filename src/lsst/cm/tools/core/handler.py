@@ -8,7 +8,6 @@ import yaml
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 
 from .utils import add_sys_path
@@ -459,7 +458,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def prepare(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Prepare an entry
 
         Parameters
@@ -472,12 +471,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Make and prepare any child entries
 
         Parameters
@@ -490,33 +489,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def run(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Run an entry and any children
-
-        This actually just allow the children to run batch jobs.
-        It will not actually launch the jobs.
-
-        Parameters
-        ----------
-        dbi: DbInterface
-            Interface to the database we are using
-
-        entry: Any
-            Entry in question
-
-        Returns
-        -------
-        db_id_list : list[DbId]
-            All of the affected entries
-        """
-        raise NotImplementedError()
-
-    def check(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def check(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Check this entry and any children
 
         Parameters
@@ -529,12 +507,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def collect(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def collect(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Run collection scripts for this entry and any children
 
         Parameters
@@ -547,12 +525,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def validate(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def validate(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Validate this entry and any children
 
         Parameters
@@ -565,12 +543,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def accept(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def accept(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Accept this entry and any children
 
         Parameters
@@ -583,12 +561,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def reject(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def reject(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Reject this entry and any children
 
         Parameters
@@ -601,8 +579,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
@@ -635,8 +613,26 @@ class EntryHandlerBase(Handler):
         )
         return coll_name_map
 
+    def make_scripts(self, dbi: DbInterface, entry: Any) -> StatusEnum:
+        """Called to set up scripts and jobs for an entry
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we are using
+
+        entry : Any
+            Entry in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status to set the entry to
+        """
+        raise NotImplementedError()
+
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        """Called to set up scripts need to prepare an entry for execution
+        """Called to run scripts need to prepare an entry for execution
 
         Parameters
         ----------
@@ -694,24 +690,6 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        """Called to allow batch jobs to be run
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we are using
-
-        entry : Any
-            Entry in question
-
-        Returns
-        -------
-        job : list[JobBase]
-            The jobs that can be run
-        """
-        raise NotImplementedError()
-
     def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
         """Called when a particular entry is accepted
 
@@ -760,7 +738,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> StatusEnum:
         """Called to 'roll-back' a partiuclar entry
 
         Calling this function can result in scripts and child entries
@@ -783,12 +761,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def supersede(self, dbi: DbInterface, entry: Any) -> bool:
         """Called to mark an entry as superseded
 
         Superseded entries are ignored in futher processing, and
@@ -804,7 +782,7 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        done : bool
+            True if the entry was successfully superseded
         """
         raise NotImplementedError()

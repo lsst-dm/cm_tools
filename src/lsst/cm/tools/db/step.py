@@ -36,7 +36,7 @@ class Step(common.Base, common.CMTable):
     coll_validate = Column(String)  # Validate data collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     previous_step_id = Column(Integer)
     db_id: DbId = composite(DbId, p_id, c_id, id)
@@ -44,7 +44,12 @@ class Step(common.Base, common.CMTable):
     c_: Campaign = relationship("Campaign", back_populates="s_")
     g_: Iterable = relationship("Group", back_populates="s_")
     w_: Iterable = relationship("Workflow", back_populates="s_")
-    scripts_: Iterable = relationship("Script", back_populates="s_")
+    all_scripts_: Iterable = relationship("Script", back_populates="s_")
+    scripts_: Iterable = relationship(
+        "Script",
+        primaryjoin="and_(Step.id==Script.s_id, Script.level=='step')",
+        viewonly=True,
+    )
     jobs_: Iterable = relationship("Job", back_populates="s_")
     depend_: Iterable = relationship("Dependency", back_populates="s_")
 

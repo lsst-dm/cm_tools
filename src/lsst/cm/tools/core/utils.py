@@ -24,6 +24,7 @@ class StatusEnum(enum.Enum):
 
     waiting = 0  # Prerequisites not ready
        -> check_prequisites()
+       make_scripts()
        If all the prequisites are `accepted` can move to `ready`
 
     ready = 1  # Ready to run

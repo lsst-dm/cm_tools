@@ -35,7 +35,7 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     coll_out = Column(String)  # Output collection
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean)  # Has this been superseded
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     n_tasks_all = Column(Integer, default=0)  # Number of associated tasks

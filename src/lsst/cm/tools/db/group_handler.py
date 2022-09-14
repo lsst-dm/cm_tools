@@ -1,29 +1,7 @@
-# This file is part of cm_tools
-#
-# Developed for the LSST Data Management System.
-# This product includes software developed by the LSST Project
-# (https://www.lsst.org).
-# See the COPYRIGHT file at the top-level directory of this distribution
-# for details of code ownership.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
-from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.entry_handler import EntryHandler
 from lsst.cm.tools.db.group import Group
@@ -74,7 +52,7 @@ class GroupHandler(EntryHandler):
         insert_fields.update(**coll_names)
         return Group.insert_values(dbi, **insert_fields)
 
-    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         workflow_handler = self.make_workflow_handler()
         workflow_handler.insert(
             dbi,
@@ -84,7 +62,7 @@ class GroupHandler(EntryHandler):
             step_name=entry.s_.name,
             group_name=entry.name,
         )
-        return self.prepare_children(dbi, entry)
+        return StatusEnum.populating
 
     def make_workflow_handler(self) -> WorkflowHandler:
         """Return a WorkflowHandler to manage the

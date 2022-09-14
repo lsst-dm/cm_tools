@@ -98,7 +98,6 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         db_id_list = handler.check(self, entry)
-        self.connection().commit()
         return db_id_list
 
     def insert(
@@ -121,17 +120,6 @@ class SQLAlchemyInterface(DbInterface):
         self.check(ret_val.level, ret_val.db_id)
         return ret_val
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
-        entry = self.get_entry(level, db_id)
-        if entry.superseded:
-            return []
-        handler = entry.get_handler()
-        db_id_list = handler.prepare(self, entry)
-        self.connection().commit()
-        self.check(level, db_id)
-        self.check(level, db_id)
-        return db_id_list
-
     def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         db_id_list = []
@@ -149,11 +137,14 @@ class SQLAlchemyInterface(DbInterface):
         db_id_list: list[DbId] = []
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        n_running = self._count_jobs_at_status(StatusEnum.running)
-        if n_running >= max_running:
-            return db_id_list
+        n_running = 0
+        # n_running = self._count_jobs_at_status(StatusEnum.running)
+        # if n_running >= max_running:
+        #    return db_id_list
         for job_ in entry.jobs_:
             status = job_.status
+            if status == StatusEnum.running:
+                n_running += 1
             if status != StatusEnum.prepared:
                 continue
             db_id_list.append(job_.db_id)
@@ -232,7 +223,6 @@ class SQLAlchemyInterface(DbInterface):
         while i_iter != 0:
             if os.path.exists("daemon.stop"):  # pragma: no cover
                 break
-            self.prepare(LevelEnum.campaign, db_id)
             self.queue_jobs(LevelEnum.campaign, db_id)
             self.launch_jobs(LevelEnum.campaign, db_id, max_running)
             self.accept(LevelEnum.campaign, db_id)

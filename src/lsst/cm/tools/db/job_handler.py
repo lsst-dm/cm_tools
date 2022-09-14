@@ -5,6 +5,7 @@ from lsst.cm.tools.core.handler import JobHandlerBase
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
+from lsst.cm.tools.db.workflow import Workflow
 
 
 class JobHandler(JobHandlerBase):
@@ -48,7 +49,7 @@ class JobHandler(JobHandlerBase):
             checker=self.checker_class_name,
             rollback=self.rollback_class_name,
             coll_out=parent.coll_out,
-            status=StatusEnum.waiting,
+            status=StatusEnum.ready,
             script_method=self.script_method,
             level=parent.level,
         )
@@ -60,7 +61,6 @@ class JobHandler(JobHandlerBase):
         )
         insert_fields.update(**script_data)
         script = Job.insert_values(dbi, **insert_fields)
-        self.write_job_hook(dbi, parent, script, **kwcopy)
         return script
 
     def fake_run_hook(
@@ -69,4 +69,7 @@ class JobHandler(JobHandlerBase):
         write_status_to_yaml(job.stamp_url, status)
 
     def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
+        parent = job.w_
+        self.write_job_hook(dbi, parent, job)
         Job.update_values(dbi, job.id, status=StatusEnum.running)
+        Workflow.update_values(dbi, parent.id, status=StatusEnum.running)

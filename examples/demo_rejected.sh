@@ -19,7 +19,6 @@ mkdir -p "$EXAMPLES/output"
 cm create
 cm insert --level production --production-name ${p_name}
 cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
-cm prepare --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 cm queue --level campaign --fullname ${p_name}/${c_name}
 cm launch --level campaign --fullname ${p_name}/${c_name}

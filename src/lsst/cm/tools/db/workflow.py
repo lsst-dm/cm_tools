@@ -39,14 +39,19 @@ class Workflow(common.Base, common.CMTable):
     data_query = Column(String)  # Data query
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, g_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
     c_: Campaign = relationship("Campaign", back_populates="w_")
     s_: Step = relationship("Step", back_populates="w_")
     g_: Group = relationship("Group", back_populates="w_")
-    scripts_: Iterable = relationship("Script", back_populates="w_")
+    all_scripts_: Iterable = relationship("Script", back_populates="w_")
+    scripts_: Iterable = relationship(
+        "Script",
+        primaryjoin="and_(Workflow.id==Script.w_id, Script.level=='workflow')",
+        viewonly=True,
+    )
     jobs_: Iterable = relationship("Job", back_populates="w_")
     depend_: Iterable = relationship("Dependency", back_populates="w_")
 

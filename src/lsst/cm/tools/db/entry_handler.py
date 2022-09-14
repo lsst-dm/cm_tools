@@ -1,25 +1,21 @@
+import os
 from typing import Any
 
-from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker
-from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
 from lsst.cm.tools.db.common import CMTable
 from lsst.cm.tools.db.handler_utils import (
     accept_children,
     accept_entry,
-    check_entries,
-    check_entry,
-    collect_entry,
-    prepare_entry,
+    check_entry_loop,
     reject_entry,
     rollback_children,
     rollback_entry,
-    run_entry,
     supersede_children,
     supersede_entry,
-    validate_entry,
 )
 
 # import datetime
@@ -36,60 +32,60 @@ class EntryHandler(EntryHandlerBase):
     2. implement the `make_children` function
     """
 
-    def prepare(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return prepare_entry(dbi, self, entry)
+    def prepare(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+        assert entry.status == StatusEnum.ready
+        full_path = os.path.join(entry.prod_base_url, entry.fullname)
+        safe_makedirs(full_path)
+        handler = entry.get_handler()
+        prepare_scripts = handler.prepare_script_hook(dbi, entry)
+        if prepare_scripts:
+            return StatusEnum.preparing
+        return StatusEnum.prepared
 
-    def prepare_children(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return check_entries(dbi, entry.children())
+    def check(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+        return check_entry_loop(dbi, entry)
 
-    def run(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return run_entry(dbi, self, entry)
+    def collect(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+        assert entry.status == StatusEnum.collectable
+        collect_scripts = self.collect_script_hook(dbi, entry)
+        if collect_scripts:
+            return StatusEnum.collecting
+        return StatusEnum.completed
 
-    def check(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        db_id_list: list[DbId] = []
-        for itr in entry.sub_iterators():
-            db_id_list += check_entries(dbi, itr)
-        db_id_list += check_entry(dbi, entry)
-        return db_id_list
+    def validate(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
+        assert entry.status == StatusEnum.completed
+        validate_scripts = self.validate_script_hook(dbi, entry)
+        if validate_scripts:
+            return StatusEnum.validating
+        return StatusEnum.accepted
 
-    def collect(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return collect_entry(dbi, self, entry)
-
-    def validate(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return validate_entry(dbi, self, entry)
-
-    def accept(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+    def accept(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list += accept_children(dbi, itr)
         db_id_list += accept_entry(dbi, self, entry)
         return db_id_list
 
-    def reject(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+    def reject(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
         return reject_entry(dbi, self, entry)
 
-    def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
+    def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> StatusEnum:
         return rollback_entry(dbi, self, entry, to_status)
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def supersede(self, dbi: DbInterface, entry: Any) -> bool:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list += supersede_children(dbi, itr)
         db_id_list += supersede_entry(dbi, self, entry)
-        return db_id_list
+        if db_id_list:
+            return True
+        return False
 
     def rollback_subs(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
             db_id_list = rollback_children(dbi, itr, to_status)
         return db_id_list
-
-    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        # run (and run_hook) should only be called on
-        # entries in the `populating` state
-        assert entry.status == StatusEnum.populating
-        entry.update_values(dbi, entry.id, status=StatusEnum.running)
-        return []
 
     def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
         pass
@@ -98,6 +94,9 @@ class EntryHandler(EntryHandlerBase):
         pass
 
     def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+        pass
+
+    def _make_jobs(self, dbi: DbInterface, entry: Any) -> None:
         pass
 
 
@@ -111,20 +110,30 @@ class GenericEntryHandlerMixin(EntryHandler):
     yaml_checker_class = YamlChecker().get_checker_class_name()
     rollback_class = FakeRollback().get_rollback_class_name()
 
+    def make_scripts(self, dbi: DbInterface, entry: Any) -> None:
+        script_handlers = self.config.get("prepare", {})
+        self._insert_generic_scripts(dbi, entry, script_handlers)
+        script_handlers = self.config.get("collect", {})
+        self._insert_generic_scripts(dbi, entry, script_handlers)
+        script_handlers = self.config.get("validate", {})
+        self._insert_generic_scripts(dbi, entry, script_handlers)
+        self._make_jobs(dbi, entry)
+        return StatusEnum.ready
+
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         script_handlers = self.config.get("prepare", {})
-        return self._generic_scripts(dbi, entry, script_handlers)
+        return self._run_generic_scripts(dbi, entry, script_handlers)
 
     def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         script_handlers = self.config.get("collect", {})
-        return self._generic_scripts(dbi, entry, script_handlers)
+        return self._run_generic_scripts(dbi, entry, script_handlers)
 
     def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
         script_handlers = self.config.get("validate", {})
-        return self._generic_scripts(dbi, entry, script_handlers)
+        return self._run_generic_scripts(dbi, entry, script_handlers)
 
     @staticmethod
-    def _generic_scripts(
+    def _insert_generic_scripts(
         dbi: DbInterface,
         entry: Any,
         script_handlers: dict[str, Any],
@@ -141,8 +150,21 @@ class GenericEntryHandlerMixin(EntryHandler):
                 append="# Have a good day",
                 **handler_info,
             )
-            status = handler.run(dbi, script)
-            if status != StatusEnum.ready:
-                script.update_values(dbi, script.id, status=status)
             scripts.append(script)
+        return scripts
+
+    @staticmethod
+    def _run_generic_scripts(
+        dbi: DbInterface,
+        entry: Any,
+        script_handlers: dict[str, Any],
+    ) -> list[ScriptBase]:
+        scripts: list[ScriptBase] = []
+        for handler_name, handler_info in script_handlers.items():
+            for script_ in entry.scripts_:
+                if script_.name != handler_name:
+                    continue
+                handler = script_.get_handler()
+                handler.run(dbi, entry, script_, **handler_info)
+                scripts.append(script_)
         return scripts

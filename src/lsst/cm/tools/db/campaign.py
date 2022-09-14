@@ -37,7 +37,7 @@ class Campaign(common.Base, common.CMTable):
     coll_ancil = Column(String)  # Ancillary (i.e., calibration) collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     butler_repo = Column(String)  # URL for butler repository
     root_coll = Column(String)  # root for collection names
@@ -47,7 +47,12 @@ class Campaign(common.Base, common.CMTable):
     s_: Iterable = relationship("Step", back_populates="c_")
     g_: Iterable = relationship("Group", back_populates="c_")
     w_: Iterable = relationship("Workflow", back_populates="c_")
-    scripts_: Iterable = relationship("Script", back_populates="c_")
+    all_scripts_: Iterable = relationship("Script", back_populates="c_")
+    scripts_: Iterable = relationship(
+        "Script",
+        primaryjoin="and_(Campaign.id==Script.c_id, Script.level=='campaign')",
+        viewonly=True,
+    )
     jobs_: Iterable = relationship("Job", back_populates="c_")
     depend_: Iterable = relationship("Dependency", back_populates="c_")
 

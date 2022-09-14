@@ -104,32 +104,6 @@ def print_table(dbi: DbInterface, table: TableEnum) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
-def prepare(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
-    """Prepare a database entry for execution"""
-    Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    id_args = [
-        "production_name",
-        "campaign_name",
-        "step_name",
-        "group_name",
-    ]
-    all_args = kwargs.copy()
-    for arg_ in id_args:
-        all_args.pop(arg_)
-    dbi.prepare(level, the_db_id, **all_args)
-
-
-@cli.command()
-@options.dbi()
-@options.level()
-@options.fullname()
-@options.production()
-@options.campaign()
-@options.step()
-@options.group()
-@options.workflow()
 def queue(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
     """Queue all the ready jobs matching the selection"""
     the_db_id = dbi.get_db_id(level, **kwargs)
