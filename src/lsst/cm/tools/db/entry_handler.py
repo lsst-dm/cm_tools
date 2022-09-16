@@ -98,7 +98,7 @@ class EntryHandler(EntryHandlerBase):
         pass
 
 
-class GenericEntryHandlerMixin(EntryHandler):
+class GenericEntryHandler(EntryHandler):
     """Callback handler for database entries
 
     Provides generic version of interface functions

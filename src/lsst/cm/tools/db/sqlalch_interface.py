@@ -3,14 +3,15 @@ import sys
 from time import sleep
 from typing import Any, Iterable, Optional, TextIO
 
-from sqlalchemy import and_, select
+import yaml
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
+from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
+from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
 
@@ -80,6 +81,10 @@ class SQLAlchemyInterface(DbInterface):
         self._verify_entry(entry, level, db_id)
         return entry
 
+    def get_config(self, config_name: str) -> ConfigBase:
+        sel = select(Config).where(Config.name == config_name)
+        return common.return_first_column(self, sel)
+
     def get_matching(self, level: LevelEnum, entry: Any, status: StatusEnum) -> Iterable:
         table = top.get_table_for_level(level)
         match_key = table.match_keys[entry.level.value]
@@ -114,19 +119,23 @@ class SQLAlchemyInterface(DbInterface):
     def insert(
         self,
         parent_db_id: DbId,
-        handler: Handler,
+        config_block: str,
+        config: ConfigBase | None,
         **kwargs: Any,
     ) -> CMTableBase:
 
         if parent_db_id is None:
             # This is only called on production level entries
             # which don't use handlers
-            assert handler is None
+            assert config is None
             production = Production.insert_values(self, name=kwargs.get("production_name"))
             self.connection().commit()
             return production
-        parent = self.get_entry(handler.level.parent(), parent_db_id)
-        ret_val = handler.insert(self, parent, **kwargs)
+        parent = self.get_entry(parent_db_id.level(), parent_db_id)
+        if config is None:
+            config = parent.config_
+        handler = config.get_sub_handler(config_block)
+        ret_val = handler.insert(self, parent, config_id=config.id, **kwargs)
         self.connection().commit()
         self.check(ret_val.level, ret_val.db_id)
         return ret_val
@@ -242,6 +251,54 @@ class SQLAlchemyInterface(DbInterface):
             self.print_table(sys.stdout, TableEnum.workflow)
             i_iter -= 1
             sleep(sleep_time)
+
+    def parse_config(self, config_name: str, config_yaml: str) -> Config:
+        with open(config_yaml, "rt", encoding="utf-8") as config_file:
+            config_data = yaml.safe_load(config_file)
+        conn = self.connection()
+        n_frag = conn.query(func.count(Fragment.id)).scalar()
+        frag_names = []
+        for key, val in config_data.items():
+            fullname = f"{config_name}:{key}"
+            includes = val.pop("includes", [])
+            data = val.copy()
+            for include_ in includes:
+                data.update(config_data[include_])
+            handler = data.pop("class_name", None)
+            if handler is None:
+                continue
+            new_fragment = Fragment(
+                id=n_frag,
+                name=config_name,
+                tag=key,
+                fullname=fullname,
+                handler=handler,
+                data=data,
+            )
+            frag_names.append(fullname)
+            n_frag += 1
+            conn.add(new_fragment)
+        return self.build_config(config_name, frag_names)
+
+    def build_config(self, config_name: str, fragment_names: list[str]) -> Config:
+        conn = self.connection()
+        n_config = conn.query(func.count(Config.id)).scalar()
+        new_config = Config(
+            id=n_config,
+            name=config_name,
+        )
+        conn.add(new_config)
+        frag_list = [
+            conn.execute(select(Fragment.id).where(Fragment.fullname == frag_name)).scalar()
+            for frag_name in fragment_names
+        ]
+        for frag_id in frag_list:
+            new_assoc = ConfigAssociation(
+                frag_id=frag_id,
+                config_id=new_config.id,
+            )
+            conn.add(new_assoc)
+        conn.commit()
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""

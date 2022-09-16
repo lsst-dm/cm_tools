@@ -3,21 +3,15 @@ from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
-from lsst.cm.tools.db.entry_handler import EntryHandler
+from lsst.cm.tools.db.entry_handler import GenericEntryHandler
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.step import Step
-from lsst.cm.tools.db.workflow_handler import WorkflowHandler
 
 
-class GroupHandler(EntryHandler):
+class GroupHandler(GenericEntryHandler):
     """Group level callback handler
 
     Provides interface functions.
-
-    Derived classes will have to:
-
-    1. implement the `xxx_hook` functions.
-    2. define the Workflow callback hander with `make_workflow_handler`
     """
 
     config_block = "group"
@@ -38,11 +32,11 @@ class GroupHandler(EntryHandler):
             p_id=parent.p_.id,
             c_id=parent.c_.id,
             s_id=parent.id,
+            config_id=parent.config_id,
+            frag_id=self._fragment_id,
             data_query=kwargs.get("data_query"),
             coll_source=parent.coll_in,
             status=StatusEnum.waiting,
-            handler=self.get_handler_class_name(),
-            config_yaml=self.config_url,
         )
         extra_fields = dict(
             prod_base_url=parent.prod_base_url,
@@ -53,7 +47,7 @@ class GroupHandler(EntryHandler):
         return Group.insert_values(dbi, **insert_fields)
 
     def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
-        workflow_handler = self.make_workflow_handler()
+        workflow_handler = entry.get_sub_handler("workflow")
         workflow_handler.insert(
             dbi,
             entry,
@@ -63,10 +57,3 @@ class GroupHandler(EntryHandler):
             group_name=entry.name,
         )
         return StatusEnum.populating
-
-    def make_workflow_handler(self) -> WorkflowHandler:
-        """Return a WorkflowHandler to manage the
-        Workflows associated with the Groups managed by this
-        handler
-        """
-        raise NotImplementedError()

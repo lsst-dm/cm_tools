@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import declarative_base
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, FragmentBase, TableBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
@@ -53,13 +53,13 @@ class SQLScriptMixin(SQLTableMixin):
     """
 
     id: int | None
-    handler: str | None
-    config_yaml: str | None
+    frag_: FragmentBase | None
     status: StatusEnum
 
     def get_handler(self) -> Handler:
         """Return a Handler for this entry"""
-        return Handler.get_handler(self.handler, self.config_yaml)
+        assert self.frag_ is not None
+        return self.frag_.get_handler()
 
     @classmethod
     def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
@@ -91,13 +91,16 @@ class CMTable(SQLTableMixin, CMTableBase):
     level = LevelEnum.production
 
     name: str | None
-    handler: str | None
-    config_yaml: str | None
+    frag_: FragmentBase | None
+    config_: ConfigBase | None
     match_keys: list[str] = []
     parent_id: Any
 
     def get_handler(self) -> Handler:
-        return Handler.get_handler(self.handler, self.config_yaml)
+        return self.frag_.get_handler()
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        return self.config_.get_sub_handler(config_block)
 
     @classmethod
     def get_match_query(cls, db_id: DbId) -> Any:

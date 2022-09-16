@@ -6,6 +6,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, ScriptMethod, ScriptType, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.config import Fragment
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
@@ -26,10 +27,9 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     s_id = Column(Integer, ForeignKey(Step.id))
     g_id = Column(Integer, ForeignKey(Group.id))
     w_id = Column(Integer, ForeignKey(Workflow.id))
+    frag_id = Column(Integer, ForeignKey(Fragment.id))
     name = Column(String)  # Name for this script
     idx = Column(Integer)  # ID from this script
-    handler = Column(String)  # Handler class
-    config_yaml = Column(String)  # Configuration file
     script_url = Column(String)  # Url for script
     stamp_url = Column(String)  # Url for a status 'stamp' file
     log_url = Column(String)  # Url for log
@@ -46,6 +46,7 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     s_: Step = relationship("Step", back_populates="all_scripts_")
     g_: Group = relationship("Group", back_populates="all_scripts_")
     w_: Workflow = relationship("Workflow", back_populates="all_scripts_")
+    frag_: Fragment = relationship("Fragment", viewonly=True)
 
     def __repr__(self) -> str:
         if self.superseded:
@@ -53,5 +54,5 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
         else:
             supersede_string = ""
         return (
-            f"Script {self.id}: {self.db_id} {self.name} {self.handler} {self.status.name} {supersede_string}"
+            f"Script {self.id}: {self.db_id} {self.name} {self.frag_} {self.status.name} {supersede_string}"
         )

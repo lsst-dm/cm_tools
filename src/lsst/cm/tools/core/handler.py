@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import os
 import types
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-import yaml
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
@@ -31,35 +29,35 @@ class Handler:
 
     default_config: dict[str, Any] = {}
 
-    handler_cache: dict[str, Handler] = {}
-
-    config_cache: dict[str, Any] = {}
+    handler_cache: dict[int, Handler] = {}
     config_block = ""
 
     no_submit = False
     plugin_dir: str | None = None
-    config_dir: str | None = None
 
-    def __init__(self) -> None:
-        self._config_url: Optional[str] = None
-        self._config: dict[str, Any] = {}
-
-    @property
-    def config_url(self) -> Optional[str]:
-        """Return the url of the file with the handler configuration"""
-        return self._config_url
+    def __init__(self, fragment_id: int, **kwargs: Any) -> None:
+        self._fragment_id = fragment_id
+        self._config = self.default_config.copy()
+        self._config.update(**kwargs)
 
     @staticmethod
-    def get_handler(class_name: str, config_url: str) -> Handler:
+    def get_handler(
+        fragment_id: int,
+        class_name: str,
+        **kwargs: Any,
+    ) -> Handler:
         """Create and return a handler
 
         Parameters
         ----------
+        fragment_id: int
+            Id for the associated configuration fragment,
+
         class_name : str
             Name of the handler class requested
 
-        config_url : str
-            URL to the configuration file for the handler
+        kwargs : Any
+            The configuration parameters
 
         Returns
         -------
@@ -68,20 +66,18 @@ class Handler:
 
         Notes
         -----
-        There are two layers of caching here.
-        1.  A `dict` of Handler objects, keyed by class name
-        2.  Each handler caches the config_url to avoid re-reading if
-        it has not changed.
+        The handlers are cached by configuration fragment id.
+        If a cached fragment is found that will be returned
+        instead of producing a new one.
         """
-        cached_handler = Handler.handler_cache.get(class_name)
+        cached_handler = Handler.handler_cache.get(fragment_id)
         if cached_handler is None:
             with add_sys_path(Handler.plugin_dir):
                 handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):
                 raise TypeError()
-            cached_handler = handler_class()
-            Handler.handler_cache[class_name] = cached_handler
-        cached_handler.update_config(config_url)
+            cached_handler = handler_class(fragment_id, **kwargs)
+            Handler.handler_cache[fragment_id] = cached_handler
         return cached_handler
 
     @classmethod
@@ -97,36 +93,6 @@ class Handler:
     def get_handler_class_name(self) -> str:
         """Return this class's full name"""
         return get_full_type_name(self)
-
-    def _read_config(self, config_url: str) -> None:
-        """Utility function to read and cache a configuration from a URL"""
-        self._config_url = config_url
-        self._config = self.default_config.copy()
-        if Handler.config_dir is not None:
-            config_url = os.path.join(Handler.config_dir, config_url)
-        cached_config = Handler.config_cache.get(config_url)
-        if cached_config is None:
-            with open(config_url, "rt", encoding="utf-8") as config_file:
-                cached_config = yaml.safe_load(config_file)
-            Handler.config_cache[config_url] = cached_config
-        my_block = cached_config.get(self.config_block)
-        if my_block:
-            self._config.update(**my_block)
-
-    def update_config(self, config_url: str) -> None:
-        """Update this handler's configuration by reading a
-        yaml configuration file
-
-        Parameters
-        ----------
-        config_url : str
-            URL of the configuration file
-        """
-        # config_url should always be set
-        assert config_url is not None
-        if config_url == self._config_url:
-            return
-        self._read_config(config_url)
 
     def get_config_var(self, varname: str, default: Any, **kwargs: Any) -> Any:
         """Utility function to get a configuration parameter value

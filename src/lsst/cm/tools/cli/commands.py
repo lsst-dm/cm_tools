@@ -20,6 +20,7 @@ def cli() -> None:
 @options.dbi(create=True)
 def create(dbi: DbInterface) -> None:
     """Create backing database"""
+    assert dbi
 
 
 @cli.command()
@@ -33,28 +34,28 @@ def create(dbi: DbInterface) -> None:
 @options.butler()
 @options.prod_base()
 @options.workflow()
-@options.handler()
-@options.config()
+@options.config_name()
+@options.config_block()
 @options.nosubmit()
 def insert(
     dbi: DbInterface,
     level: LevelEnum,
-    handler: str,
-    config_yaml: str,
+    config_name: str,
+    config_block: str,
     no_submit: bool,
     **kwargs: Any,
 ) -> None:
     """Insert a new database entry at a particular level"""
     Handler.no_submit = no_submit
     if level != LevelEnum.production:
-        assert config_yaml is not None
-        assert handler is not None
-        the_handler = Handler.get_handler(handler, config_yaml)
+        assert config_name is not None
+        assert config_block is not None
+        the_config = dbi.get_config(config_name)
         the_db_id = dbi.get_db_id(level, **kwargs)
     else:
         the_db_id = None
-        the_handler = None
-    dbi.insert(the_db_id, the_handler, **kwargs)
+        the_config = None
+    dbi.insert(the_db_id, config_block, the_config, **kwargs)
 
 
 @cli.command()
@@ -265,3 +266,12 @@ def daemon(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -
     Handler.no_submit = no_submit
     the_db_id = dbi.get_db_id(LevelEnum.campaign, **kwargs)
     dbi.daemon(the_db_id, max_running)
+
+
+@cli.command()
+@options.dbi()
+@options.config_yaml()
+@options.config_name()
+def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
+    """Parse a configuration file"""
+    dbi.parse_config(config_name, config_yaml)

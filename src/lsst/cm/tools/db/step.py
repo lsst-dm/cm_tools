@@ -8,6 +8,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.config import Config, Fragment
 from lsst.cm.tools.db.production import Production
 
 
@@ -25,10 +26,10 @@ class Step(common.Base, common.CMTable):
     id = Column(Integer, primary_key=True)  # Unique Step ID
     p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
+    config_id = Column(Integer, ForeignKey(Config.id))
+    frag_id = Column(Integer, ForeignKey(Fragment.id))
     name = Column(String)  # Step name
     fullname = Column(String, unique=True)  # Unique name
-    handler = Column(String)  # Handler class
-    config_yaml = Column(String)  # Configuration file
     data_query = Column(String)  # Data query
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
@@ -44,6 +45,8 @@ class Step(common.Base, common.CMTable):
     c_: Campaign = relationship("Campaign", back_populates="s_")
     g_: Iterable = relationship("Group", back_populates="s_")
     w_: Iterable = relationship("Workflow", back_populates="s_")
+    config_: Config = relationship("Config", viewonly=True)
+    frag_: Fragment = relationship("Fragment", viewonly=True)
     all_scripts_: Iterable = relationship("Script", back_populates="s_")
     scripts_: Iterable = relationship(
         "Script",
@@ -80,7 +83,7 @@ class Step(common.Base, common.CMTable):
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        return f"Step {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
+        return f"Step {self.fullname} {self.db_id}: {self.frag_id} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""

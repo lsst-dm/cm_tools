@@ -1,28 +1,22 @@
 import os
-from collections import OrderedDict
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface
-from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.dependency import Dependency
-from lsst.cm.tools.db.entry_handler import EntryHandler
+from lsst.cm.tools.db.entry_handler import GenericEntryHandler
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 
 # import datetime
 
 
-class CampaignHandler(EntryHandler):
+class CampaignHandler(GenericEntryHandler):
     """Campaign level callback handler
 
     Provides interface functions.
 
-    Derived classes will have to:
-
-    1. implement the `xxx_hook` functions.
-    2. provide a mapping for Step-level callback handlers in `step_dict`
     """
 
     config_block = "campaign"
@@ -31,24 +25,24 @@ class CampaignHandler(EntryHandler):
 
     level = LevelEnum.campaign
 
-    step_dict: OrderedDict[str, tuple[type, list[str]]] = OrderedDict([])
-
     def insert(self, dbi: DbInterface, parent: Production, **kwargs: Any) -> Campaign:
         if "butler_repo" not in kwargs:
             raise KeyError("butler_repo must be specified with inserting a campaign")
         if "prod_base_url" not in kwargs:
             raise KeyError("prod_base_url must be specified with inserting a campaign")
+        if "config_id" not in kwargs:
+            raise KeyError("config_id must be specified with inserting a campaign")
         insert_fields = dict(
             name=self.get_kwarg_value("campaign_name", **kwargs),
             fullname=self.get_fullname(**kwargs),
             data_query=self.get_config_var("data_query", None, **kwargs),
             root_coll=self.get_config_var("root_coll", "prod", **kwargs),
             p_id=parent.id,
+            config_id=kwargs["config_id"],
+            frag_id=self._fragment_id,
             status=StatusEnum.waiting,
             butler_repo=kwargs["butler_repo"],
             prod_base_url=kwargs["prod_base_url"],
-            handler=self.get_handler_class_name(),
-            config_yaml=self.config_url,
         )
         coll_names = self.coll_names(insert_fields)
         insert_fields.update(**coll_names)
@@ -77,11 +71,10 @@ class CampaignHandler(EntryHandler):
         """
         out_dict = {}
         coll_source = campaign.coll_in
-        for step_name, (step_handler_class, step_prereqs) in self.step_dict.items():
-            step_handler = Handler.get_handler(
-                step_handler_class().get_handler_class_name(),
-                campaign.config_yaml,
-            )
+        steps = self.config.get("steps", [])
+        for step_name in steps:
+            step_handler = campaign.get_sub_handler(step_name)
+            step_prereqs = step_handler.config.get("prerequisites")
             new_step = step_handler.insert(
                 dbi,
                 campaign,

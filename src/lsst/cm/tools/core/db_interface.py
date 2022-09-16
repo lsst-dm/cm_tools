@@ -148,6 +148,43 @@ class DependencyBase:
         raise NotImplementedError()
 
 
+class FragmentBase(TableBase):
+    """Interface class for configuration fragments"""
+
+    def get_handler(self) -> Handler:
+        """Get the handler associated to this Fragment
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        Returns
+        -------
+        handler : Handler
+            The associated handler
+        """
+        raise NotImplementedError()
+
+
+class ConfigBase(TableBase):
+    """Interface class for configurations"""
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        """Get the handler to a sub-fragment
+
+        Parameters
+        ----------
+        config_block : str
+            The tag that identifies block of the configuration
+
+        Returns
+        -------
+        handler : Handler
+            The associated handler
+        """
+        raise NotImplementedError()
+
+
 class CMTableBase(TableBase):
     """Interface class for database entries describing parts of
     the data processing
@@ -160,6 +197,10 @@ class CMTableBase(TableBase):
 
     def get_handler(self) -> Handler:
         """Return the associated callback `Handler`"""
+        raise NotImplementedError()
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        """Return the associated callback `Handler` for a child node"""
         raise NotImplementedError()
 
 
@@ -265,6 +306,21 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def get_config(self, config_name: str) -> ConfigBase:
+        """Return a selected configuration object
+
+        Parameters
+        ----------
+        config_name : str
+            Selects which configutaion
+
+        Returns
+        -------
+        config : ConfigBase
+            Selected configuration
+        """
+        raise NotImplementedError()
+
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         """Print a database entry or entries
 
@@ -327,7 +383,13 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def insert(self, parent_db_id: DbId, handler: Handler, **kwargs: Any) -> CMTableBase:
+    def insert(
+        self,
+        parent_db_id: DbId,
+        config_block: str,
+        config: ConfigBase | None,
+        **kwargs: Any,
+    ) -> CMTableBase:
         """Insert a new database entry at a particular level
 
         Parameters
@@ -335,8 +397,11 @@ class DbInterface:
         parent_db_id : DbId
             Specifies the parent entry to the entry we are inserting
 
-        handler : Handler
-            Callback handler for the entry we are inserting
+        config_block: str
+            Specifics which part of the configuration to use for this entry
+
+        config : ConfigBase
+            Configuration associated to this entry
 
         Keywords
         --------
@@ -519,6 +584,25 @@ class DbInterface:
         Parameters
         ----------
         db_id : DbId
+            Specifies the campaign we are running against
+
+        max_running : int
+            Maximum number of running workflows
+
+        sleep_time : int
+            Time between cycles (in seconds)
+
+        n_iter : int
+            Number of interations to run, -1 for no limit
+        """
+        raise NotImplementedError()
+
+    def parse_config(self, config_name: str, config_yaml: str) -> dict[str, int]:
+        """Parse a configuration file
+
+        Parameters
+        ----------
+        config_yaml : The
             Specifies the campaign we are running against
 
         max_running : int

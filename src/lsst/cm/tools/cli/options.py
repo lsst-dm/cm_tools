@@ -13,12 +13,13 @@ from ..db.sqlalch_interface import SQLAlchemyInterface
 __all__ = [
     "butler",
     "campaign",
-    "config",
+    "config_yaml",
+    "config_name",
+    "config_block",
     "data_query",
     "dbi",
     "fullname",
     "group",
-    "handler",
     "level",
     "max_running",
     "nosubmit",
@@ -61,12 +62,6 @@ echo = PartialOption(
     "--echo",
     help="Echo DB commands",
     is_flag=True,
-)
-
-recurse = PartialOption(
-    "--recurse",
-    is_flag=True,
-    help="Recurvisely execute command",
 )
 
 nosubmit = PartialOption(
@@ -126,21 +121,26 @@ db = PartialOption(
     show_default=True,
 )
 
-handler = PartialOption(
-    "--handler",
-    default="lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler",
-    help="Full import path to callback handler.",
-)
 
 data_query = PartialOption(
     "--data-query",
     help="Data query for entry",
 )
 
-config = PartialOption(
+config_yaml = PartialOption(
     "--config-yaml",
     type=click.Path(),
     help="Configuration Yaml.",
+)
+
+config_name = PartialOption(
+    "--config-name",
+    help="Configuration Name.",
+)
+
+config_block = PartialOption(
+    "--config-block",
+    help="Which block of configuration to use",
 )
 
 fullname = PartialOption(
@@ -214,7 +214,6 @@ def dbi(create: bool = False) -> Callable[[F], F]:
     def make_dbi(ctx: click.Context, param: click.Parameter, value: Any) -> DbInterface:
         db_url = ctx.meta.get("db", param.get_default(ctx))
         Handler.plugin_dir = ctx.meta.get("plugin_dir", param.get_default(ctx))
-        Handler.config_dir = ctx.meta.get("config_dir", param.get_default(ctx))
         return SQLAlchemyInterface(db_url, echo=ctx.meta.get("echo", param.get_default(ctx)), create=create)
 
     return decorator

@@ -50,8 +50,7 @@ class ScriptHandler(ScriptHandlerBase):
         insert_fields = dict(
             name=name,
             idx=idx,
-            handler=self.get_handler_class_name(),
-            config_yaml=self.config_url,
+            frag_id=self._fragment_id,
             checker=self.checker_class_name,
             rollback=self.rollback_class_name,
             status=StatusEnum.ready,
