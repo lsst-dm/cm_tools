@@ -11,17 +11,25 @@ from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
-def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_name: str) -> None:
+def run_production(
+    iface: SQLAlchemyInterface, campaign_name: str, config_name: str, config_yaml: str
+) -> None:
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
-    iface.insert(
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
+    campaign = iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name=campaign_name,
         butler_repo="repo",
         prod_base_url="archive_test",
     )
+    assert campaign
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name=campaign_name)
 
@@ -69,17 +77,15 @@ def test_full_example() -> None:
     Handler.config_dir = "examples/configs/"
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
+    config_name = "test_full"
     config_yaml = "example_config.yaml"
-    handler1_class = "handler.ExampleHandler"
-    handler1 = Handler.get_handler(handler1_class, config_yaml)
-    run_production(iface, handler1, "test1")
+    run_production(iface, "test1", config_name, config_yaml)
 
+    config_name2 = "test2_full"
     config_yaml2 = "example_config2.yaml"
-    handler2_class = "handler.ExampleHandler"
-    handler2 = Handler.get_handler(handler2_class, config_yaml2)
-    run_production(iface, handler2, "test2")
+    run_production(iface, "test2", config_name2, config_yaml2)
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test1")
     db_s_id = iface.get_db_id(
@@ -198,17 +204,19 @@ def test_failed_workflows() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_failed"
     config_yaml = "example_config.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -218,7 +226,8 @@ def test_failed_workflows() -> None:
     with pytest.raises(KeyError):
         iface.insert(
             db_p_id,
-            the_handler,
+            "campaign",
+            config,
             production_name="example",
             campaign_name="fail_1",
             prod_base_url="archive_test",
@@ -226,7 +235,8 @@ def test_failed_workflows() -> None:
     with pytest.raises(KeyError):
         iface.insert(
             db_p_id,
-            the_handler,
+            "campaign",
+            config,
             production_name="example",
             campaign_name="fail_2",
             butler_repo="repo",
@@ -290,17 +300,21 @@ def test_failed_scripts() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_failed"
     config_yaml = "example_failed_script.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -342,17 +356,20 @@ def test_script_interface() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_scripts"
     config_yaml = "example_test_scripts.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",

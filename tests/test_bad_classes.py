@@ -25,7 +25,7 @@ def test_bad_handler() -> None:
             self.resolve_templated_string("bad_template")
 
     with pytest.raises(TypeError):
-        Handler.get_handler("lsst.cm.tools.core.handler", "dummy.yaml")
+        Handler.get_handler(-1, "lsst.cm.tools.core.handler", "dummy.yaml")
 
     with pytest.raises(KeyError):
         BadHandler.bad_get_kwarg()

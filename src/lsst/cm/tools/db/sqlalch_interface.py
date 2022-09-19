@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface
 from lsst.cm.tools.core.dbid import DbId
+from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
@@ -253,6 +254,8 @@ class SQLAlchemyInterface(DbInterface):
             sleep(sleep_time)
 
     def parse_config(self, config_name: str, config_yaml: str) -> Config:
+        if Handler.config_dir is not None:
+            config_yaml = os.path.join(Handler.config_dir, config_yaml)
         with open(config_yaml, "rt", encoding="utf-8") as config_file:
             config_data = yaml.safe_load(config_file)
         conn = self.connection()
@@ -299,6 +302,7 @@ class SQLAlchemyInterface(DbInterface):
             )
             conn.add(new_assoc)
         conn.commit()
+        return new_config
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""

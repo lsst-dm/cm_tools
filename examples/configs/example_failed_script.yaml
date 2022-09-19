@@ -1,4 +1,84 @@
+ancil:
+    class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
+    stamp: completed
+    fake: true
+    collections:
+        - calib_input
+        - other_calib_input
+prepare:
+    class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+    stamp: completed
+    fake: true
+prepare_failed:
+    class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
+    stamp: failed
+    fake: true
+collect:
+    class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
+    stamp: completed
+    fake: true
+validate:
+    class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+    stamp: completed
+    fake: true
+validate_accepted:
+    class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
+    stamp: accepted
+    fake: true
+job:
+    class_name: handler.ExampleJobHandler
+    bps_template_yaml: "${CM_CONFIGS}/example_template.yaml"
+    sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
+    pipeline_yaml:
+        step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
+        step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
+        step3: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step3"
+workflow:
+    class_name: lsst.cm.tools.db.workflow_handler.WorkflowHandler
+    input_type: source
+    output_type: run
+    templates:
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    job_config: job
+    scripts:
+        - validate
+group:
+    class_name: lsst.cm.tools.db.group_handler.GroupHandler
+    input_type: tagged
+    output_type: chained
+    templates:
+        coll_in: "{root_coll}/{fullname}_input"
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    scripts:
+        - prepare_failed
+        - collect
+        - validate_accepted
+step:
+    input_type: source
+    output_type: chained
+    templates:
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    scripts:
+        - prepare
+        - collect
+        - validate
+step1:
+    class_name: handler.ExampleStep1Handler
+    prerequisites: []
+    includes: ["step"]
+step2:
+    class_name: handler.ExampleStep2Handler
+    prerequisites: ['step1']
+    includes: ["step"]
+step3:
+    class_name: handler.ExampleStep3Handler
+    prerequisites: ['step2']
+    includes: ["step"]
 campaign:
+    class_name: lsst.cm.tools.db.campaign_handler.CampaignHandler
     root_coll: 'cm'
     data_query: "instrument = 'HSC' and exposure < 500"
     input_type: tagged
@@ -9,47 +89,12 @@ campaign:
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_ancil: "{root_coll}/{fullname}_ancil"
         coll_validate: "{root_coll}/{fullname}_validate"
-step:
-    input_type: source
-    output_type: chained
-    templates:
-        coll_out: "{root_coll}/{fullname}_ouput"
-        coll_validate: "{root_coll}/{fullname}_validate"
-group:
-    input_type: tagged
-    output_type: chained
-    templates:
-        coll_in: "{root_coll}/{fullname}_input"
-        coll_out: "{root_coll}/{fullname}_ouput"
-        coll_validate: "{root_coll}/{fullname}_validate"
-    prepare:
-        prepare:
-            class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
-            stamp: failed
-            fake: true
-    collect:
-        collect:
-            class_name: lsst.cm.tools.db.script_handler.CollectScriptHandler
-            stamp: completed
-    validate:
-        validate:
-            class_name: lsst.cm.tools.db.script_handler.ValidateScriptHandler
-            stamp: accepted
-            fake: true
-workflow:
-    input_type: source
-    output_type: run
-    templates:
-        coll_out: "{root_coll}/{fullname}_ouput"
-ancil:
-    collections:
-    - /prod/calib/some_calib
-    - /prod/calib/other_calib
-    - /prod/skymaps
-job:
-    bps_template_yaml: "${CM_CONFIGS}/example_template.yaml"
-    sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
-    pipeline_yaml:
-        step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
-        step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
-        step3: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step3"
+    scripts:
+        - ancil
+        - prepare
+        - collect
+        - validate
+    steps:
+        - step1
+        - step2
+        - step3
