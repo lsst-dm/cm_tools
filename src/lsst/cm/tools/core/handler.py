@@ -34,6 +34,7 @@ class Handler:
 
     no_submit = False
     plugin_dir: str | None = None
+    config_dir: str | None = None
 
     def __init__(self, fragment_id: int, **kwargs: Any) -> None:
         self._fragment_id = fragment_id

@@ -43,9 +43,13 @@ class Config(common.Base):
         return f"Config {self.id}: {self.name}"
 
     def get_sub_handler(self, config_block: str) -> Handler:
+        fragment = self.get_fragment(config_block)
+        return fragment.get_handler()
+
+    def get_fragment(self, config_block: str) -> Handler:
         for assoc_ in self.assocs_:
             if assoc_.frag_.tag == config_block:
-                return assoc_.frag_.get_handler()
+                return assoc_.frag_
         raise KeyError(f"Could not find config_block {config_block} in {self}")
 
 

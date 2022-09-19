@@ -40,6 +40,7 @@ class JobHandler(JobHandlerBase):
         insert_fields = dict(
             name=name,
             idx=idx,
+            p_id=parent.db_id.p_id,
             c_id=parent.db_id.c_id,
             s_id=parent.db_id.s_id,
             g_id=parent.db_id.g_id,
@@ -59,8 +60,9 @@ class JobHandler(JobHandlerBase):
             name=name,
         )
         insert_fields.update(**script_data)
-        script = Job.insert_values(dbi, **insert_fields)
-        return script
+        new_job = Job.insert_values(dbi, **insert_fields)
+        dbi.connection().commit()
+        return new_job
 
     def fake_run_hook(
         self, dbi: DbInterface, job: JobBase, status: StatusEnum = StatusEnum.completed

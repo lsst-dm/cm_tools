@@ -2,6 +2,9 @@ ancil:
     class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
     stamp: completed
     fake: true
+    collections:
+        - calib_input
+        - other_calib_input
 prepare:
     class_name: lsst.cm.tools.db.script_handler.PrepareScriptHandler
     stamp: completed
@@ -29,6 +32,7 @@ workflow:
     templates:
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_validate: "{root_coll}/{fullname}_validate"
+    job_config: job
     scripts:
         - validate
 group:
@@ -50,7 +54,6 @@ step:
         coll_out: "{root_coll}/{fullname}_ouput"
         coll_validate: "{root_coll}/{fullname}_validate"
     scripts:
-        - job
         - prepare
         - collect
         - validate

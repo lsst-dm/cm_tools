@@ -214,6 +214,7 @@ def dbi(create: bool = False) -> Callable[[F], F]:
     def make_dbi(ctx: click.Context, param: click.Parameter, value: Any) -> DbInterface:
         db_url = ctx.meta.get("db", param.get_default(ctx))
         Handler.plugin_dir = ctx.meta.get("plugin_dir", param.get_default(ctx))
+        Handler.config_dir = ctx.meta.get("config_dir", param.get_default(ctx))
         return SQLAlchemyInterface(db_url, echo=ctx.meta.get("echo", param.get_default(ctx)), create=create)
 
     return decorator

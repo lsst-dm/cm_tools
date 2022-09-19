@@ -8,6 +8,7 @@ from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.config import Fragment
 from lsst.cm.tools.db.group import Group
+from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.workflow import Workflow
 
@@ -21,6 +22,7 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     __tablename__ = "job"
 
     id = Column(Integer, primary_key=True)  # Unique script ID
+    p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
     s_id = Column(Integer, ForeignKey(Step.id))
     g_id = Column(Integer, ForeignKey(Group.id))
@@ -49,7 +51,7 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     job_cputime = Column(Float)
 
     level = Column(Enum(LevelEnum))
-    db_id: DbId = composite(DbId, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
+    db_id: DbId = composite(DbId, p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
     c_: Campaign = relationship("Campaign", back_populates="jobs_")
     s_: Step = relationship("Step", back_populates="jobs_")
     g_: Group = relationship("Group", back_populates="jobs_")

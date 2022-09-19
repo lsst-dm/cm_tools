@@ -50,15 +50,11 @@ class WorkflowHandler(GenericEntryHandler):
         return workflow
 
     def _make_jobs(self, dbi: DbInterface, entry: Any) -> None:
-        job_handler = entry.get_sub_handler("job")
+        job_handler = entry.get_sub_handler(self.config.get("job_config", "job"))
         job_handler.insert(
             dbi,
             entry,
             name="run",
-            production_name=entry.p_.name,
-            campaign_name=entry.c_.name,
-            step_name=entry.s_.name,
-            group_name=entry.name,
         )
         return StatusEnum.ready
 
