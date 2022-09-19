@@ -17,8 +17,11 @@ rm -rf "$db_path" "$CM_PROD_URL"
 mkdir -p "$EXAMPLES/output"
 
 cm create
+
+cm parse --config-name test_config --config-yaml ${config}
+
 cm insert --level production --production-name ${p_name}
-cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
+cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
 
 cm queue --level campaign --fullname ${p_name}/${c_name}
 cm launch --level campaign --fullname ${p_name}/${c_name}

@@ -30,7 +30,7 @@ class CampaignHandler(GenericEntryHandler):
             raise KeyError("butler_repo must be specified with inserting a campaign")
         if "prod_base_url" not in kwargs:
             raise KeyError("prod_base_url must be specified with inserting a campaign")
-        if "config_id" not in kwargs:
+        if "config_id" not in kwargs:  # pragma: no cover
             raise KeyError("config_id must be specified with inserting a campaign")
         insert_fields = dict(
             name=self.get_kwarg_value("campaign_name", **kwargs),

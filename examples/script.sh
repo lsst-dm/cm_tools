@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-#EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
-EXAMPLES=examples
+EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
 
 db_path="$EXAMPLES/output/cm.db"
 handler="handler.ExampleHandler"
@@ -19,7 +18,7 @@ mkdir -p "$EXAMPLES/output"
 
 cm create
 
-cm parse --config-name test_config --config-yaml ${CM_CONFIGS}/${config}
+cm parse --config-name test_config --config-yaml ${config}
 
 cm insert --level production --production-name ${p_name}
 cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign

@@ -97,9 +97,11 @@ class CMTable(SQLTableMixin, CMTableBase):
     parent_id: Any
 
     def get_handler(self) -> Handler:
+        assert self.frag_
         return self.frag_.get_handler()
 
     def get_sub_handler(self, config_block: str) -> Handler:
+        assert self.config_
         return self.config_.get_sub_handler(config_block)
 
     @classmethod

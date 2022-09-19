@@ -111,6 +111,15 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         entry.print_tree(stream)
 
+    def print_config(self, stream: TextIO, config_name: str) -> None:
+        config = self.get_config(config_name)
+        if config is None:
+            raise KeyError(f"No configuration {config_name}")
+        stream.write(f"{str(config)}\n")
+        for assoc in config.assocs_:
+            frag = assoc.frag_
+            stream.write(f"  {frag.tag}: {frag.id} {str(frag)}\n")
+
     def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-#EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
-EXAMPLES=examples
+EXAMPLES="$(dirname -- "$(readlink -f -- "$0";)";)"
 
 db_path="$EXAMPLES/output/cm.db"
 handler="handler.ExampleHandler"
@@ -22,7 +21,7 @@ mkdir -p "$EXAMPLES/output"
 
 python -m cProfile -s cumulative -o create.prof `which cm` create
 
-python -m cProfile -s cumulative -o parse.prof `which cm` parse --config-name test_config --config-yaml ${CM_CONFIGS}/${config}
+python -m cProfile -s cumulative -o parse.prof `which cm` parse --config-name test_config --config-yaml ${config}
 
 python -m cProfile -s cumulative -o insert_prod.prof `which cm` insert --level production --production-name ${p_name}
 python -m cProfile -s cumulative -o insert_camp.prof `which cm` insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign

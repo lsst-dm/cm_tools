@@ -98,6 +98,14 @@ def print_table(dbi: DbInterface, table: TableEnum) -> None:
 
 @cli.command()
 @options.dbi()
+@options.config_name()
+def print_config(dbi: DbInterface, config_name: str) -> None:
+    """Print a database table from a given entry in a tree-like format"""
+    dbi.print_config(sys.stdout, config_name)
+
+
+@cli.command()
+@options.dbi()
 @options.level()
 @options.fullname()
 @options.production()

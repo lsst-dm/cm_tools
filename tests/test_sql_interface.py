@@ -171,6 +171,7 @@ def test_full_example() -> None:
     iface.supersede(LevelEnum.campaign, db_c_id)
 
     with open(os.devnull, "wt") as fout:
+        iface.print_config(fout, config_name)
         iface.print_table(fout, TableEnum.production)
         iface.print_table(fout, TableEnum.campaign)
         iface.print_table(fout, TableEnum.step)
@@ -241,6 +242,17 @@ def test_failed_workflows() -> None:
             campaign_name="fail_2",
             butler_repo="repo",
         )
+    with pytest.raises(KeyError):
+        iface.insert(
+            db_p_id,
+            "missing",
+            config,
+            production_name="example",
+            campaign_name="fail_2",
+            butler_repo="repo",
+        )
+    with pytest.raises(KeyError):
+        iface.print_config(sys.stdout, "no_config")
 
     db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
 
@@ -364,6 +376,8 @@ def test_script_interface() -> None:
 
     config = iface.parse_config(config_name, config_yaml)
     assert config
+    check_config = iface.get_config(config_name)
+    assert check_config == config
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
     iface.insert(
@@ -382,6 +396,9 @@ def test_script_interface() -> None:
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.running)
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.completed)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
+
+    result = iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
+    assert not result
 
     for step_name in ["step1"]:
         db_s_id = iface.get_db_id(
@@ -419,3 +436,7 @@ def test_table_repr() -> None:
 
     script = Script(status=StatusEnum.ready)
     assert repr(script)
+
+
+if __name__ == "__main__":
+    test_full_example()

@@ -219,6 +219,9 @@ class DbInterface:
     requested operation.
     """
 
+    def __init__(self) -> None:
+        Handler.handler_cache.clear()
+
     def connection(self) -> Any:
         """Return the database connection object"""
         raise NotImplementedError()
@@ -366,6 +369,19 @@ class DbInterface:
         db_id: DbId
             Database ID specifying which entries to print.
             See class notes above.
+        """
+        raise NotImplementedError()
+
+    def print_config(self, stream: TextIO, config_name: str) -> None:
+        """Print a information about a given configuration
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        config_name : str
+            Name of the configuration in question
         """
         raise NotImplementedError()
 
