@@ -162,7 +162,9 @@ def make_bps_command(config_url: str) -> str:
     command : str
         Requested command
     """
-    return f"bps submit {os.path.abspath(config_url)}"
+    log_url = config_url.replace(".sh", ".json")
+    stamp_url = config_url.replace(".sh", ".stamp")
+    return f"bps --log-file {log_url} --no-log-tty submit {os.path.abspath(config_url)} > {stamp_url}"
 
 
 def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
