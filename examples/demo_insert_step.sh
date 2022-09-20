@@ -28,7 +28,9 @@ cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm insert --level step --production-name ${p_name} --campaign-name ${c_name} --step-name extra_step --handler ${step_handler} --config-yaml ${config}
+
+cm extend --config-name test_config --config-yaml example_extra_step.yaml
+cm insert --level step --production-name ${p_name} --campaign-name ${c_name} --step-name extra_step --config-name test_config --config-block extra_step
 cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 # cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}

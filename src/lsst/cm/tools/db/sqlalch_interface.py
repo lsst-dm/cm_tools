@@ -263,6 +263,27 @@ class SQLAlchemyInterface(DbInterface):
             sleep(sleep_time)
 
     def parse_config(self, config_name: str, config_yaml: str) -> Config:
+        frag_names = self._build_fragments(config_name, config_yaml)
+        return self._build_config(config_name, frag_names)
+
+    def extend_config(self, config_name: str, config_yaml: str) -> Config:
+        conn = self.connection()
+        config = conn.execute(select(Config).where(Config.name == config_name)).scalar()
+        fragment_names = self._build_fragments(config_name, config_yaml)
+        frag_list = [
+            conn.execute(select(Fragment.id).where(Fragment.fullname == frag_name)).scalar()
+            for frag_name in fragment_names
+        ]
+        for frag_id in frag_list:
+            new_assoc = ConfigAssociation(
+                frag_id=frag_id,
+                config_id=config.id,
+            )
+            conn.add(new_assoc)
+        conn.commit()
+        return config
+
+    def _build_fragments(self, config_name: str, config_yaml: str) -> list[str]:
         if Handler.config_dir is not None:
             config_yaml = os.path.join(Handler.config_dir, config_yaml)
         with open(config_yaml, "rt", encoding="utf-8") as config_file:
@@ -271,6 +292,12 @@ class SQLAlchemyInterface(DbInterface):
         n_frag = conn.query(func.count(Fragment.id)).scalar()
         frag_names = []
         for key, val in config_data.items():
+            fullname = f"{config_name}:{key}"
+            if isinstance(val, str):
+                assert val[0] == "@"
+                fullname = f"{val[1:]}:{key}"
+                frag_names.append(fullname)
+                continue
             fullname = f"{config_name}:{key}"
             includes = val.pop("includes", [])
             data = val.copy()
@@ -290,9 +317,9 @@ class SQLAlchemyInterface(DbInterface):
             frag_names.append(fullname)
             n_frag += 1
             conn.add(new_fragment)
-        return self.build_config(config_name, frag_names)
+        return frag_names
 
-    def build_config(self, config_name: str, fragment_names: list[str]) -> Config:
+    def _build_config(self, config_name: str, fragment_names: list[str]) -> Config:
         conn = self.connection()
         n_config = conn.query(func.count(Config.id)).scalar()
         new_config = Config(

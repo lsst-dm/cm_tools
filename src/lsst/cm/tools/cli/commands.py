@@ -283,3 +283,12 @@ def daemon(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -
 def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
     """Parse a configuration file"""
     dbi.parse_config(config_name, config_yaml)
+
+
+@cli.command()
+@options.dbi()
+@options.config_yaml()
+@options.config_name()
+def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
+    """Parse a configuration file"""
+    dbi.extend_config(config_name, config_yaml)

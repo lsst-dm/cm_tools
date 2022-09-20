@@ -378,6 +378,8 @@ def test_script_interface() -> None:
     assert config
     check_config = iface.get_config(config_name)
     assert check_config == config
+    mod_config = iface.parse_config("mod_config", "example_mod_config.yaml")
+    assert mod_config
 
     db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
     iface.insert(
@@ -421,6 +423,78 @@ def test_script_interface() -> None:
 
     os.system("\\rm -rf archive_test")
     os.unlink("fail.db")
+
+
+def test_insert() -> None:
+
+    try:
+        os.unlink("test.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+
+    iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+
+    config_name = "test"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
+    campaign = iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        prod_base_url="archive_test",
+    )
+    assert campaign
+
+    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+
+    iface.queue_jobs(LevelEnum.campaign, db_c_id)
+    iface.launch_jobs(LevelEnum.campaign, db_c_id, 5)
+
+    db_s_id = iface.get_db_id(
+        LevelEnum.step,
+        production_name="example",
+        campaign_name="test",
+        step_name="step1",
+    )
+
+    new_group = iface.insert(
+        db_s_id,
+        "group",
+        config,
+        production_name="example",
+        campaign_name="test",
+        step_name="step1",
+        group_name="extra_group",
+    )
+    assert new_group
+
+    new_step_config = iface.extend_config(config_name, "example_extra_step.yaml")
+
+    new_step = iface.insert(
+        db_c_id,
+        "extra_step",
+        new_step_config,
+        production_name="example",
+        campaign_name="test",
+        step_name="extra_step",
+    )
+    assert new_step
+
+    os.system("\\rm -rf archive_test")
+    os.unlink("test.db")
 
 
 def test_bad_db() -> None:

@@ -153,6 +153,8 @@ class TableEnum(enum.Enum):
     script = 5
     job = 6
     dependency = 7
+    fragment = 8
+    config = 9
 
 
 class InputType(enum.Enum):

@@ -613,21 +613,38 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def parse_config(self, config_name: str, config_yaml: str) -> dict[str, int]:
+    def parse_config(self, config_name: str, config_yaml: str) -> ConfigBase:
         """Parse a configuration file
 
         Parameters
         ----------
-        config_yaml : The
-            Specifies the campaign we are running against
+        config_name : str
+            Name to give to the configuraiton
 
-        max_running : int
-            Maximum number of running workflows
+        config_yaml : str
+            Path to the file with the configurations
 
-        sleep_time : int
-            Time between cycles (in seconds)
+        Returns
+        -------
+        config : ConfigBase
+            The configuration object
+        """
+        raise NotImplementedError()
 
-        n_iter : int
-            Number of interations to run, -1 for no limit
+    def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
+        """Parse a configuration file and add it to an existing configuration
+
+        Parameters
+        ----------
+        config_name : str
+            Name to give to the configuraiton
+
+        config_yaml : str
+            Path to the file with the configurations
+
+        Returns
+        -------
+        config : ConfigBase
+            The configuration object
         """
         raise NotImplementedError()
