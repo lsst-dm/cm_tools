@@ -49,14 +49,16 @@ def insert(
     fullname = kwargs.pop("fullname")
     if fullname is not None:
         names = dbi.parse_fullname(fullname)
-    the_db_id = dbi.get_db_id(**names)
+        kwargs.update(**names)
+        the_db_id = dbi.get_db_id(**names)
+    else:
+        the_db_id = dbi.get_db_id(**kwargs)
     if the_db_id.level() is not None:
         assert config_name is not None
         assert config_block is not None
         the_config = dbi.get_config(config_name)
     else:
         the_config = None
-    kwargs.update(**names)
     dbi.insert(the_db_id, config_block, the_config, **kwargs)
 
 
