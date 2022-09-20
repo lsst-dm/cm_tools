@@ -4,7 +4,7 @@ from typing import Any, Optional
 import yaml
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
 
@@ -233,6 +233,6 @@ class YamlChecker(Checker):
 class FakeRollback(Rollback):
     """Fakes a command that would remove collections associated to a script"""
 
-    def rollback_script(self, entry: Any, script: TableBase) -> None:
+    def rollback_script(self, entry: CMTableBase, script: TableBase) -> None:
         command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out)
         print(f"Rolling back {script.db_id}.{script.name} with {command}")

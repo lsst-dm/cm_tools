@@ -7,7 +7,7 @@ import yaml
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface
+from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
@@ -28,33 +28,59 @@ class SQLAlchemyInterface(DbInterface):
     def connection(self) -> Session:
         return self._conn
 
-    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
-        if level is None:
-            return DbId()
+    def get_db_id(self, **kwargs: Any) -> DbId:
         fullname = kwargs.get("fullname")
-        if fullname:
-            entry = self.get_entry_from_fullname(level, fullname)
-            return entry.db_id
-        return self._get_db_id_in_steps(level, **kwargs)
+        if fullname is not None:
+            return self._get_db_id_from_fullname(fullname)
+        return self._get_db_id_in_steps(**kwargs)
 
-    def _get_db_id_in_steps(self, level: LevelEnum, **kwargs: Any) -> DbId:
-        p_id = self._get_id(LevelEnum.production, None, kwargs.get("production_name"))
-        if level == LevelEnum.production:
+    def _get_db_id_in_steps(self, **kwargs: Any) -> DbId:
+        p_name = kwargs.get("production_name")
+        if p_name is None:
+            return DbId()
+        p_id = self._get_id(LevelEnum.production, None, p_name)
+        c_name = kwargs.get("campaign_name")
+        if c_name is None:
             return DbId(p_id=p_id)
-        c_id = self._get_id(LevelEnum.campaign, p_id, kwargs.get("campaign_name"))
-        if level == LevelEnum.campaign:
+        c_id = self._get_id(LevelEnum.campaign, p_id, c_name)
+        s_name = kwargs.get("step_name")
+        if s_name is None:
             return DbId(p_id=p_id, c_id=c_id)
-        s_id = self._get_id(LevelEnum.step, c_id, kwargs.get("step_name"))
-        if level == LevelEnum.step:
+        s_id = self._get_id(LevelEnum.step, c_id, s_name)
+        g_name = kwargs.get("group_name")
+        if g_name is None:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id)
-        g_id = self._get_id(LevelEnum.group, s_id, kwargs.get("group_name"))
-        if level == LevelEnum.group:
+        g_id = self._get_id(LevelEnum.group, s_id, g_name)
+        w_idx = kwargs.get("workflow_idx")
+        if w_idx is None:
             return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id)
-        workflow_idx = kwargs.get("workflow_idx", 0)
-        w_id = self._get_id(LevelEnum.workflow, g_id, f"{workflow_idx:02}")
+        w_id = self._get_id(LevelEnum.workflow, g_id, f"{w_idx:02}")
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
-    def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> DbId:
+    @staticmethod
+    def parse_fullname(fullname: str) -> dict[str, str]:
+        tokens = fullname.split("/")
+        n_tokens = len(tokens)
+        names = {}
+        if n_tokens >= 1:
+            names["production_name"] = tokens[0]
+        if n_tokens >= 2:
+            names["campaign_name"] = tokens[1]
+        if n_tokens >= 3:
+            names["step_name"] = tokens[2]
+        if n_tokens >= 4:
+            names["group_name"] = tokens[3]
+        if n_tokens >= 5:
+            names["workflow_idx"] = tokens[4]
+        return names
+
+    def _get_db_id_from_fullname(self, fullname: str) -> DbId:
+        names = self.parse_fullname(fullname)
+        return self._get_db_id_in_steps(**names)
+
+    def get_entry_from_fullname(self, fullname: str) -> DbId:
+        n_slash = fullname.count("/")
+        level = LevelEnum(n_slash)
         table = top.get_table_for_level(level)
         sel = select(table).where(table.fullname == fullname)
         entry = common.return_first_column(self, sel)
@@ -86,7 +112,7 @@ class SQLAlchemyInterface(DbInterface):
         sel = select(Config).where(Config.name == config_name)
         return common.return_first_column(self, sel)
 
-    def get_matching(self, level: LevelEnum, entry: Any, status: StatusEnum) -> Iterable:
+    def get_matching(self, level: LevelEnum, entry: CMTableBase, status: StatusEnum) -> Iterable:
         table = top.get_table_for_level(level)
         match_key = table.match_keys[entry.level.value]
         sel = select(table).where(
@@ -135,20 +161,56 @@ class SQLAlchemyInterface(DbInterface):
     ) -> CMTableBase:
 
         if parent_db_id is None:
+            parent_level = None
+        else:
+            parent_level = parent_db_id.level()
+        if parent_level is None:
             # This is only called on production level entries
             # which don't use handlers
             assert config is None
             production = Production.insert_values(self, name=kwargs.get("production_name"))
             self.connection().commit()
             return production
-        parent = self.get_entry(parent_db_id.level(), parent_db_id)
+        parent = self.get_entry(parent_level, parent_db_id)
         if config is None:
             config = parent.config_
         handler = config.get_sub_handler(config_block)
-        ret_val = handler.insert(self, parent, config_id=config.id, **kwargs)
+        new_entry = handler.insert(self, parent, config_id=config.id, **kwargs)
         self.connection().commit()
-        self.check(ret_val.level, ret_val.db_id)
-        return ret_val
+        self.check(new_entry.level, new_entry.db_id)
+        return new_entry
+
+    def add_script(
+        self,
+        parent_db_id: DbId,
+        script_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> ScriptBase:
+        parent = self.get_entry(parent_db_id.level(), parent_db_id)
+        if config is None:
+            config = parent.config_
+        handler = config.get_sub_handler(script_name)
+        new_script = handler.insert(self, parent, name=script_name, **kwargs)
+        self.connection().commit()
+        self.check(parent.level, parent.db_id)
+        return new_script
+
+    def add_job(
+        self,
+        parent_db_id: DbId,
+        job_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> JobBase:
+        parent = self.get_entry(parent_db_id.level(), parent_db_id)
+        if config is None:
+            config = parent.config_
+        handler = config.get_sub_handler(job_name)
+        new_job = handler.insert(self, parent, name=job_name, **kwargs)
+        self.connection().commit()
+        self.check(parent.level, parent.db_id)
+        return new_job
 
     def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
@@ -217,6 +279,26 @@ class SQLAlchemyInterface(DbInterface):
         self.connection().commit()
         return db_id_list
 
+    def supersede_script(self, level: LevelEnum, db_id: DbId, script_name: str) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for script_ in entry.scripts_:
+            if script_.name != script_name:
+                continue
+            script_.rollback_script(self, entry, script_)
+            db_id_list.append(script_.id)
+        return db_id_list
+
+    def supersede_job(self, level: LevelEnum, db_id: DbId, job_name: str) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for job_ in entry.jobs_:
+            if job_.name != job_name:
+                continue
+            job_.rollback_script(self, entry, job_)
+            db_id_list.append(job_.id)
+        return db_id_list
+
     def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
         entry = self.get_entry(level, db_id)
         db_id_list: list[int] = []
@@ -269,6 +351,7 @@ class SQLAlchemyInterface(DbInterface):
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
         config = conn.execute(select(Config).where(Config.name == config_name)).scalar()
+        assert config is not None
         fragment_names = self._build_fragments(config_name, config_yaml)
         frag_list = [
             conn.execute(select(Fragment.id).where(Fragment.fullname == frag_name)).scalar()

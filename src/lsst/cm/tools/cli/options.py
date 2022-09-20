@@ -73,7 +73,7 @@ nosubmit = PartialOption(
 level = PartialOption(
     "--level",
     type=EnumChoice(LevelEnum),
-    default="group",
+    default=None,
     help="Which level to match.",
 )
 

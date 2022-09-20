@@ -7,7 +7,7 @@ from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
-from ..core.utils import LevelEnum, StatusEnum, TableEnum
+from ..core.utils import StatusEnum, TableEnum
 
 
 @click.group()
@@ -25,7 +25,7 @@ def create(dbi: DbInterface) -> None:
 
 @cli.command()
 @options.dbi()
-@options.level()
+@options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
@@ -39,7 +39,6 @@ def create(dbi: DbInterface) -> None:
 @options.nosubmit()
 def insert(
     dbi: DbInterface,
-    level: LevelEnum,
     config_name: str,
     config_block: str,
     no_submit: bool,
@@ -47,45 +46,94 @@ def insert(
 ) -> None:
     """Insert a new database entry at a particular level"""
     Handler.no_submit = no_submit
-    if level != LevelEnum.production:
+    fullname = kwargs.pop("fullname")
+    if fullname is not None:
+        names = dbi.parse_fullname(fullname)
+    the_db_id = dbi.get_db_id(**names)
+    if the_db_id.level() is not None:
         assert config_name is not None
         assert config_block is not None
         the_config = dbi.get_config(config_name)
-        the_db_id = dbi.get_db_id(level, **kwargs)
     else:
-        the_db_id = None
         the_config = None
+    kwargs.update(**names)
     dbi.insert(the_db_id, config_block, the_config, **kwargs)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
-@options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
 @options.group()
 @options.workflow()
-def print_tree(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
-    """Print a database table from a given entry in a tree-like format"""
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.print_tree(sys.stdout, level, the_db_id)
+@options.config_name()
+@options.config_block()
+@options.nosubmit()
+def add_script(
+    dbi: DbInterface,
+    config_name: str,
+    config_block: str,
+    no_submit: bool,
+    **kwargs: Any,
+) -> None:
+    """Insert a new database entry at a particular level"""
+    Handler.no_submit = no_submit
+    the_db_id = dbi.get_db_id(**kwargs)
+    the_config = dbi.get_config(config_name)
+    dbi.add_script(the_db_id, config_block, the_config, **kwargs)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.config_name()
+@options.config_block()
+@options.nosubmit()
+def add_job(
+    dbi: DbInterface,
+    config_name: str,
+    config_block: str,
+    no_submit: bool,
+    **kwargs: Any,
+) -> None:
+    """Insert a new database entry at a particular level"""
+    Handler.no_submit = no_submit
+    the_db_id = dbi.get_db_id(**kwargs)
+    the_config = dbi.get_config(config_name)
+    dbi.add_job(the_db_id, config_block, the_config, **kwargs)
+
+
+@cli.command()
+@options.dbi()
 @options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
 @options.group()
 @options.workflow()
-def print(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:  # pylint: disable=redefined-builtin
+def print_tree(dbi: DbInterface, **kwargs: Any) -> None:
+    """Print a database table from a given entry in a tree-like format"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.print_tree(sys.stdout, the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+def print(dbi: DbInterface, **kwargs: Any) -> None:  # pylint: disable=redefined-builtin
     """Print a database entry or entries"""
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.print_(sys.stdout, level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.print_(sys.stdout, the_db_id.level(), the_db_id)
 
 
 @cli.command()
@@ -106,22 +154,20 @@ def print_config(dbi: DbInterface, config_name: str) -> None:
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
 @options.group()
 @options.workflow()
-def queue(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
+def queue(dbi: DbInterface, **kwargs: Any) -> None:
     """Queue all the ready jobs matching the selection"""
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.queue_jobs(level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.queue_jobs(the_db_id.level(), the_db_id)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -130,16 +176,15 @@ def queue(dbi: DbInterface, level: LevelEnum, **kwargs: Any) -> None:
 @options.workflow()
 @options.nosubmit()
 @options.max_running()
-def launch(dbi: DbInterface, level: LevelEnum, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+def launch(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -> None:
     """Launch all the pending jobs matching the selection"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.launch_jobs(level, the_db_id, max_running)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.launch_jobs(the_db_id.level(), the_db_id, max_running)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -147,16 +192,15 @@ def launch(dbi: DbInterface, level: LevelEnum, no_submit: bool, max_running: int
 @options.group()
 @options.workflow()
 @options.nosubmit()
-def check(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
+def check(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
     """Check all database entries at a particular level"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.check(level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.check(the_db_id.level(), the_db_id)
 
 
 @cli.command("accept")
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -164,16 +208,15 @@ def check(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) ->
 @options.group()
 @options.workflow()
 @options.nosubmit()
-def accept(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
+def accept(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
     """Accept completed entries at a particular level"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.accept(level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.accept(the_db_id.level(), the_db_id)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -181,16 +224,15 @@ def accept(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -
 @options.group()
 @options.workflow()
 @options.nosubmit()
-def reject(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
+def reject(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
     """Reject entries at a particular level"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.reject(level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.reject(the_db_id.level(), the_db_id)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -198,18 +240,17 @@ def reject(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -
 @options.group()
 @options.workflow()
 @options.nosubmit()
-def supersede(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any) -> None:
+def supersede(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
     """Mark entries as superseded so that they will be ignored in subsequent
     processing
     """
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.supersede(level, the_db_id)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.supersede(the_db_id.level(), the_db_id)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -218,16 +259,15 @@ def supersede(dbi: DbInterface, level: LevelEnum, no_submit: bool, **kwargs: Any
 @options.workflow()
 @options.status()
 @options.nosubmit()
-def rollback(dbi: DbInterface, level: LevelEnum, status: StatusEnum, no_submit: bool, **kwargs: Any) -> None:
+def rollback(dbi: DbInterface, status: StatusEnum, no_submit: bool, **kwargs: Any) -> None:
     """Rollback entries at a particular level"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.rollback(level, the_db_id, status)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.rollback(the_db_id.level(), the_db_id, status)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -236,15 +276,14 @@ def rollback(dbi: DbInterface, level: LevelEnum, status: StatusEnum, no_submit: 
 @options.workflow()
 @options.status()
 @options.max_running()
-def fake_run(dbi: DbInterface, level: LevelEnum, status: StatusEnum, **kwargs: Any) -> None:
+def fake_run(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
     """Pretend to run workflows, this is for testing"""
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.fake_run(level, the_db_id, status)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.fake_run(the_db_id.level(), the_db_id, status)
 
 
 @cli.command()
 @options.dbi()
-@options.level()
 @options.fullname()
 @options.production()
 @options.campaign()
@@ -254,12 +293,10 @@ def fake_run(dbi: DbInterface, level: LevelEnum, status: StatusEnum, **kwargs: A
 @options.script()
 @options.status()
 @options.max_running()
-def fake_script(
-    dbi: DbInterface, level: LevelEnum, status: StatusEnum, script_name: str, **kwargs: Any
-) -> None:
+def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
     """Pretend to run workflows, this is for testing"""
-    the_db_id = dbi.get_db_id(level, **kwargs)
-    dbi.fake_script(level, the_db_id, script_name, status)
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.fake_script(the_db_id.level(), the_db_id, script_name, status)
 
 
 @cli.command()
@@ -272,7 +309,7 @@ def fake_script(
 def daemon(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -> None:
     """Run a loop"""
     Handler.no_submit = no_submit
-    the_db_id = dbi.get_db_id(LevelEnum.campaign, **kwargs)
+    the_db_id = dbi.get_db_id(**kwargs)
     dbi.daemon(the_db_id, max_running)
 
 

@@ -54,7 +54,7 @@ class WorkflowHandler(GenericEntryHandler):
         job_handler.insert(
             dbi,
             entry,
-            name="run",
+            name="job",
         )
         return StatusEnum.ready
 

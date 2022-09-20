@@ -62,7 +62,7 @@ class SQLScriptMixin(SQLTableMixin):
         return self.frag_.get_handler()
 
     @classmethod
-    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def check_status(cls, dbi: DbInterface, entry: CMTableBase) -> StatusEnum:
         """Check the status of a script"""
         current_status = entry.status
         checker = Checker.get_checker(entry.checker)
@@ -75,7 +75,7 @@ class SQLScriptMixin(SQLTableMixin):
         return new_status
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: TableBase) -> None:
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
         rollback_handler.rollback_script(entry, script)

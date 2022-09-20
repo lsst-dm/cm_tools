@@ -78,7 +78,6 @@ class Handler:
             if isinstance(handler_class, types.ModuleType):
                 raise TypeError()
             cached_handler = handler_class(fragment_id, **kwargs)
-            print(f"Insert {fragment_id} {class_name} {cached_handler}")
             Handler.handler_cache[fragment_id] = cached_handler
         return cached_handler
 

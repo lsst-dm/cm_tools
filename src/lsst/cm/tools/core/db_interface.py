@@ -14,7 +14,7 @@ class TableBase:
     """
 
     @classmethod
-    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> TableBase:
         """Insert a new entry to a table
 
         Parameters
@@ -28,7 +28,7 @@ class TableBase:
 
         Returns
         -------
-        new_entry : Any
+        new_entry : TableBase
             Newly inserted entry
         """
         raise NotImplementedError()
@@ -90,7 +90,7 @@ class ScriptBase(TableBase):
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: ScriptBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase) -> None:
         """Called when a particular entry is rejected
 
         Calling this function will result in the script
@@ -101,7 +101,7 @@ class ScriptBase(TableBase):
         dbi : DbInterface
             Interface to the database we updated
 
-        entry : Any
+        entry : CMTableBase
             Entry associated to the script
 
         script : ScriptBase
@@ -226,18 +226,23 @@ class DbInterface:
         """Return the database connection object"""
         raise NotImplementedError()
 
-    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
+    def get_db_id(self, **kwargs: Any) -> DbId:
         """Return an id that identifies one or more database entries
 
         Parameters
         ----------
-        level : LevelEnum
-            Specifies which database table to create ID for
+        kwargs : Any
+            These are used to specify the entry in question
 
-        Keywords
-        --------
-        These are used to specify particular values for the entry in question
-        and any parent entries
+        Notes
+        -----
+        This will first check if `fullname` is present in kwargs.
+        If so, it will parse fullname to identify which Table to search
+        and then search for a matching `fullname`.
+
+        If `fullname` is not present this will search for
+        production_name, campaign_name, step_name, group_name and workflow_idx
+        and use those to identify which Table to search.
 
         Returns
         -------
@@ -246,14 +251,11 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> CMTableBase:
+    def get_entry_from_fullname(self, fullname: str) -> CMTableBase:
         """Return a selected entry
 
         Parameters
         ----------
-        level : LevelEnum
-            Specifies which database table to search
-
         fullname : str
             Full name of the entry
 
@@ -419,16 +421,73 @@ class DbInterface:
         config : ConfigBase
             Configuration associated to this entry
 
-        Keywords
-        --------
-        These are used to select the parent rows to the
-        entry being inserted.
-        See class notes above.
+        kwargs : Any
+            These can be used to override configuration values
 
         Returns
         -------
         new_entry : CMTableBase
             Newly inserted entry
+        """
+        raise NotImplementedError()
+
+    def add_script(
+        self,
+        parent_db_id: DbId,
+        script_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> ScriptBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        parent_db_id : DbId
+            Specifies the parent entry to the script we are inserting
+
+        script_name: str
+            Name of the script, also specifies configuration block
+
+        config : ConfigBase
+            Configuration associated to this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_script : ScriptBase
+            Newly inserted script
+        """
+        raise NotImplementedError()
+
+    def add_job(
+        self,
+        parent_db_id: DbId,
+        job_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> JobBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        parent_db_id : DbId
+            Specifies the parent entry to the script we are inserting
+
+        job_name: str
+            Name of the job, also specifies configuration block
+
+        config : ConfigBase
+            Configuration associated to this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_job : JobBase
+            Newly inserted job
         """
         raise NotImplementedError()
 

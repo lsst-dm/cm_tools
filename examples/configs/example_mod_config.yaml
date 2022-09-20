@@ -1,0 +1,28 @@
+ancil_v2:
+    class_name: lsst.cm.tools.db.script_handler.AncillaryScriptHandler
+    stamp: completed
+    fake: true
+    collections:
+        - calib_input
+        - other_calib_input
+        - third_calib_input
+prepare: "@test_scripts"
+collect: "@test_scripts"
+validate: "@test_scripts"
+job: "@test_scripts"
+workflow: "@test_scripts"
+group: "@test_scripts"
+step: "@test_scripts"
+step1: "@test_scripts"
+step2: "@test_scripts"
+step3: "@test_scripts"
+campaign:
+    scripts:
+        - ancil_v2
+        - prepare
+        - collect
+        - validate
+    steps:
+        - step1
+        - step2
+        - step3

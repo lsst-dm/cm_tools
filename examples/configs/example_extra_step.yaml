@@ -1,0 +1,12 @@
+extra_step:
+    class_name: handler_extra_step.ExampleExtraStepHandler
+    input_type: source
+    output_type: chained
+    templates:
+        coll_out: "{root_coll}/{fullname}_ouput"
+        coll_validate: "{root_coll}/{fullname}_validate"
+    scripts:
+        - prepare
+        - collect
+        - validate
+    prerequisites: ["step1"]
