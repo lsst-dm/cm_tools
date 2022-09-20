@@ -79,7 +79,7 @@ def add_script(
     no_submit: bool,
     **kwargs: Any,
 ) -> None:
-    """Insert a new database entry at a particular level"""
+    """Insert a new script associated to a particular entry"""
     Handler.no_submit = no_submit
     the_db_id = dbi.get_db_id(**kwargs)
     the_config = dbi.get_config(config_name)
@@ -103,7 +103,7 @@ def add_job(
     no_submit: bool,
     **kwargs: Any,
 ) -> None:
-    """Insert a new database entry at a particular level"""
+    """Insert a new batch job associated to a particular entry"""
     Handler.no_submit = no_submit
     the_db_id = dbi.get_db_id(**kwargs)
     the_config = dbi.get_config(config_name)
