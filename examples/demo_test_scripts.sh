@@ -18,21 +18,21 @@ cm create
 
 cm parse --config-name test_config --config-yaml ${config}
 
-cm insert --level production --production-name ${p_name}
-cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
-cm fake-script --level campaign --production-name ${p_name} --campaign-name ${c_name} --script-name prepare
+cm insert --production-name ${p_name}
+cm insert --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
+cm fake-script --production-name ${p_name} --campaign-name ${c_name} --script-name prepare
 
-cm queue --level campaign --fullname ${p_name}/${c_name}
-cm launch --level campaign --fullname ${p_name}/${c_name}
+cm queue --fullname ${p_name}/${c_name}
+cm launch --fullname ${p_name}/${c_name}
 
-cm fake-run --level group --fullname ${p_name}/${c_name}/step1/group_4 --status failed
-cm fake-run --level campaign --fullname ${p_name}/${c_name}
-cm rollback --level workflow --fullname ${p_name}/${c_name}/step1/group_4/w00 --status ready
+cm fake-run --fullname ${p_name}/${c_name}/step1/group_4 --status failed
+cm fake-run --fullname ${p_name}/${c_name}
+cm rollback --fullname ${p_name}/${c_name}/step1/group_4/w00 --status ready
 
-cm queue --level campaign --fullname ${p_name}/${c_name}
-cm launch --level campaign --fullname ${p_name}/${c_name}
-cm fake-run --level campaign --fullname ${p_name}/${c_name}
-cm accept --level campaign --fullname ${p_name}/${c_name}
+cm queue --fullname ${p_name}/${c_name}
+cm launch --fullname ${p_name}/${c_name}
+cm fake-run --fullname ${p_name}/${c_name}
+cm accept --fullname ${p_name}/${c_name}
 
 cm print-table --table campaign
 cm print-table --table step

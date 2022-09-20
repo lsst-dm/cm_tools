@@ -11,7 +11,7 @@ export CM_PLUGINS="$EXAMPLES/handlers"
 export CM_CONFIGS="$EXAMPLES/configs"
 export CM_PROD_URL="$EXAMPLES/output/archive"
 
-cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --production-name ${p_name} --campaign-name ${c_name}
 cm print-table --table campaign
 cm print-table --table step
 cm print-table --table group

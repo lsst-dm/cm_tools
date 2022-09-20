@@ -22,21 +22,21 @@ cm create
 
 cm parse --config-name test_config --config-yaml ${config}
 
-cm insert --level production --production-name ${p_name}
-cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
+cm insert production --production-name ${p_name}
+cm insert campaign --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
 
-cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm queue campaign --production-name ${p_name} --campaign-name ${c_name}
+cm launch campaign --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run campaign --production-name ${p_name} --campaign-name ${c_name}
 
 cm extend --config-name test_config --config-yaml example_extra_step.yaml
-cm insert --level step --production-name ${p_name} --campaign-name ${c_name} --step-name extra_step --config-name test_config --config-block extra_step
-cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm insert --production-name ${p_name} --campaign-name ${c_name} --step-name extra_step --config-name test_config --config-block extra_step
+cm accept --production-name ${p_name} --campaign-name ${c_name}
 
-# cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-# cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-# cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-# cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+# cm queue --production-name ${p_name} --campaign-name ${c_name}
+# cm launch --production-name ${p_name} --campaign-name ${c_name}
+# cm fake-run --production-name ${p_name} --campaign-name ${c_name}
+# cm accept --production-name ${p_name} --campaign-name ${c_name}
 
 cm print-table --table campaign
 cm print-table --table step
