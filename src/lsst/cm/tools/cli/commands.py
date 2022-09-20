@@ -64,6 +64,7 @@ def insert(
 
 @cli.command()
 @options.dbi()
+@options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
@@ -88,6 +89,7 @@ def add_script(
 
 @cli.command()
 @options.dbi()
+@options.fullname()
 @options.production()
 @options.campaign()
 @options.step()
