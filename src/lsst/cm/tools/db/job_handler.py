@@ -79,9 +79,11 @@ class JobHandler(JobHandlerBase):
             status = StatusEnum.running
         elif job.script_method == ScriptMethod.bash:
             os.system(f"source {job.script_url}")
+            status = StatusEnum.running
         elif job.script_method == ScriptMethod.slurm:
             job_id = submit_job(job.script_url, job.log_url)
             Job.update_values(dbi, job.id, stamp_url=job_id)
+            status = StatusEnum.running
         parent = job.w_
         Job.update_values(dbi, job.id, status=status)
         Workflow.update_values(dbi, parent.id, status=StatusEnum.running)

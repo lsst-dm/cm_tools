@@ -221,7 +221,8 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             db_id_list.append(job_.db_id)
             handler = job_.get_handler()
-            handler.write_job_hook(self, entry, job_)
+            parent = job_.w_
+            handler.write_job_hook(self, parent, job_)
             Job.update_values(self, job_.id, status=StatusEnum.prepared)
         self.connection().commit()
         self.check(level, db_id)
