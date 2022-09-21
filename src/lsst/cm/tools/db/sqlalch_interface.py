@@ -237,6 +237,8 @@ class SQLAlchemyInterface(DbInterface):
         # if n_running >= max_running:
         #    return db_id_list
         for job_ in entry.jobs_:
+            if n_running >= max_running:
+                break
             status = job_.status
             if status == StatusEnum.running:
                 n_running += 1
@@ -246,8 +248,6 @@ class SQLAlchemyInterface(DbInterface):
             handler = job_.get_handler()
             handler.launch(self, job_)
             n_running += 1
-            if n_running >= max_running:
-                break
         self.connection().commit()
         self.check(level, db_id)
         return db_id_list
