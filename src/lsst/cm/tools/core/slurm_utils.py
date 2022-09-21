@@ -19,8 +19,8 @@ def submit_job(job_path: str) -> str:  # pragma: no cover
         The slurm job_id
     """
     with subprocess.Popen(["sbatch", "--parsable", job_path], stdout=subprocess.PIPE) as sbatch:
-        lines = sbatch.stdout.read().decode()
-        job_id = lines.strip().split("|")[0]
+        line = sbatch.stdout.read().decode().strip()
+        job_id = line.split("|")[0]
     return job_id
 
 
@@ -38,8 +38,11 @@ def check_job_status(job_id: str) -> str:  # pragma: no cover
         The slurm job status
     """
     with subprocess.Popen(["sacct", "--parsable", "-b", "-j", job_id], stdout=subprocess.PIPE) as sacct:
-        lines = sacct.stdout.read().decode()
-        job_status = lines.split("\n")[1].split("|")[1]
+        lines = sacct.stdout.read().decode().split("\n")
+        if len(lines) < 2:
+            job_status = "PENDING"
+        else:
+            job_status = lines[1].split("|")[1]
     return job_status
 
 
