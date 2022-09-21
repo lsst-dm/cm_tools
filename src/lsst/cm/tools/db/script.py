@@ -37,6 +37,7 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
     status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
+    batch_status = Column(String)  # Status as return by batch system
     superseded = Column(Boolean)  # Has this been superseded
     script_type = Column(Enum(ScriptType))  # What sort of thing the script does
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked

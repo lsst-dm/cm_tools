@@ -37,12 +37,16 @@ def check_job_status(job_id: str) -> str:  # pragma: no cover
     job_status : str
         The slurm job status
     """
+    if job_id is None:
+        return "NOT_SUBMITTED"
     with subprocess.Popen(["sacct", "--parsable", "-b", "-j", job_id], stdout=subprocess.PIPE) as sacct:
         lines = sacct.stdout.read().decode().split("\n")
         if len(lines) < 2:
-            job_status = "PENDING"
-        else:
-            job_status = lines[1].split("|")[1]
+            return "PENDING"
+        tokens = lines[1].split("|")
+        if len(tokens) < 2:
+            return "PENDING"
+        job_status = tokens[1]
     return job_status
 
 
@@ -58,6 +62,7 @@ class SlurmChecker(Checker):  # pragma: no cover
         DEADLINE=StatusEnum.failed,
         FAILED=StatusEnum.failed,
         NODE_FAIL=StatusEnum.failed,
+        NOT_SUBMITTED=StatusEnum.ready,
         OUT_OF_MEMORY=StatusEnum.failed,
         PENDING=StatusEnum.preparing,
         PREEMPTED=StatusEnum.running,
