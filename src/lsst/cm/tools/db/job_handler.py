@@ -1,8 +1,10 @@
+import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import JobHandlerBase
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
+from lsst.cm.tools.core.slurm_utils import submit_job
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.workflow import Workflow
@@ -71,6 +73,16 @@ class JobHandler(JobHandlerBase):
 
     def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
         parent = job.w_
-        self.write_job_hook(dbi, parent, job)
-        Job.update_values(dbi, job.id, status=StatusEnum.running)
+        if job.script_method == ScriptMethod.no_run:  # pragma: no cover
+            status = StatusEnum.ready
+        elif job.script_method == ScriptMethod.no_script:  # pragma: no cover
+            status = StatusEnum.running
+        elif job.script_method == ScriptMethod.bash:
+            os.system(f"source {job.script_url}")
+        elif job.script_method == ScriptMethod.slurm:
+            job_id = submit_job(job.script_url, job.log_url)
+            Job.update_values(dbi, job.id, stamp_url=job_id)
+        parent = job.w_
+        Job.update_values(dbi, job.id, status=status)
         Workflow.update_values(dbi, parent.id, status=StatusEnum.running)
+        return status

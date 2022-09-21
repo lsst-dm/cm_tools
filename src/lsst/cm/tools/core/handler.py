@@ -33,7 +33,6 @@ class Handler:
 
     config_block = ""
 
-    no_submit = False
     plugin_dir: str | None = None
     config_dir: str | None = None
 

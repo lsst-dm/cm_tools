@@ -5,7 +5,7 @@ from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.utils import StatusEnum
 
 
-def submit_job(job_path: str) -> str:  # pragma: no cover
+def submit_job(job_path: str, log_path: str) -> str:  # pragma: no cover
     """Submit a job to slurm and return the job_id
 
     Parameters
@@ -13,12 +13,18 @@ def submit_job(job_path: str) -> str:  # pragma: no cover
     job_path : str
         Path to a bash script to run the job
 
+    log_path : str
+        Path to a log file
+
     Returns
     -------
     job_id : str
         The slurm job_id
     """
-    with subprocess.Popen(["sbatch", "--parsable", job_path], stdout=subprocess.PIPE) as sbatch:
+    with subprocess.Popen(
+        ["sbatch", "-o", log_path, "--parsable", job_path],
+        stdout=subprocess.PIPE,
+    ) as sbatch:
         line = sbatch.stdout.read().decode().strip()
         job_id = line.split("|")[0]
     return job_id

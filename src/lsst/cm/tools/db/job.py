@@ -32,6 +32,7 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     idx = Column(Integer)  # ID from this script
     script_url = Column(String)  # Url for script
     stamp_url = Column(String)  # Url for a status 'stamp' file
+    panda_url = Column(String)  # Url for a panda file
     log_url = Column(String)  # Url for log
     config_url = Column(String)  # Url for script configuration
     coll_out = Column(String)  # Output collection

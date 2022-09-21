@@ -114,13 +114,15 @@ class ScriptHandler(ScriptHandlerBase):
         script: ScriptBase,
         **kwargs: Any,
     ) -> StatusEnum:
-        if self.no_submit:  # pragma: no cover
+        if script.script_method == ScriptMethod.no_run:  # pragma: no cover
+            return StatusEnum.ready
+        elif script.script_method == ScriptMethod.no_script:  # pragma: no cover
             return StatusEnum.running
         self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method == ScriptMethod.bash:
             os.system(f"source {script.script_url}")
         elif script.script_method == ScriptMethod.slurm:
-            job_id = submit_job(script.script_url)
+            job_id = submit_job(script.script_url, script.log_url)
             Script.update_values(dbi, script.id, stamp_url=job_id)
         status = StatusEnum.running
         return status
