@@ -66,9 +66,10 @@ class SQLScriptMixin(SQLTableMixin):
         """Check the status of a script"""
         current_status = entry.status
         checker = Checker.get_checker(entry.checker)
-        new_status = checker.check_url(entry.stamp_url, entry.status)
+        new_values = checker.check_url(entry.stamp_url, entry.status)
+        new_status = new_values.get("status", current_status)
         if new_status != current_status:
-            stmt = update(cls).where(cls.id == entry.id).values(status=new_status)
+            stmt = update(cls).where(cls.id == entry.id).values(**new_values)
             conn = dbi.connection()
             upd_result = conn.execute(stmt)
             check_result(upd_result)

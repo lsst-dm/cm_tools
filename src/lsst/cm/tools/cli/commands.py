@@ -7,7 +7,7 @@ from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
-from ..core.utils import StatusEnum, TableEnum
+from ..core.utils import ScriptMethod, StatusEnum, TableEnum
 
 
 @click.group()
@@ -36,16 +36,16 @@ def create(dbi: DbInterface) -> None:
 @options.workflow()
 @options.config_name()
 @options.config_block()
-@options.nosubmit()
+@options.script_method()
 def insert(
     dbi: DbInterface,
     config_name: str,
     config_block: str,
-    no_submit: bool,
+    script_method: ScriptMethod,
     **kwargs: Any,
 ) -> None:
     """Insert a new database entry at a particular level"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     fullname = kwargs.pop("fullname")
     if fullname is not None:
         names = dbi.parse_fullname(fullname)
@@ -72,16 +72,16 @@ def insert(
 @options.workflow()
 @options.config_name()
 @options.config_block()
-@options.nosubmit()
+@options.script_method()
 def add_script(
     dbi: DbInterface,
     config_name: str,
     config_block: str,
-    no_submit: bool,
+    script_method: ScriptMethod,
     **kwargs: Any,
 ) -> None:
     """Insert a new script associated to a particular entry"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     the_config = dbi.get_config(config_name)
     dbi.add_script(the_db_id, config_block, the_config, **kwargs)
@@ -97,16 +97,16 @@ def add_script(
 @options.workflow()
 @options.config_name()
 @options.config_block()
-@options.nosubmit()
+@options.script_method()
 def add_job(
     dbi: DbInterface,
     config_name: str,
     config_block: str,
-    no_submit: bool,
+    script_method: ScriptMethod,
     **kwargs: Any,
 ) -> None:
     """Insert a new batch job associated to a particular entry"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     the_config = dbi.get_config(config_name)
     dbi.add_job(the_db_id, config_block, the_config, **kwargs)
@@ -164,7 +164,8 @@ def print_config(dbi: DbInterface, config_name: str) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-def queue(dbi: DbInterface, **kwargs: Any) -> None:
+@options.script_method()
+def queue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Queue all the ready jobs matching the selection"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.queue_jobs(the_db_id.level(), the_db_id)
@@ -178,11 +179,11 @@ def queue(dbi: DbInterface, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
+@options.script_method()
 @options.max_running()
-def launch(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+def launch(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kwargs: Any) -> None:
     """Launch all the pending jobs matching the selection"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.launch_jobs(the_db_id.level(), the_db_id, max_running)
 
@@ -195,10 +196,10 @@ def launch(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
-def check(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
+@options.script_method()
+def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Check all database entries at a particular level"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.check(the_db_id.level(), the_db_id)
 
@@ -211,10 +212,10 @@ def check(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
-def accept(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
+@options.script_method()
+def accept(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Accept completed entries at a particular level"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.accept(the_db_id.level(), the_db_id)
 
@@ -227,10 +228,10 @@ def accept(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
-def reject(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
+@options.script_method()
+def reject(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Reject entries at a particular level"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.reject(the_db_id.level(), the_db_id)
 
@@ -243,12 +244,12 @@ def reject(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
-@options.nosubmit()
-def supersede(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
+@options.script_method()
+def supersede(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Mark entries as superseded so that they will be ignored in subsequent
     processing
     """
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.supersede(the_db_id.level(), the_db_id)
 
@@ -262,10 +263,10 @@ def supersede(dbi: DbInterface, no_submit: bool, **kwargs: Any) -> None:
 @options.group()
 @options.workflow()
 @options.status()
-@options.nosubmit()
-def rollback(dbi: DbInterface, status: StatusEnum, no_submit: bool, **kwargs: Any) -> None:
+@options.script_method()
+def rollback(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Rollback entries at a particular level"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.rollback(the_db_id.level(), the_db_id, status)
 
@@ -308,11 +309,11 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.fullname()
 @options.production()
 @options.campaign()
-@options.nosubmit()
+@options.script_method()
 @options.max_running()
-def daemon(dbi: DbInterface, no_submit: bool, max_running: int, **kwargs: Any) -> None:
+def daemon(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kwargs: Any) -> None:
     """Run a loop"""
-    Handler.no_submit = no_submit
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.daemon(the_db_id, max_running)
 

@@ -1,4 +1,8 @@
 import subprocess
+from typing import Any
+
+from lsst.cm.tools.core.checker import Checker
+from lsst.cm.tools.core.utils import StatusEnum
 
 
 def submit_job(job_path: str) -> str:  # pragma: no cover
@@ -15,8 +19,8 @@ def submit_job(job_path: str) -> str:  # pragma: no cover
         The slurm job_id
     """
     with subprocess.Popen(["sbatch", "--parsable", job_path], stdout=subprocess.PIPE) as sbatch:
-        lines = sbatch.stdout.read()
-        job_id = lines[0].split("|")[0]
+        lines = sbatch.stdout.read().decode()
+        job_id = lines.strip().split("|")[0]
     return job_id
 
 
@@ -34,6 +38,45 @@ def check_job_status(job_id: str) -> str:  # pragma: no cover
         The slurm job status
     """
     with subprocess.Popen(["sacct", "--parsable", "-b", "-j", job_id], stdout=subprocess.PIPE) as sacct:
-        lines = sacct.stdout.read()
-        job_status = lines[1].split("|")[1]
+        lines = sacct.stdout.read().decode()
+        job_status = lines.split("\n")[1].split("|")[1]
     return job_status
+
+
+class SlurmChecker(Checker):  # pragma: no cover
+    """Simple Checker to use a slurm job_id to check job status"""
+
+    status_map = dict(
+        BOOT_FAIL=StatusEnum.failed,
+        CANCELLED=StatusEnum.failed,
+        COMPLETED=StatusEnum.completed,
+        CONFIGURING=StatusEnum.preparing,
+        COMPLETING=StatusEnum.running,
+        DEADLINE=StatusEnum.failed,
+        FAILED=StatusEnum.failed,
+        NODE_FAIL=StatusEnum.failed,
+        OUT_OF_MEMORY=StatusEnum.failed,
+        PENDING=StatusEnum.preparing,
+        PREEMPTED=StatusEnum.running,
+        RUNNING=StatusEnum.running,
+        RESV_DEL_HOLD=StatusEnum.running,
+        REQUEUE_FED=StatusEnum.running,
+        REQUEUE_HOLD=StatusEnum.running,
+        REQUEUED=StatusEnum.running,
+        RESIZING=StatusEnum.running,
+        REVOKED=StatusEnum.failed,
+        SIGNALING=StatusEnum.running,
+        SPECIAL_EXIT=StatusEnum.failed,
+        STAGE_OUT=StatusEnum.running,
+        STOPPED=StatusEnum.running,
+        SUSPENDED=StatusEnum.running,
+        TIMEOUT=StatusEnum.failed,
+    )
+
+    def check_url(self, url: str, current_status: StatusEnum) -> dict[str, Any]:
+        slurm_status = check_job_status(url)
+        status = self.status_map[slurm_status]
+        return dict(
+            status=status,
+            batch_status=slurm_status,
+        )

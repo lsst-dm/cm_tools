@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
+from lsst.cm.tools.core.utils import InputType, OutputType, ScriptMethod, StatusEnum
 
 from .utils import add_sys_path
 
@@ -28,8 +28,9 @@ class Handler:
     fullname_template = ""
 
     default_config: dict[str, Any] = {}
-
     handler_cache: dict[int, Handler] = {}
+    script_method = ScriptMethod.bash
+
     config_block = ""
 
     no_submit = False

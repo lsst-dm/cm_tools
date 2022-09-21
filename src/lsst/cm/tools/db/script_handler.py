@@ -12,6 +12,7 @@ from lsst.cm.tools.core.script_utils import (
     write_command_script,
     write_status_to_yaml,
 )
+from lsst.cm.tools.core.slurm_utils import SlurmChecker, submit_job
 from lsst.cm.tools.core.utils import LevelEnum, ScriptMethod, ScriptType, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.script import Script
@@ -38,8 +39,11 @@ class ScriptHandler(ScriptHandlerBase):
     )
 
     script_type: ScriptType = ScriptType.prepare
-    script_method = ScriptMethod.bash
-    checker_class_name = YamlChecker().get_checker_class_name()
+    checker_class_dict = {
+        ScriptMethod.no_script: None,
+        ScriptMethod.bash: YamlChecker,
+        ScriptMethod.slurm: SlurmChecker,
+    }
     rollback_class_name = FakeRollback().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
@@ -47,11 +51,16 @@ class ScriptHandler(ScriptHandlerBase):
         name = kwcopy.pop("name")
         prev_scripts = [script for script in parent.scripts_ if script.name == name]
         idx = len(prev_scripts)
+        checker_class = self.checker_class_dict[self.script_method]
+        if checker_class is None:
+            checker_class_name = None
+        else:
+            checker_class_name = checker_class().get_checker_class_name()
         insert_fields = dict(
             name=name,
             idx=idx,
             frag_id=self._fragment_id,
-            checker=self.checker_class_name,
+            checker=checker_class_name,
             rollback=self.rollback_class_name,
             status=StatusEnum.ready,
             script_type=self.script_type,
@@ -87,6 +96,8 @@ class ScriptHandler(ScriptHandlerBase):
             idx=idx,
             name=name,
         )
+        if self.script_method == ScriptMethod.slurm:
+            script_data.pop("stamp_url")
         insert_fields.update(**script_data)
         script = Script.insert_values(dbi, **insert_fields)
         return script
@@ -106,8 +117,11 @@ class ScriptHandler(ScriptHandlerBase):
         if self.no_submit:  # pragma: no cover
             return StatusEnum.running
         self.write_script_hook(dbi, parent, script, **kwargs)
-        if script.script_method != ScriptMethod.no_script:
+        if script.script_method == ScriptMethod.bash:
             os.system(f"source {script.script_url}")
+        elif script.script_method == ScriptMethod.slurm:
+            job_id = submit_job(script.script_url)
+            Script.update_values(dbi, script.id, stamp_url=job_id)
         status = StatusEnum.running
         return status
 

@@ -241,6 +241,9 @@ class ScriptType(enum.Enum):
 class ScriptMethod(enum.Enum):
     """Defines how to run a script
 
+    no_run = -1
+        Don't actually run the script
+
     no_script = 0
         No actual script, just a placeholder for using python
         to manipulate the input collection
@@ -254,6 +257,7 @@ class ScriptMethod(enum.Enum):
     More methods to come...
     """
 
+    no_run = -1  # Don't actually run the script
     no_script = 0  # No actual script, just a placeholder
     bash = 1  # Bash script
     slurm = 2  # Use slurm to submit the script

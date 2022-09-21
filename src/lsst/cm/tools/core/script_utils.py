@@ -228,8 +228,8 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
-        return check_status_from_yaml(url, current_status)
+    def check_url(self, url: str, current_status: StatusEnum) -> dict[str, Any]:
+        return dict(status=check_status_from_yaml(url, current_status))
 
 
 class FakeRollback(Rollback):

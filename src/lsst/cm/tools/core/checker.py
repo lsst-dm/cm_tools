@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import types
+from typing import Any
 
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
@@ -52,7 +53,7 @@ class Checker:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
+    def check_url(self, url: str, current_status: StatusEnum) -> dict[str, Any]:
         """Return the status of the script being checked
 
         Parameters

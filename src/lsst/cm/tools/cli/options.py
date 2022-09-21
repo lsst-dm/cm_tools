@@ -7,7 +7,7 @@ from click.decorators import F
 
 from ..core.db_interface import DbInterface
 from ..core.handler import Handler
-from ..core.utils import LevelEnum, StatusEnum, TableEnum
+from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
 from ..db.sqlalch_interface import SQLAlchemyInterface
 
 __all__ = [
@@ -22,10 +22,10 @@ __all__ = [
     "group",
     "level",
     "max_running",
-    "nosubmit",
     "prod_base",
     "production",
     "script",
+    "script_method",
     "status",
     "step",
     "table",
@@ -64,12 +64,6 @@ echo = PartialOption(
     is_flag=True,
 )
 
-nosubmit = PartialOption(
-    "--no-submit",
-    is_flag=True,
-    help="Don't submit jobs and scripts",
-)
-
 level = PartialOption(
     "--level",
     type=EnumChoice(LevelEnum),
@@ -89,6 +83,14 @@ status = PartialOption(
     type=EnumChoice(StatusEnum),
     default="completed",
     help="Status level to set.",
+)
+
+script_method = PartialOption(
+    "--script_method",
+    type=EnumChoice(ScriptMethod),
+    default="bash",
+    envvar="CM_SCRIPT_METHOD",
+    help="How to submit scripts.",
 )
 
 max_running = PartialOption(
