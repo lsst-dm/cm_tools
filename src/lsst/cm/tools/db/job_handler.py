@@ -30,7 +30,6 @@ class JobHandler(JobHandlerBase):
         )
     )
 
-    script_method = ScriptMethod.bash
     checker_class_name = YamlChecker().get_checker_class_name()
     rollback_class_name = FakeRollback().get_rollback_class_name()
 
