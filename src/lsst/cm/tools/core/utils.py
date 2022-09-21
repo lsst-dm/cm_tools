@@ -248,11 +248,15 @@ class ScriptMethod(enum.Enum):
     bash = 1
         Bash script, just run the script using a system call
 
+    slurm = 2
+        Use slurm to submit the script
+
     More methods to come...
     """
 
     no_script = 0  # No actual script, just a placeholder
     bash = 1  # Bash script
+    slurm = 2  # Use slurm to submit the script
 
 
 def safe_makedirs(path: StrOrBytesPath) -> None:

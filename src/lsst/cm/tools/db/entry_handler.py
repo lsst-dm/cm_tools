@@ -165,7 +165,7 @@ class GenericEntryHandler(EntryHandler):
                     dbi,
                     entry,
                     script_,
-                    prepend=f"# Written by {handler.get_handler_class_name()}",
+                    prepend=f"#!/bin/sh\n\n# Written by {handler.get_handler_class_name()}",
                     append="# Have a good day",
                     **fragment.data,
                 )
