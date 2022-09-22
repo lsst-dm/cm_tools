@@ -92,6 +92,8 @@ class SlurmChecker(Checker):  # pragma: no cover
 
     def check_url(self, script: ScriptBase) -> dict[str, Any]:
         new_values = {}
+        if script.stamp_url is None:
+            return new_values
         slurm_status = check_job_status(script.stamp_url)
         if slurm_status != script.batch_status:
             new_values["batch_status"] = slurm_status
