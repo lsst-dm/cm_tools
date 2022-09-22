@@ -61,6 +61,8 @@ class JobHandler(JobHandlerBase):
             idx=idx,
             name=name,
         )
+        if self.script_method == ScriptMethod.slurm:
+            script_data.pop("stamp_url")
         insert_fields.update(**script_data)
         new_job = Job.insert_values(dbi, **insert_fields)
         dbi.connection().commit()
