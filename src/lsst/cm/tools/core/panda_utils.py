@@ -31,7 +31,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         update_vals = {}
         panda_url = job.panda_url
         if panda_url is None:
-            slurm_dict = SlurmChecker.check_url(job)
+            slurm_dict = SlurmChecker.check_url(self, job)
             batch_status = slurm_dict.get("batch_status", job.batch_status)
             if batch_status != job.batch_status:
                 update_vals["batch_status"] = batch_status
