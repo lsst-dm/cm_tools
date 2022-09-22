@@ -152,7 +152,7 @@ def print_table(dbi: DbInterface, table: TableEnum) -> None:
 @options.dbi()
 @options.config_name()
 def print_config(dbi: DbInterface, config_name: str) -> None:
-    """Print a database table from a given entry in a tree-like format"""
+    """Print a information about a configuration"""
     dbi.print_config(sys.stdout, config_name)
 
 
@@ -166,7 +166,7 @@ def print_config(dbi: DbInterface, config_name: str) -> None:
 @options.workflow()
 @options.script_method()
 def queue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Queue all the ready jobs matching the selection"""
+    """Queue all the prepared jobs matching the selection"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.queue_jobs(the_db_id.level(), the_db_id)
 
@@ -198,7 +198,7 @@ def launch(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kw
 @options.workflow()
 @options.script_method()
 def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Check all database entries at a particular level"""
+    """Check all the matching database entries"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.check(the_db_id.level(), the_db_id)
@@ -214,7 +214,7 @@ def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
 @options.workflow()
 @options.script_method()
 def accept(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Accept completed entries at a particular level"""
+    """Accept all the completed matching entries"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.accept(the_db_id.level(), the_db_id)
@@ -230,7 +230,7 @@ def accept(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None
 @options.workflow()
 @options.script_method()
 def reject(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Reject entries at a particular level"""
+    """Reject all the matching entries"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.reject(the_db_id.level(), the_db_id)
@@ -265,7 +265,7 @@ def supersede(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> N
 @options.status()
 @options.script_method()
 def rollback(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Rollback entries at a particular level"""
+    """Rollback all the matching entries to a given status"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.rollback(the_db_id.level(), the_db_id, status)
@@ -299,7 +299,7 @@ def fake_run(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
 @options.status()
 @options.max_running()
 def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
-    """Pretend to run workflows, this is for testing"""
+    """Pretend to run scripts, this is for testing"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.fake_script(the_db_id.level(), the_db_id, script_name, status)
 
@@ -312,7 +312,7 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.script_method()
 @options.max_running()
 def daemon(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kwargs: Any) -> None:
-    """Run a loop"""
+    """Run a processing loop"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.daemon(the_db_id, max_running)
@@ -332,5 +332,5 @@ def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @options.config_yaml()
 @options.config_name()
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
-    """Parse a configuration file"""
+    """Parse a configuration file and add the fragments to another config"""
     dbi.extend_config(config_name, config_yaml)
