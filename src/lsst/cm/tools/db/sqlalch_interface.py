@@ -233,6 +233,10 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
         n_running = 0
+        # This is what we actually want, but _count_jobs_at_status
+        # isn't working correctly under some cases now, so I've
+        # commented these lines out until I fix that
+        #
         # n_running = self._count_jobs_at_status(StatusEnum.running)
         # if n_running >= max_running:
         #    return db_id_list
