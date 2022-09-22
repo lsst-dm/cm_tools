@@ -27,6 +27,7 @@ class JobHandler(JobHandlerBase):
             stamp_url="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
             log_url="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
             config_url="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
+            json_url="{prod_base_url}/{fullname}/{name}_{idx:03}.json",
         )
     )
 

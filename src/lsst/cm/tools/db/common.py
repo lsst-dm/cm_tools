@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import declarative_base
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, FragmentBase, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, FragmentBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
@@ -49,7 +49,7 @@ class SQLTableMixin:
 
 class SQLScriptMixin(SQLTableMixin):
     """Provides implementation some functions
-    need for Script and Workflow objects
+    needed for Script and Workflow objects
     """
 
     id: int | None
@@ -62,21 +62,19 @@ class SQLScriptMixin(SQLTableMixin):
         return self.frag_.get_handler()
 
     @classmethod
-    def check_status(cls, dbi: DbInterface, entry: CMTableBase) -> StatusEnum:
+    def check_status(cls, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
         """Check the status of a script"""
-        current_status = entry.status
-        checker = Checker.get_checker(entry.checker)
-        new_values = checker.check_url(entry.stamp_url, entry.status)
-        new_status = new_values.get("status", current_status)
-        if new_status != current_status:
-            stmt = update(cls).where(cls.id == entry.id).values(**new_values)
+        checker = Checker.get_checker(script.checker)
+        new_values = checker.check_url(script)
+        if new_values:
+            stmt = update(cls).where(cls.id == script.id).values(**new_values)
             conn = dbi.connection()
             upd_result = conn.execute(stmt)
             check_result(upd_result)
-        return new_status
+        return script.status
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: TableBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase) -> None:
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
         rollback_handler.rollback_script(entry, script)

@@ -35,10 +35,13 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     panda_url = Column(String)  # Url for a panda file
     log_url = Column(String)  # Url for log
     config_url = Column(String)  # Url for script configuration
+    json_url = Column(String)  # Url for json file
     coll_out = Column(String)  # Output collection
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
     status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
+    batch_status = Column(String)  # Status as returned by batch system
+    panda_status = Column(String)  # Status as returned by panda
     superseded = Column(Boolean)  # Has this been superseded
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     n_tasks_all = Column(Integer, default=0)  # Number of associated tasks

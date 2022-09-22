@@ -67,6 +67,7 @@ class ScriptBase(TableBase):
     """
 
     script_url = ""
+    stamp_url = ""
     log_url = ""
     id = -1
 

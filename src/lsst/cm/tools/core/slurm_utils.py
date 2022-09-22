@@ -2,6 +2,7 @@ import subprocess
 from typing import Any
 
 from lsst.cm.tools.core.checker import Checker
+from lsst.cm.tools.core.db_interface import ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
 
 
@@ -25,12 +26,13 @@ def submit_job(job_path: str, log_path: str) -> str:  # pragma: no cover
         ["sbatch", "-o", log_path, "--parsable", job_path],
         stdout=subprocess.PIPE,
     ) as sbatch:
+        assert sbatch.stdout
         line = sbatch.stdout.read().decode().strip()
         job_id = line.split("|")[0]
     return job_id
 
 
-def check_job_status(job_id: str) -> str:  # pragma: no cover
+def check_job_status(job_id: str | None) -> str:  # pragma: no cover
     """Check the status of a slurm job
 
     Parameters
@@ -46,6 +48,7 @@ def check_job_status(job_id: str) -> str:  # pragma: no cover
     if job_id is None:
         return "NOT_SUBMITTED"
     with subprocess.Popen(["sacct", "--parsable", "-b", "-j", job_id], stdout=subprocess.PIPE) as sacct:
+        assert sacct.stdout
         lines = sacct.stdout.read().decode().split("\n")
         if len(lines) < 2:
             return "PENDING"
@@ -87,10 +90,12 @@ class SlurmChecker(Checker):  # pragma: no cover
         TIMEOUT=StatusEnum.failed,
     )
 
-    def check_url(self, url: str, current_status: StatusEnum) -> dict[str, Any]:
-        slurm_status = check_job_status(url)
+    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+        new_values = {}
+        slurm_status = check_job_status(script.stamp_url)
+        if slurm_status != script.batch_status:
+            new_values["batch_status"] = slurm_status
         status = self.status_map[slurm_status]
-        return dict(
-            status=status,
-            batch_status=slurm_status,
-        )
+        if status != script.status:
+            new_values["status"] = status
+        return new_values

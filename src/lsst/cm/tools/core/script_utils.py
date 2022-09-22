@@ -149,7 +149,7 @@ def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -
     return command
 
 
-def make_bps_command(config_url: str) -> str:
+def make_bps_command(config_url: str, json_url: str, log_url: str) -> str:
     """Build and return command to submit a bps job
 
     Parameters
@@ -157,14 +157,18 @@ def make_bps_command(config_url: str) -> str:
     config_url : str
         Configuration file
 
+    json_url : str
+        Json log file
+
+    log_url : str
+        Log file file
+
     Returns
     -------
     command : str
         Requested command
     """
-    log_url = config_url.replace(".yaml", ".json")
-    stamp_url = config_url.replace(".yaml", ".stamp")
-    return f"bps --log-file {log_url} --no-log-tty submit {os.path.abspath(config_url)} > {stamp_url}"
+    return f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
 
 def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
@@ -228,8 +232,11 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, url: str, current_status: StatusEnum) -> dict[str, Any]:
-        return dict(status=check_status_from_yaml(url, current_status))
+    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+        new_status = check_status_from_yaml(script.stamp_url, script.status)
+        if new_status == script.status:
+            return {}
+        return dict(status=new_status)
 
 
 class FakeRollback(Rollback):

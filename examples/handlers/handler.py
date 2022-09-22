@@ -53,7 +53,7 @@ class ExampleJobHandler(JobHandler):
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
 
-        command = make_bps_command(outpath)
+        command = make_bps_command(outpath, job.json_url, job.log_url)
         write_command_script(job, command)
 
 
