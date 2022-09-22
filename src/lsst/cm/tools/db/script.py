@@ -36,16 +36,16 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     coll_out = Column(String)  # Output collection
     checker = Column(String)  # Checker class
     rollback = Column(String)  # Rollback class
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean)  # Has this been superseded
     script_type = Column(Enum(ScriptType))  # What sort of thing the script does
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     level = Column(Enum(LevelEnum))
     db_id: DbId = composite(DbId, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
-    c_: Campaign = relationship("Campaign", back_populates="scripts_")
-    s_: Step = relationship("Step", back_populates="scripts_")
-    g_: Group = relationship("Group", back_populates="scripts_")
-    w_: Workflow = relationship("Workflow", back_populates="scripts_")
+    c_: Campaign = relationship("Campaign", back_populates="all_scripts_")
+    s_: Step = relationship("Step", back_populates="all_scripts_")
+    g_: Group = relationship("Group", back_populates="all_scripts_")
+    w_: Workflow = relationship("Workflow", back_populates="all_scripts_")
 
     def __repr__(self) -> str:
         if self.superseded:

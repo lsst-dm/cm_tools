@@ -61,11 +61,27 @@ class ScriptHandler(ScriptHandlerBase):
         )
         insert_fields.update(coll_out=self.get_coll_out_name(parent, **insert_fields))
         if parent.level == LevelEnum.campaign:
-            insert_fields.update(c_id=parent.db_id.c_id)
+            insert_fields.update(
+                c_id=parent.db_id.c_id,
+            )
         elif parent.level == LevelEnum.step:
-            insert_fields.update(s_id=parent.db_id.s_id)
+            insert_fields.update(
+                c_id=parent.db_id.c_id,
+                s_id=parent.db_id.s_id,
+            )
         elif parent.level == LevelEnum.group:
-            insert_fields.update(g_id=parent.db_id.g_id)
+            insert_fields.update(
+                c_id=parent.db_id.c_id,
+                s_id=parent.db_id.s_id,
+                g_id=parent.db_id.g_id,
+            )
+        elif parent.level == LevelEnum.workflow:
+            insert_fields.update(
+                c_id=parent.db_id.c_id,
+                s_id=parent.db_id.s_id,
+                g_id=parent.db_id.g_id,
+                w_id=parent.db_id.w_id,
+            )
         script_data = self.resolve_templated_strings(
             prod_base_url=parent.prod_base_url,
             fullname=parent.fullname,
@@ -74,7 +90,6 @@ class ScriptHandler(ScriptHandlerBase):
         )
         insert_fields.update(**script_data)
         script = Script.insert_values(dbi, **insert_fields)
-        self.write_script_hook(dbi, parent, script, **kwcopy)
         return script
 
     def fake_run_hook(
@@ -85,10 +100,13 @@ class ScriptHandler(ScriptHandlerBase):
     def run(
         self,
         dbi: DbInterface,
+        parent: Any,
         script: ScriptBase,
+        **kwargs: Any,
     ) -> StatusEnum:
         if self.no_submit:  # pragma: no cover
             return StatusEnum.running
+        self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method != ScriptMethod.no_script:
             os.system(f"source {script.script_url}")
         status = StatusEnum.running

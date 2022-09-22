@@ -37,14 +37,19 @@ class Group(common.Base, common.CMTable):
     coll_validate = Column(String)  # Validate data collection
     input_type = Column(Enum(InputType))  # How to manage input data
     output_type = Column(Enum(OutputType))  # How to manage output data
-    status = Column(Enum(StatusEnum))  # Status flag
+    status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     db_id: DbId = composite(DbId, p_id, c_id, s_id, id)
     p_: Production = relationship("Production", foreign_keys=[p_id])
     c_: Campaign = relationship("Campaign", back_populates="g_")
     s_: Step = relationship("Step", back_populates="g_")
     w_: Iterable = relationship("Workflow", back_populates="g_")
-    scripts_: Iterable = relationship("Script", back_populates="g_")
+    all_scripts_: Iterable = relationship("Script", back_populates="g_")
+    scripts_: Iterable = relationship(
+        "Script",
+        primaryjoin="and_(Group.id==Script.g_id, Script.level=='group')",
+        viewonly=True,
+    )
     jobs_: Iterable = relationship("Job", back_populates="g_")
     depend_: Iterable = relationship("Dependency", back_populates="g_")
 

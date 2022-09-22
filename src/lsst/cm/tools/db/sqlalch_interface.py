@@ -1,9 +1,9 @@
 import os
 import sys
 from time import sleep
-from typing import Any, Optional, TextIO
+from typing import Any, Iterable, Optional, TextIO
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface
@@ -80,6 +80,17 @@ class SQLAlchemyInterface(DbInterface):
         self._verify_entry(entry, level, db_id)
         return entry
 
+    def get_matching(self, level: LevelEnum, entry: Any, status: StatusEnum) -> Iterable:
+        table = top.get_table_for_level(level)
+        match_key = table.match_keys[entry.level.value]
+        sel = select(table).where(
+            and_(
+                match_key == entry.id,
+                table.status == status,
+            )
+        )
+        return self.connection().execute(sel)
+
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         table = top.get_table_for_level(level)
         sel = table.get_match_query(db_id)
@@ -94,12 +105,11 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         entry.print_tree(stream)
 
-    def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        db_id_list = handler.check(self, entry)
-        self.connection().commit()
-        return db_id_list
+        status = handler.check(self, entry)
+        return status
 
     def insert(
         self,
@@ -121,17 +131,6 @@ class SQLAlchemyInterface(DbInterface):
         self.check(ret_val.level, ret_val.db_id)
         return ret_val
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
-        entry = self.get_entry(level, db_id)
-        if entry.superseded:
-            return []
-        handler = entry.get_handler()
-        db_id_list = handler.prepare(self, entry)
-        self.connection().commit()
-        self.check(level, db_id)
-        self.check(level, db_id)
-        return db_id_list
-
     def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         db_id_list = []
@@ -149,11 +148,14 @@ class SQLAlchemyInterface(DbInterface):
         db_id_list: list[DbId] = []
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        n_running = self._count_jobs_at_status(StatusEnum.running)
-        if n_running >= max_running:
-            return db_id_list
+        n_running = 0
+        # n_running = self._count_jobs_at_status(StatusEnum.running)
+        # if n_running >= max_running:
+        #    return db_id_list
         for job_ in entry.jobs_:
             status = job_.status
+            if status == StatusEnum.running:
+                n_running += 1
             if status != StatusEnum.prepared:
                 continue
             db_id_list.append(job_.db_id)
@@ -232,7 +234,6 @@ class SQLAlchemyInterface(DbInterface):
         while i_iter != 0:
             if os.path.exists("daemon.stop"):  # pragma: no cover
                 break
-            self.prepare(LevelEnum.campaign, db_id)
             self.queue_jobs(LevelEnum.campaign, db_id)
             self.launch_jobs(LevelEnum.campaign, db_id, max_running)
             self.accept(LevelEnum.campaign, db_id)
@@ -241,11 +242,6 @@ class SQLAlchemyInterface(DbInterface):
             self.print_table(sys.stdout, TableEnum.workflow)
             i_iter -= 1
             sleep(sleep_time)
-
-    def _count_jobs_at_status(self, status: StatusEnum) -> int:
-        table = top.get_table(TableEnum.job)
-        count = func.count(table.status == status)
-        return common.return_count(self, count)
 
     def _get_id(self, level: LevelEnum, parent_id: Optional[int], match_name: Optional[str]) -> Optional[int]:
         """Returns the primary key matching the parent_id and the match_name"""

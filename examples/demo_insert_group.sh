@@ -20,14 +20,12 @@ mkdir -p "$EXAMPLES/output"
 cm create
 cm insert --level production --production-name ${p_name}
 cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
-cm prepare --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 cm insert --level group --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group --handler ${group_handler} --config-yaml ${config} --data-query "i == 11"
-cm prepare --level group --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group
 cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
 cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}

@@ -351,28 +351,6 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def prepare(self, level: LevelEnum, db_id: DbId, **kwargs: Any) -> list[DbId]:
-        """Prepare a database entry for execution
-
-        Parameters
-        ----------
-        level : LevelEnum
-            Selects which database table to search
-
-        db_id : DbId
-            Database ID for this entry
-
-        Returns
-        -------
-        entries : list[DbId]
-            Entries that were prepared
-
-        Keywords
-        --------
-        Keywords can be based to the callback handler
-        """
-        raise NotImplementedError()
-
     def queue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Queue all the ready jobs matching the selection
 
@@ -488,9 +466,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def fake_run(
-        self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed
-    ) -> list[DbId]:
+    def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
         """Pretend to run workflows, this is for testing
 
         Parameters
@@ -506,7 +482,7 @@ class DbInterface:
 
         Returns
         -------
-        db_id_list : list[DbId]
+        db_id_list : list[int]
             Ids of the workflows that were affected
         """
         raise NotImplementedError()

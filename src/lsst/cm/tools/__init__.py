@@ -9,6 +9,6 @@ __version__: str
 
 try:
     __version__ = version(__name__)
-except PackageNotFoundError:
+except PackageNotFoundError:  # pragma: no cover
     # package is not installed
     __version__ = "0.0.0"

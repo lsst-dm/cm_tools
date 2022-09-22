@@ -8,13 +8,13 @@ import yaml
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, OutputType, StatusEnum
 
 from .utils import add_sys_path
 
 if TYPE_CHECKING:  # pragma: no cover
     from lsst.cm.tools.core.db_interface import DbInterface, JobBase, ScriptBase
+    from lsst.cm.tools.core.dbid import DbId
     from lsst.cm.tools.db.common import CMTable
 
 
@@ -308,7 +308,7 @@ class ScriptHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def run(self, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
+    def run(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> StatusEnum:
         """Run the script
 
         Parameters
@@ -316,8 +316,14 @@ class ScriptHandlerBase(Handler):
         dbi : DbInterface
             Interface to the database we updated
 
+        parent : Any
+            Entry associated to this script
+
         script: ScriptBase
             Database entry for the script
+
+        kwargs: Any
+            Passed to the function that writes the script
 
         Returns
         -------
@@ -459,7 +465,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def prepare(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def prepare(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Prepare an entry
 
         Parameters
@@ -472,12 +478,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def make_children(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Make and prepare any child entries
 
         Parameters
@@ -490,33 +496,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def run(self, dbi: DbInterface, entry: Any) -> list[DbId]:
-        """Run an entry and any children
-
-        This actually just allow the children to run batch jobs.
-        It will not actually launch the jobs.
-
-        Parameters
-        ----------
-        dbi: DbInterface
-            Interface to the database we are using
-
-        entry: Any
-            Entry in question
-
-        Returns
-        -------
-        db_id_list : list[DbId]
-            All of the affected entries
-        """
-        raise NotImplementedError()
-
-    def check(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def check(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Check this entry and any children
 
         Parameters
@@ -529,12 +514,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def collect(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def collect(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Run collection scripts for this entry and any children
 
         Parameters
@@ -547,12 +532,12 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
-    def validate(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def validate(self, dbi: DbInterface, entry: Any) -> StatusEnum:
         """Validate this entry and any children
 
         Parameters
@@ -565,8 +550,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        status : StatusEnum
+            Status to set the entry to
         """
         raise NotImplementedError()
 
@@ -583,8 +568,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
@@ -601,8 +586,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
@@ -635,8 +620,26 @@ class EntryHandlerBase(Handler):
         )
         return coll_name_map
 
+    def make_scripts(self, dbi: DbInterface, entry: Any) -> StatusEnum:
+        """Called to set up scripts and jobs for an entry
+
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database we are using
+
+        entry : Any
+            Entry in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status to set the entry to
+        """
+        raise NotImplementedError()
+
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        """Called to set up scripts need to prepare an entry for execution
+        """Called to run scripts need to prepare an entry for execution
 
         Parameters
         ----------
@@ -691,24 +694,6 @@ class EntryHandlerBase(Handler):
         -------
         scripts : list[ScriptBase]
             The newly made scripts
-        """
-        raise NotImplementedError()
-
-    def run_hook(self, dbi: DbInterface, entry: Any) -> list[JobBase]:
-        """Called to allow batch jobs to be run
-
-        Parameters
-        ----------
-        dbi : DbInterface
-            Interface to the database we are using
-
-        entry : Any
-            Entry in question
-
-        Returns
-        -------
-        job : list[JobBase]
-            The jobs that can be run
         """
         raise NotImplementedError()
 
@@ -783,8 +768,8 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()
 
@@ -804,7 +789,7 @@ class EntryHandlerBase(Handler):
 
         Returns
         -------
-        db_id_list : list[DbId]
-            All of the affected entries
+        db_ids : list[DbId]
+            All the affected entries
         """
         raise NotImplementedError()

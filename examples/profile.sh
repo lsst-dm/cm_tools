@@ -22,20 +22,19 @@ mkdir -p "$EXAMPLES/output"
 python -m cProfile -s cumulative -o create.prof `which cm` create
 python -m cProfile -s cumulative -o insert_prod.prof `which cm` insert --level production --production-name ${p_name}
 python -m cProfile -s cumulative -o insert_camp.prof `which cm` insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
-python -m cProfile -s cumulative -o prepare.prof `which cm` prepare --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 python -m cProfile -s cumulative -o queue_1.prof `which cm` queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-python -m cProfile -s cumulative -o launch_1.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+python -m cProfile -s cumulative -o launch_1.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name} --max-running 500
 python -m cProfile -s cumulative -o fake_1.prof `which cm` fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
 python -m cProfile -s cumulative -o accept_1.prof `which cm` accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 python -m cProfile -s cumulative -o queue_2.prof `which cm` queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-python -m cProfile -s cumulative -o launch_2.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+python -m cProfile -s cumulative -o launch_2.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name} --max-running 500
 python -m cProfile -s cumulative -o fake_2.prof `which cm` fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
 python -m cProfile -s cumulative -o accept_2.prof `which cm` accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
 python -m cProfile -s cumulative -o queue_3.prof `which cm` queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-python -m cProfile -s cumulative -o launch_3.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
+python -m cProfile -s cumulative -o launch_3.prof `which cm` launch --level campaign --production-name ${p_name} --campaign-name ${c_name} --max-running 500
 python -m cProfile -s cumulative -o fake_3.prof `which cm` fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
 python -m cProfile -s cumulative -o accept_3.prof `which cm` accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
 
