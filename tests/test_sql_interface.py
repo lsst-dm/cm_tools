@@ -355,6 +355,15 @@ def test_recover_failed() -> None:
         assert not result
         iface.add_job(db_w_id, "job")
         iface.fake_run(LevelEnum.group, db_g_id)
+        iface.insert(
+            db_s_id,
+            "group",
+            None,
+            production_name="example",
+            campaign_name="test",
+            step_name="step1",
+            group_name="extra_group",
+        )
 
     os.system("\\rm -rf archive_test")
     os.unlink("fail.db")

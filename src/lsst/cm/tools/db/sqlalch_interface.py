@@ -36,9 +36,9 @@ class SQLAlchemyInterface(DbInterface):
 
     def _get_db_id_in_steps(self, **kwargs: Any) -> DbId:
         p_name = kwargs.get("production_name")
-        if p_name is None:
-            return DbId()
         p_id = self._get_id(LevelEnum.production, None, p_name)
+        if p_id is None:
+            return DbId()
         c_name = kwargs.get("campaign_name")
         if c_name is None:
             return DbId(p_id=p_id)

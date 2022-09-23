@@ -52,7 +52,7 @@ class ScriptHandler(ScriptHandlerBase):
         prev_scripts = [script for script in parent.scripts_ if script.name == name]
         idx = len(prev_scripts)
         checker_class = self.checker_class_dict[self.script_method]
-        if checker_class is None:
+        if checker_class is None:  # pragma: no cover
             checker_class_name = None
         else:
             checker_class_name = checker_class().get_checker_class_name()
