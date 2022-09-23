@@ -96,7 +96,7 @@ class ScriptHandler(ScriptHandlerBase):
             idx=idx,
             name=name,
         )
-        if self.script_method == ScriptMethod.slurm:
+        if self.script_method == ScriptMethod.slurm:  # pragma: no cover
             script_data.pop("stamp_url")
         insert_fields.update(**script_data)
         script = Script.insert_values(dbi, **insert_fields)
@@ -121,7 +121,7 @@ class ScriptHandler(ScriptHandlerBase):
         self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method == ScriptMethod.bash:
             os.system(f"source {script.script_url}")
-        elif script.script_method == ScriptMethod.slurm:
+        elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
             job_id = submit_job(script.script_url, script.log_url)
             Script.update_values(dbi, script.id, stamp_url=job_id)
         status = StatusEnum.running

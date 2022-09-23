@@ -18,7 +18,6 @@ class JobHandler(JobHandlerBase):
     Derived classes will have to:
 
     1. implement `write_job_hook` to write the script to run
-    2. implement `launch_hook` to launch the job
     """
 
     default_config = dict(
@@ -61,7 +60,7 @@ class JobHandler(JobHandlerBase):
             idx=idx,
             name=name,
         )
-        if self.script_method == ScriptMethod.slurm:
+        if self.script_method == ScriptMethod.slurm:  # pragma: no cover
             script_data.pop("stamp_url")
         insert_fields.update(**script_data)
         new_job = Job.insert_values(dbi, **insert_fields)
@@ -82,7 +81,7 @@ class JobHandler(JobHandlerBase):
         elif job.script_method == ScriptMethod.bash:
             os.system(f"source {job.script_url}")
             status = StatusEnum.running
-        elif job.script_method == ScriptMethod.slurm:
+        elif job.script_method == ScriptMethod.slurm:  # pragma: no cover
             job_id = submit_job(job.script_url, job.log_url)
             Job.update_values(dbi, job.id, stamp_url=job_id)
             status = StatusEnum.running
