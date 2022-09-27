@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import types
+from typing import Any
 
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.utils import StatusEnum
+from lsst.cm.tools.core.db_interface import ScriptBase
 
 
 class Checker:
@@ -52,17 +53,13 @@ class Checker:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
+    def check_url(self, script: ScriptBase) -> dict[str, Any]:
         """Return the status of the script being checked
 
         Parameters
         ----------
-        url : str
-            URL used to check the script status
-
-        current_status : StatusEnum
-            Can be used as output if the URL is empty
-            I.e., the script hasn't generated it yet
+        script: ScriptBase
+            Script we are checking the status of
 
         Returns
         -------

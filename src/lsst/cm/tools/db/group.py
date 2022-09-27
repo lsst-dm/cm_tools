@@ -8,6 +8,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import InputType, LevelEnum, OutputType, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.config import Config, Fragment
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
 
@@ -26,10 +27,10 @@ class Group(common.Base, common.CMTable):
     p_id = Column(Integer, ForeignKey(Production.id))
     c_id = Column(Integer, ForeignKey(Campaign.id))
     s_id = Column(Integer, ForeignKey(Step.id))
+    config_id = Column(Integer, ForeignKey(Config.id))
+    frag_id = Column(Integer, ForeignKey(Fragment.id))
     name = Column(String)  # Group name
     fullname = Column(String, unique=True)  # Unique name
-    handler = Column(String)  # Handler class
-    config_yaml = Column(String)  # Configuration file
     data_query = Column(String)  # Data query
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
@@ -44,6 +45,8 @@ class Group(common.Base, common.CMTable):
     c_: Campaign = relationship("Campaign", back_populates="g_")
     s_: Step = relationship("Step", back_populates="g_")
     w_: Iterable = relationship("Workflow", back_populates="g_")
+    config_: Config = relationship("Config", viewonly=True)
+    frag_: Fragment = relationship("Fragment", viewonly=True)
     all_scripts_: Iterable = relationship("Script", back_populates="g_")
     scripts_: Iterable = relationship(
         "Script",
@@ -75,7 +78,7 @@ class Group(common.Base, common.CMTable):
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        return f"Group {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
+        return f"Group {self.fullname} {self.db_id}: {self.frag_id} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""

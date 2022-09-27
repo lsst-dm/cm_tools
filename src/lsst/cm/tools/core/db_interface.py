@@ -14,7 +14,7 @@ class TableBase:
     """
 
     @classmethod
-    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> Any:
+    def insert_values(cls, dbi: DbInterface, **kwargs: Any) -> TableBase:
         """Insert a new entry to a table
 
         Parameters
@@ -28,7 +28,7 @@ class TableBase:
 
         Returns
         -------
-        new_entry : Any
+        new_entry : TableBase
             Newly inserted entry
         """
         raise NotImplementedError()
@@ -67,6 +67,7 @@ class ScriptBase(TableBase):
     """
 
     script_url = ""
+    stamp_url = ""
     log_url = ""
     id = -1
 
@@ -90,7 +91,7 @@ class ScriptBase(TableBase):
         raise NotImplementedError()
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: ScriptBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase) -> None:
         """Called when a particular entry is rejected
 
         Calling this function will result in the script
@@ -101,7 +102,7 @@ class ScriptBase(TableBase):
         dbi : DbInterface
             Interface to the database we updated
 
-        entry : Any
+        entry : CMTableBase
             Entry associated to the script
 
         script : ScriptBase
@@ -148,6 +149,43 @@ class DependencyBase:
         raise NotImplementedError()
 
 
+class FragmentBase(TableBase):
+    """Interface class for configuration fragments"""
+
+    def get_handler(self) -> Handler:
+        """Get the handler associated to this Fragment
+        Parameters
+        ----------
+        dbi : DbInterface
+            Interface to the database
+
+        Returns
+        -------
+        handler : Handler
+            The associated handler
+        """
+        raise NotImplementedError()
+
+
+class ConfigBase(TableBase):
+    """Interface class for configurations"""
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        """Get the handler to a sub-fragment
+
+        Parameters
+        ----------
+        config_block : str
+            The tag that identifies block of the configuration
+
+        Returns
+        -------
+        handler : Handler
+            The associated handler
+        """
+        raise NotImplementedError()
+
+
 class CMTableBase(TableBase):
     """Interface class for database entries describing parts of
     the data processing
@@ -160,6 +198,10 @@ class CMTableBase(TableBase):
 
     def get_handler(self) -> Handler:
         """Return the associated callback `Handler`"""
+        raise NotImplementedError()
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        """Return the associated callback `Handler` for a child node"""
         raise NotImplementedError()
 
 
@@ -178,22 +220,30 @@ class DbInterface:
     requested operation.
     """
 
+    def __init__(self) -> None:
+        Handler.handler_cache.clear()
+
     def connection(self) -> Any:
         """Return the database connection object"""
         raise NotImplementedError()
 
-    def get_db_id(self, level: LevelEnum, **kwargs: Any) -> DbId:
+    def get_db_id(self, **kwargs: Any) -> DbId:
         """Return an id that identifies one or more database entries
 
         Parameters
         ----------
-        level : LevelEnum
-            Specifies which database table to create ID for
+        kwargs : Any
+            These are used to specify the entry in question
 
-        Keywords
-        --------
-        These are used to specify particular values for the entry in question
-        and any parent entries
+        Notes
+        -----
+        This will first check if `fullname` is present in kwargs.
+        If so, it will parse fullname to identify which Table to search
+        and then search for a matching `fullname`.
+
+        If `fullname` is not present this will search for
+        production_name, campaign_name, step_name, group_name and workflow_idx
+        and use those to identify which Table to search.
 
         Returns
         -------
@@ -202,14 +252,11 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def get_entry_from_fullname(self, level: LevelEnum, fullname: str) -> CMTableBase:
+    def get_entry_from_fullname(self, fullname: str) -> CMTableBase:
         """Return a selected entry
 
         Parameters
         ----------
-        level : LevelEnum
-            Specifies which database table to search
-
         fullname : str
             Full name of the entry
 
@@ -265,6 +312,21 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def get_config(self, config_name: str) -> ConfigBase:
+        """Return a selected configuration object
+
+        Parameters
+        ----------
+        config_name : str
+            Selects which configutaion
+
+        Returns
+        -------
+        config : ConfigBase
+            Selected configuration
+        """
+        raise NotImplementedError()
+
     def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         """Print a database entry or entries
 
@@ -313,6 +375,19 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def print_config(self, stream: TextIO, config_name: str) -> None:
+        """Print a information about a given configuration
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        config_name : str
+            Name of the configuration in question
+        """
+        raise NotImplementedError()
+
     def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Check all database entries at a particular level
 
@@ -327,7 +402,13 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def insert(self, parent_db_id: DbId, handler: Handler, **kwargs: Any) -> CMTableBase:
+    def insert(
+        self,
+        parent_db_id: DbId,
+        config_block: str,
+        config: ConfigBase | None,
+        **kwargs: Any,
+    ) -> CMTableBase:
         """Insert a new database entry at a particular level
 
         Parameters
@@ -335,19 +416,79 @@ class DbInterface:
         parent_db_id : DbId
             Specifies the parent entry to the entry we are inserting
 
-        handler : Handler
-            Callback handler for the entry we are inserting
+        config_block: str
+            Specifics which part of the configuration to use for this entry
 
-        Keywords
-        --------
-        These are used to select the parent rows to the
-        entry being inserted.
-        See class notes above.
+        config : ConfigBase
+            Configuration associated to this entry
+
+        kwargs : Any
+            These can be used to override configuration values
 
         Returns
         -------
         new_entry : CMTableBase
             Newly inserted entry
+        """
+        raise NotImplementedError()
+
+    def add_script(
+        self,
+        parent_db_id: DbId,
+        script_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> ScriptBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        parent_db_id : DbId
+            Specifies the parent entry to the script we are inserting
+
+        script_name: str
+            Name of the script, also specifies configuration block
+
+        config : ConfigBase
+            Configuration associated to this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_script : ScriptBase
+            Newly inserted script
+        """
+        raise NotImplementedError()
+
+    def add_job(
+        self,
+        parent_db_id: DbId,
+        job_name: str,
+        config: ConfigBase | None = None,
+        **kwargs: Any,
+    ) -> JobBase:
+        """Insert a new script
+
+        Parameters
+        ----------
+        parent_db_id : DbId
+            Specifies the parent entry to the script we are inserting
+
+        job_name: str
+            Name of the job, also specifies configuration block
+
+        config : ConfigBase
+            Configuration associated to this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_job : JobBase
+            Newly inserted job
         """
         raise NotImplementedError()
 
@@ -529,5 +670,41 @@ class DbInterface:
 
         n_iter : int
             Number of interations to run, -1 for no limit
+        """
+        raise NotImplementedError()
+
+    def parse_config(self, config_name: str, config_yaml: str) -> ConfigBase:
+        """Parse a configuration file
+
+        Parameters
+        ----------
+        config_name : str
+            Name to give to the configuraiton
+
+        config_yaml : str
+            Path to the file with the configurations
+
+        Returns
+        -------
+        config : ConfigBase
+            The configuration object
+        """
+        raise NotImplementedError()
+
+    def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
+        """Parse a configuration file and add it to an existing configuration
+
+        Parameters
+        ----------
+        config_name : str
+            Name to give to the configuraiton
+
+        config_yaml : str
+            Path to the file with the configurations
+
+        Returns
+        -------
+        config : ConfigBase
+            The configuration object
         """
         raise NotImplementedError()

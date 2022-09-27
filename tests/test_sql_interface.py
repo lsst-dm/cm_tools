@@ -11,19 +11,27 @@ from lsst.cm.tools.db.script import Script
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
-def run_production(iface: SQLAlchemyInterface, the_handler: Handler, campaign_name: str) -> None:
+def run_production(
+    iface: SQLAlchemyInterface, campaign_name: str, config_name: str, config_yaml: str
+) -> None:
 
-    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
-    iface.insert(
+    db_p_id = iface.get_db_id(production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
+    campaign = iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name=campaign_name,
         butler_repo="repo",
         prod_base_url="archive_test",
     )
+    assert campaign
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name=campaign_name)
+    db_c_id = iface.get_db_id(production_name="example", campaign_name=campaign_name)
 
     for step_name in ["step1", "step2", "step3"]:
 
@@ -69,31 +77,25 @@ def test_full_example() -> None:
     Handler.config_dir = "examples/configs/"
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
+    config_name = "test_full"
     config_yaml = "example_config.yaml"
-    handler1_class = "handler.ExampleHandler"
-    handler1 = Handler.get_handler(handler1_class, config_yaml)
-    run_production(iface, handler1, "test1")
+    run_production(iface, "test1", config_name, config_yaml)
 
+    config_name2 = "test2_full"
     config_yaml2 = "example_config2.yaml"
-    handler2_class = "handler.ExampleHandler"
-    handler2 = Handler.get_handler(handler2_class, config_yaml2)
-    run_production(iface, handler2, "test2")
+    run_production(iface, "test2", config_name2, config_yaml2)
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test1")
-    db_s_id = iface.get_db_id(
-        LevelEnum.step, production_name="example", campaign_name="test1", step_name="step1"
-    )
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test1")
+    db_s_id = iface.get_db_id(production_name="example", campaign_name="test1", step_name="step1")
     db_g_id = iface.get_db_id(
-        LevelEnum.group,
         production_name="example",
         campaign_name="test1",
         step_name="step1",
         group_name="group_0",
     )
     db_w_id = iface.get_db_id(
-        LevelEnum.workflow,
         production_name="example",
         campaign_name="test1",
         step_name="step1",
@@ -103,10 +105,10 @@ def test_full_example() -> None:
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
 
-    check_top_id = iface.get_db_id(None)
+    check_top_id = iface.get_db_id()
     assert check_top_id.to_tuple() == (None, None, None, None, None)
 
-    check_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    check_p_id = iface.get_db_id(production_name="example")
     assert check_p_id.to_tuple() == (1, None, None, None, None)
 
     prod = iface.get_entry(LevelEnum.production, check_p_id)
@@ -114,17 +116,15 @@ def test_full_example() -> None:
     assert prod.name == "example"
     assert (
         iface.get_entry_from_fullname(
-            LevelEnum.production,
             "example",
         ).db_id.to_tuple()
         == prod.db_id.to_tuple()
     )
 
-    check_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test1")
+    check_c_id = iface.get_db_id(production_name="example", campaign_name="test1")
     assert check_c_id.to_tuple() == (1, 1, None, None, None)
     assert (
         iface.get_entry_from_fullname(
-            LevelEnum.campaign,
             "example/test1",
         ).db_id.to_tuple()
         == check_c_id.to_tuple()
@@ -132,25 +132,21 @@ def test_full_example() -> None:
 
     assert (
         iface.get_db_id(
-            LevelEnum.campaign,
             fullname="example/test1",
         ).to_tuple()
         == check_c_id.to_tuple()
     )
 
-    check_c_bad_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="bad")
+    check_c_bad_id = iface.get_db_id(production_name="example", campaign_name="bad")
     assert check_c_bad_id.to_tuple() == (1, None, None, None, None)
 
-    check_c_none_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name=None)
+    check_c_none_id = iface.get_db_id(production_name="example", campaign_name=None)
     assert check_c_none_id.to_tuple() == (1, None, None, None, None)
 
-    check_s_id = iface.get_db_id(
-        LevelEnum.step, production_name="example", campaign_name="test1", step_name="step1"
-    )
+    check_s_id = iface.get_db_id(production_name="example", campaign_name="test1", step_name="step1")
     assert check_s_id.to_tuple() == (1, 1, 1, None, None)
 
     check_g_id = iface.get_db_id(
-        LevelEnum.group,
         production_name="example",
         campaign_name="test1",
         step_name="step1",
@@ -161,10 +157,23 @@ def test_full_example() -> None:
     result = iface.rollback(LevelEnum.campaign, db_c_id, StatusEnum.accepted)
     assert not result
 
+    check_w_id = iface.get_db_id(fullname="example/test1/step1/group_0/00")
+    assert check_w_id.to_tuple() == (1, 1, 1, 1, 1)
+
+    check_w_id_2 = iface.get_db_id(
+        production_name="example",
+        campaign_name="test1",
+        step_name="step1",
+        group_name="group_0",
+        workflow_idx=0,
+    )
+    assert check_w_id_2.to_tuple() == (1, 1, 1, 1, 1)
+
     iface.rollback(LevelEnum.campaign, db_c_id, StatusEnum.waiting)
     iface.supersede(LevelEnum.campaign, db_c_id)
 
     with open(os.devnull, "wt") as fout:
+        iface.print_config(fout, config_name)
         iface.print_table(fout, TableEnum.production)
         iface.print_table(fout, TableEnum.campaign)
         iface.print_table(fout, TableEnum.step)
@@ -198,17 +207,19 @@ def test_failed_workflows() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_failed"
     config_yaml = "example_config.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
-    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    db_p_id = iface.get_db_id(production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -218,7 +229,8 @@ def test_failed_workflows() -> None:
     with pytest.raises(KeyError):
         iface.insert(
             db_p_id,
-            the_handler,
+            "campaign",
+            config,
             production_name="example",
             campaign_name="fail_1",
             prod_base_url="archive_test",
@@ -226,22 +238,31 @@ def test_failed_workflows() -> None:
     with pytest.raises(KeyError):
         iface.insert(
             db_p_id,
-            the_handler,
+            "campaign",
+            config,
             production_name="example",
             campaign_name="fail_2",
             butler_repo="repo",
         )
+    with pytest.raises(KeyError):
+        iface.insert(
+            db_p_id,
+            "missing",
+            config,
+            production_name="example",
+            campaign_name="fail_2",
+            butler_repo="repo",
+        )
+    with pytest.raises(KeyError):
+        iface.print_config(sys.stdout, "no_config")
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
 
     for step_name in ["step1"]:
-        db_s_id = iface.get_db_id(
-            LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
-        )
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
         iface.queue_jobs(LevelEnum.campaign, db_c_id)
         iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
         db_g_id = iface.get_db_id(
-            LevelEnum.group,
             production_name="example",
             campaign_name="test",
             step_name=step_name,
@@ -251,7 +272,6 @@ def test_failed_workflows() -> None:
         iface.fake_run(LevelEnum.step, db_s_id)
         iface.accept(LevelEnum.step, db_s_id)
         db_w_id = iface.get_db_id(
-            LevelEnum.workflow,
             production_name="example",
             campaign_name="test",
             step_name=step_name,
@@ -261,7 +281,6 @@ def test_failed_workflows() -> None:
         iface.rollback(LevelEnum.workflow, db_w_id, StatusEnum.ready)
         iface.reject(LevelEnum.group, db_g_id)
         db_g_id_ok = iface.get_db_id(
-            LevelEnum.group,
             production_name="example",
             campaign_name="test",
             step_name=step_name,
@@ -278,6 +297,78 @@ def test_failed_workflows() -> None:
     os.unlink("fail.db")
 
 
+def test_recover_failed() -> None:
+
+    try:
+        os.unlink("fail.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+
+    iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+
+    config_name = "test_failed"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+
+    db_p_id = iface.get_db_id(production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
+    iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        prod_base_url="archive_test",
+    )
+
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
+        iface.queue_jobs(LevelEnum.campaign, db_c_id)
+        iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
+        db_g_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+        )
+        iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.failed)
+        iface.fake_run(LevelEnum.step, db_s_id)
+        iface.accept(LevelEnum.step, db_s_id)
+        db_w_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+            workflow_idx=0,
+        )
+        iface.supersede_job(LevelEnum.workflow, db_w_id, "job")
+        result = iface.supersede_job(LevelEnum.workflow, db_w_id, "no_job")
+        assert not result
+        iface.add_job(db_w_id, "job")
+        iface.fake_run(LevelEnum.group, db_g_id)
+        iface.insert(
+            db_s_id,
+            "group",
+            None,
+            production_name="example",
+            campaign_name="test",
+            step_name="step1",
+            group_name="extra_group",
+        )
+
+    os.system("\\rm -rf archive_test")
+    os.unlink("fail.db")
+
+
 def test_failed_scripts() -> None:
 
     try:
@@ -290,17 +381,21 @@ def test_failed_scripts() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_failed"
     config_yaml = "example_failed_script.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
-    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    db_p_id = iface.get_db_id(production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
@@ -309,7 +404,6 @@ def test_failed_scripts() -> None:
 
     for step_name in ["step1"]:
         db_g_id = iface.get_db_id(
-            LevelEnum.group,
             production_name="example",
             campaign_name="test",
             step_name=step_name,
@@ -317,14 +411,15 @@ def test_failed_scripts() -> None:
         )
         iface.rollback(LevelEnum.group, db_g_id, StatusEnum.ready)
 
-    iface.print_table(sys.stdout, TableEnum.production)
-    iface.print_table(sys.stdout, TableEnum.campaign)
-    iface.print_table(sys.stdout, TableEnum.step)
-    iface.print_table(sys.stdout, TableEnum.group)
-    iface.print_table(sys.stdout, TableEnum.workflow)
-    iface.print_table(sys.stdout, TableEnum.script)
-    iface.print_table(sys.stdout, TableEnum.job)
-    iface.print_table(sys.stdout, TableEnum.dependency)
+    with open(os.devnull, "wt") as fout:
+        iface.print_table(fout, TableEnum.production)
+        iface.print_table(fout, TableEnum.campaign)
+        iface.print_table(fout, TableEnum.step)
+        iface.print_table(fout, TableEnum.group)
+        iface.print_table(fout, TableEnum.workflow)
+        iface.print_table(fout, TableEnum.script)
+        iface.print_table(fout, TableEnum.job)
+        iface.print_table(fout, TableEnum.dependency)
 
     os.system("\\rm -rf archive_test")
     os.unlink("fail.db")
@@ -342,51 +437,133 @@ def test_script_interface() -> None:
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
 
+    config_name = "test_scripts"
     config_yaml = "example_test_scripts.yaml"
-    handler_class = "handler.ExampleHandler"
-    the_handler = Handler.get_handler(handler_class, config_yaml)
 
     top_db_id = None
-    iface.insert(top_db_id, None, production_name="example")
+    iface.insert(top_db_id, None, None, production_name="example")
 
-    db_p_id = iface.get_db_id(LevelEnum.production, production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+    check_config = iface.get_config(config_name)
+    assert check_config == config
+    mod_config = iface.parse_config("mod_config", "example_mod_config.yaml")
+    assert mod_config
+
+    db_p_id = iface.get_db_id(production_name="example")
     iface.insert(
         db_p_id,
-        the_handler,
+        "campaign",
+        config,
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
         prod_base_url="archive_test",
     )
 
-    db_c_id = iface.get_db_id(LevelEnum.campaign, production_name="example", campaign_name="test")
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
 
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.running)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.running)
     iface.fake_script(LevelEnum.campaign, db_c_id, "prepare", StatusEnum.completed)
     iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
 
+    result = iface.fake_script(LevelEnum.campaign, db_c_id, "ancil", StatusEnum.completed)
+    assert not result
+
     for step_name in ["step1"]:
-        db_s_id = iface.get_db_id(
-            LevelEnum.step, production_name="example", campaign_name="test", step_name=step_name
-        )
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
         iface.queue_jobs(LevelEnum.campaign, db_c_id)
         iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
         iface.fake_run(LevelEnum.step, db_s_id)
         iface.fake_script(LevelEnum.step, db_s_id, "collect", StatusEnum.completed)
-        iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.completed)
+        iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.failed)
+        iface.supersede_script(LevelEnum.step, db_s_id, "validate")
+        iface.add_script(db_s_id, "validate")
 
-    iface.print_table(sys.stdout, TableEnum.production)
-    iface.print_table(sys.stdout, TableEnum.campaign)
-    iface.print_table(sys.stdout, TableEnum.step)
-    iface.print_table(sys.stdout, TableEnum.group)
-    iface.print_table(sys.stdout, TableEnum.workflow)
-    iface.print_table(sys.stdout, TableEnum.script)
-    iface.print_table(sys.stdout, TableEnum.job)
-    iface.print_table(sys.stdout, TableEnum.dependency)
+    with open(os.devnull, "wt") as fout:
+        iface.print_table(fout, TableEnum.production)
+        iface.print_table(fout, TableEnum.campaign)
+        iface.print_table(fout, TableEnum.step)
+        iface.print_table(fout, TableEnum.group)
+        iface.print_table(fout, TableEnum.workflow)
+        iface.print_table(fout, TableEnum.script)
+        iface.print_table(fout, TableEnum.job)
+        iface.print_table(fout, TableEnum.dependency)
 
     os.system("\\rm -rf archive_test")
     os.unlink("fail.db")
+
+
+def test_insert() -> None:
+
+    try:
+        os.unlink("test.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+
+    iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+
+    config_name = "test"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+    db_p_id = iface.get_db_id(production_name="example")
+
+    config = iface.parse_config(config_name, config_yaml)
+    assert config
+
+    campaign = iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        prod_base_url="archive_test",
+    )
+    assert campaign
+
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
+
+    iface.queue_jobs(LevelEnum.campaign, db_c_id)
+    iface.launch_jobs(LevelEnum.campaign, db_c_id, 5)
+
+    db_s_id = iface.get_db_id(
+        production_name="example",
+        campaign_name="test",
+        step_name="step1",
+    )
+
+    new_group = iface.insert(
+        db_s_id,
+        "group",
+        config,
+        production_name="example",
+        campaign_name="test",
+        step_name="step1",
+        group_name="extra_group",
+    )
+    assert new_group
+
+    new_step_config = iface.extend_config(config_name, "example_extra_step.yaml")
+
+    new_step = iface.insert(
+        db_c_id,
+        "extra_step",
+        new_step_config,
+        production_name="example",
+        campaign_name="test",
+        step_name="extra_step",
+    )
+    assert new_step
+
+    os.system("\\rm -rf archive_test")
+    os.unlink("test.db")
 
 
 def test_bad_db() -> None:
@@ -402,3 +579,7 @@ def test_table_repr() -> None:
 
     script = Script(status=StatusEnum.ready)
     assert repr(script)
+
+
+if __name__ == "__main__":
+    test_full_example()

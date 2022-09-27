@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import declarative_base
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, FragmentBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.rollback import Rollback
@@ -49,33 +49,32 @@ class SQLTableMixin:
 
 class SQLScriptMixin(SQLTableMixin):
     """Provides implementation some functions
-    need for Script and Workflow objects
+    needed for Script and Workflow objects
     """
 
     id: int | None
-    handler: str | None
-    config_yaml: str | None
+    frag_: FragmentBase | None
     status: StatusEnum
 
     def get_handler(self) -> Handler:
         """Return a Handler for this entry"""
-        return Handler.get_handler(self.handler, self.config_yaml)
+        assert self.frag_ is not None
+        return self.frag_.get_handler()
 
     @classmethod
-    def check_status(cls, dbi: DbInterface, entry: Any) -> StatusEnum:
+    def check_status(cls, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
         """Check the status of a script"""
-        current_status = entry.status
-        checker = Checker.get_checker(entry.checker)
-        new_status = checker.check_url(entry.stamp_url, entry.status)
-        if new_status != current_status:
-            stmt = update(cls).where(cls.id == entry.id).values(status=new_status)
+        checker = Checker.get_checker(script.checker)
+        new_values = checker.check_url(script)
+        if new_values:
+            stmt = update(cls).where(cls.id == script.id).values(**new_values)
             conn = dbi.connection()
             upd_result = conn.execute(stmt)
             check_result(upd_result)
-        return new_status
+        return script.status
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: Any, script: TableBase) -> None:
+    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase) -> None:
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
         rollback_handler.rollback_script(entry, script)
@@ -91,13 +90,18 @@ class CMTable(SQLTableMixin, CMTableBase):
     level = LevelEnum.production
 
     name: str | None
-    handler: str | None
-    config_yaml: str | None
+    frag_: FragmentBase | None
+    config_: ConfigBase | None
     match_keys: list[str] = []
     parent_id: Any
 
     def get_handler(self) -> Handler:
-        return Handler.get_handler(self.handler, self.config_yaml)
+        assert self.frag_
+        return self.frag_.get_handler()
+
+    def get_sub_handler(self, config_block: str) -> Handler:
+        assert self.config_
+        return self.config_.get_sub_handler(config_block)
 
     @classmethod
     def get_match_query(cls, db_id: DbId) -> Any:

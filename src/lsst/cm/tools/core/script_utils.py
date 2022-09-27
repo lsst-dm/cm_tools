@@ -4,7 +4,7 @@ from typing import Any, Optional
 import yaml
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import ScriptBase, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
 
@@ -149,7 +149,7 @@ def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -
     return command
 
 
-def make_bps_command(config_url: str) -> str:
+def make_bps_command(config_url: str, json_url: str, log_url: str) -> str:
     """Build and return command to submit a bps job
 
     Parameters
@@ -157,12 +157,18 @@ def make_bps_command(config_url: str) -> str:
     config_url : str
         Configuration file
 
+    json_url : str
+        Json log file
+
+    log_url : str
+        Log file file
+
     Returns
     -------
     command : str
         Requested command
     """
-    return f"bps submit {os.path.abspath(config_url)}"
+    return f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
 
 def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> None:
@@ -226,13 +232,16 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, url: str, current_status: StatusEnum) -> StatusEnum:
-        return check_status_from_yaml(url, current_status)
+    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+        new_status = check_status_from_yaml(script.stamp_url, script.status)
+        if new_status == script.status:
+            return {}
+        return dict(status=new_status)
 
 
 class FakeRollback(Rollback):
     """Fakes a command that would remove collections associated to a script"""
 
-    def rollback_script(self, entry: Any, script: TableBase) -> None:
+    def rollback_script(self, entry: CMTableBase, script: TableBase) -> None:
         command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out)
         print(f"Rolling back {script.db_id}.{script.name} with {command}")

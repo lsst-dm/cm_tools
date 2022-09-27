@@ -18,18 +18,21 @@ rm -rf "$db_path" "$CM_PROD_URL"
 mkdir -p "$EXAMPLES/output"
 
 cm create
-cm insert --level production --production-name ${p_name}
-cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
 
-cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm parse --config-name test_config --config-yaml ${config}
 
-cm insert --level group --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group --handler ${group_handler} --config-yaml ${config} --data-query "i == 11"
-cm queue --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm launch --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm fake-run --level campaign --production-name ${p_name} --campaign-name ${c_name}
-cm accept --level campaign --production-name ${p_name} --campaign-name ${c_name}
+cm insert --production-name ${p_name}
+cm insert --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
+
+cm queue --production-name ${p_name} --campaign-name ${c_name}
+cm launch --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --production-name ${p_name} --campaign-name ${c_name}
+
+cm insert --production-name ${p_name} --campaign-name ${c_name} --step-name step1 --group-name extra_group --config-name test_config --config-block group --data-query "i == 11"
+cm queue --production-name ${p_name} --campaign-name ${c_name}
+cm launch --production-name ${p_name} --campaign-name ${c_name}
+cm fake-run --production-name ${p_name} --campaign-name ${c_name}
+cm accept --production-name ${p_name} --campaign-name ${c_name}
 
 cm print-table --table campaign
 cm print-table --table step

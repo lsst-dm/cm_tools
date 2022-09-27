@@ -3,9 +3,9 @@ from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
-from lsst.cm.tools.core.handler import EntryHandlerBase, Handler
+from lsst.cm.tools.core.handler import EntryHandlerBase
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker
-from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
+from lsst.cm.tools.core.utils import ScriptType, StatusEnum, safe_makedirs
 from lsst.cm.tools.db.common import CMTable
 from lsst.cm.tools.db.handler_utils import (
     accept_children,
@@ -98,7 +98,7 @@ class EntryHandler(EntryHandlerBase):
         pass
 
 
-class GenericEntryHandlerMixin(EntryHandler):
+class GenericEntryHandler(EntryHandler):
     """Callback handler for database entries
 
     Provides generic version of interface functions
@@ -109,42 +109,38 @@ class GenericEntryHandlerMixin(EntryHandler):
     rollback_class = FakeRollback().get_rollback_class_name()
 
     def make_scripts(self, dbi: DbInterface, entry: Any) -> None:
-        script_handlers = self.config.get("prepare", {})
-        self._insert_generic_scripts(dbi, entry, script_handlers)
-        script_handlers = self.config.get("collect", {})
-        self._insert_generic_scripts(dbi, entry, script_handlers)
-        script_handlers = self.config.get("validate", {})
+        script_handlers = self.config.get("scripts", [])
         self._insert_generic_scripts(dbi, entry, script_handlers)
         self._make_jobs(dbi, entry)
         return StatusEnum.ready
 
     def prepare_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        script_handlers = self.config.get("prepare", {})
-        return self._run_generic_scripts(dbi, entry, script_handlers)
+        script_handlers = self.config.get("scripts", [])
+        return self._run_generic_scripts(dbi, entry, script_handlers, ScriptType.prepare)
 
     def collect_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        script_handlers = self.config.get("collect", {})
-        return self._run_generic_scripts(dbi, entry, script_handlers)
+        script_handlers = self.config.get("scripts", [])
+        return self._run_generic_scripts(dbi, entry, script_handlers, ScriptType.collect)
 
     def validate_script_hook(self, dbi: DbInterface, entry: Any) -> list[ScriptBase]:
-        script_handlers = self.config.get("validate", {})
-        return self._run_generic_scripts(dbi, entry, script_handlers)
+        script_handlers = self.config.get("scripts", [])
+        return self._run_generic_scripts(dbi, entry, script_handlers, ScriptType.validate)
 
     @staticmethod
     def _insert_generic_scripts(
         dbi: DbInterface,
         entry: Any,
-        script_handlers: dict[str, Any],
+        script_handlers: list[str],
     ) -> list[ScriptBase]:
         scripts: list[ScriptBase] = []
-        for handler_name, handler_info in script_handlers.items():
-            handler_class_name = handler_info.get("class_name", None)
-            handler = Handler.get_handler(handler_class_name, entry.config_yaml)
+        for handler_name in script_handlers:
+            fragment = entry.config_.get_fragment(handler_name)
+            handler = fragment.get_handler()
             script = handler.insert(
                 dbi,
                 entry,
                 name=handler_name,
-                **handler_info,
+                **fragment.data,
             )
             scripts.append(script)
         return scripts
@@ -153,21 +149,25 @@ class GenericEntryHandlerMixin(EntryHandler):
     def _run_generic_scripts(
         dbi: DbInterface,
         entry: Any,
-        script_handlers: dict[str, Any],
+        script_handlers: list[str],
+        script_type: ScriptType,
     ) -> list[ScriptBase]:
         scripts: list[ScriptBase] = []
-        for handler_name, handler_info in script_handlers.items():
+        for handler_name in script_handlers:
+            fragment = entry.config_.get_fragment(handler_name)
             for script_ in entry.scripts_:
                 if script_.name != handler_name:
+                    continue
+                if script_.script_type != script_type:
                     continue
                 handler = script_.get_handler()
                 handler.run(
                     dbi,
                     entry,
                     script_,
-                    prepend=f"# Written by {handler.get_handler_class_name()}",
+                    prepend=f"#!/bin/sh\n\n# Written by {handler.get_handler_class_name()}",
                     append="# Have a good day",
-                    **handler_info,
+                    **fragment.data,
                 )
                 scripts.append(script_)
         return scripts

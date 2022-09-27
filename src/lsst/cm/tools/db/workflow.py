@@ -10,6 +10,7 @@ from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.config import Config, Fragment
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.step import Step
@@ -31,11 +32,11 @@ class Workflow(common.Base, common.CMTable):
     c_id = Column(Integer, ForeignKey(Campaign.id))
     s_id = Column(Integer, ForeignKey(Step.id))
     g_id = Column(Integer, ForeignKey(Group.id))
+    config_id = Column(Integer, ForeignKey(Config.id))
+    frag_id = Column(Integer, ForeignKey(Fragment.id))
     idx = Column(Integer)  # Index from this work
     name = Column(String)  # Index for this workflow
     fullname = Column(String, unique=True)  # Unique name
-    handler = Column(String)  # Handler class
-    config_yaml = Column(String)  # Configuration file
     data_query = Column(String)  # Data query
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
@@ -47,6 +48,8 @@ class Workflow(common.Base, common.CMTable):
     c_: Campaign = relationship("Campaign", back_populates="w_")
     s_: Step = relationship("Step", back_populates="w_")
     g_: Group = relationship("Group", back_populates="w_")
+    config_: Config = relationship("Config", viewonly=True)
+    frag_: Fragment = relationship("Fragment", viewonly=True)
     all_scripts_: Iterable = relationship("Script", back_populates="w_")
     scripts_: Iterable = relationship(
         "Script",
@@ -78,7 +81,7 @@ class Workflow(common.Base, common.CMTable):
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        return f"Workflow {self.fullname} {self.db_id}: {self.handler} {self.status.name} {supersede_string}"
+        return f"Workflow {self.fullname} {self.db_id}: {self.frag_id} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""

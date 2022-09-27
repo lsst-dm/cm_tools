@@ -17,17 +17,20 @@ rm -rf "$db_path" "$CM_PROD_URL"
 mkdir -p "$EXAMPLES/output"
 
 cm create
-cm insert --level production --production-name ${p_name}
-cm insert --level campaign --production-name ${p_name} --campaign-name ${c_name} --handler ${handler} --config-yaml ${config}
 
-cm queue --level campaign --fullname ${p_name}/${c_name}
-cm launch --level campaign --fullname ${p_name}/${c_name}
+cm parse --config-name test_config --config-yaml ${config}
 
-cm fake-run --level group --fullname ${p_name}/${c_name}/step1/group_4 --status failed
-cm fake-run --level campaign --fullname ${p_name}/${c_name}
-cm accept --level campaign --fullname ${p_name}/${c_name}
-cm supersede --level group --fullname ${p_name}/${c_name}/step1/group_4
-cm accept --level campaign --fullname ${p_name}/${c_name}
+cm insert --production-name ${p_name}
+cm insert --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
+
+cm queue --fullname ${p_name}/${c_name}
+cm launch --fullname ${p_name}/${c_name}
+
+cm fake-run --fullname ${p_name}/${c_name}/step1/group_4 --status failed
+cm fake-run --fullname ${p_name}/${c_name}
+cm accept --fullname ${p_name}/${c_name}
+cm supersede --fullname ${p_name}/${c_name}/step1/group_4
+cm accept --fullname ${p_name}/${c_name}
 
 cm print-table --table campaign
 cm print-table --table step

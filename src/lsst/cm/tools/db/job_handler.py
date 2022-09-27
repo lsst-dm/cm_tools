@@ -1,8 +1,10 @@
+import os
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import JobHandlerBase
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
+from lsst.cm.tools.core.slurm_utils import submit_job
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.workflow import Workflow
@@ -16,7 +18,6 @@ class JobHandler(JobHandlerBase):
     Derived classes will have to:
 
     1. implement `write_job_hook` to write the script to run
-    2. implement `launch_hook` to launch the job
     """
 
     default_config = dict(
@@ -25,10 +26,10 @@ class JobHandler(JobHandlerBase):
             stamp_url="{prod_base_url}/{fullname}/{name}_{idx:03}.stamp",
             log_url="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
             config_url="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
+            json_url="{prod_base_url}/{fullname}/{name}_{idx:03}.json",
         )
     )
 
-    script_method = ScriptMethod.bash
     checker_class_name = YamlChecker().get_checker_class_name()
     rollback_class_name = FakeRollback().get_rollback_class_name()
 
@@ -40,12 +41,12 @@ class JobHandler(JobHandlerBase):
         insert_fields = dict(
             name=name,
             idx=idx,
+            p_id=parent.db_id.p_id,
             c_id=parent.db_id.c_id,
             s_id=parent.db_id.s_id,
             g_id=parent.db_id.g_id,
             w_id=parent.db_id.w_id,
-            handler=self.get_handler_class_name(),
-            config_yaml=self.config_url,
+            frag_id=self._fragment_id,
             checker=self.checker_class_name,
             rollback=self.rollback_class_name,
             coll_out=parent.coll_out,
@@ -59,9 +60,12 @@ class JobHandler(JobHandlerBase):
             idx=idx,
             name=name,
         )
+        if self.script_method == ScriptMethod.slurm:  # pragma: no cover
+            script_data.pop("stamp_url")
         insert_fields.update(**script_data)
-        script = Job.insert_values(dbi, **insert_fields)
-        return script
+        new_job = Job.insert_values(dbi, **insert_fields)
+        dbi.connection().commit()
+        return new_job
 
     def fake_run_hook(
         self, dbi: DbInterface, job: JobBase, status: StatusEnum = StatusEnum.completed
@@ -70,6 +74,18 @@ class JobHandler(JobHandlerBase):
 
     def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
         parent = job.w_
-        self.write_job_hook(dbi, parent, job)
-        Job.update_values(dbi, job.id, status=StatusEnum.running)
+        if job.script_method == ScriptMethod.no_run:  # pragma: no cover
+            status = StatusEnum.ready
+        elif job.script_method == ScriptMethod.no_script:  # pragma: no cover
+            status = StatusEnum.running
+        elif job.script_method == ScriptMethod.bash:
+            os.system(f"source {job.script_url}")
+            status = StatusEnum.running
+        elif job.script_method == ScriptMethod.slurm:  # pragma: no cover
+            job_id = submit_job(job.script_url, job.log_url)
+            Job.update_values(dbi, job.id, stamp_url=job_id)
+            status = StatusEnum.running
+        parent = job.w_
+        Job.update_values(dbi, job.id, status=status)
         Workflow.update_values(dbi, parent.id, status=StatusEnum.running)
+        return status

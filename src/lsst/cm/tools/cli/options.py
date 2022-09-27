@@ -7,24 +7,25 @@ from click.decorators import F
 
 from ..core.db_interface import DbInterface
 from ..core.handler import Handler
-from ..core.utils import LevelEnum, StatusEnum, TableEnum
+from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
 from ..db.sqlalch_interface import SQLAlchemyInterface
 
 __all__ = [
     "butler",
     "campaign",
-    "config",
+    "config_yaml",
+    "config_name",
+    "config_block",
     "data_query",
     "dbi",
     "fullname",
     "group",
-    "handler",
     "level",
     "max_running",
-    "nosubmit",
     "prod_base",
     "production",
     "script",
+    "script_method",
     "status",
     "step",
     "table",
@@ -63,22 +64,10 @@ echo = PartialOption(
     is_flag=True,
 )
 
-recurse = PartialOption(
-    "--recurse",
-    is_flag=True,
-    help="Recurvisely execute command",
-)
-
-nosubmit = PartialOption(
-    "--no-submit",
-    is_flag=True,
-    help="Don't submit jobs and scripts",
-)
-
 level = PartialOption(
     "--level",
     type=EnumChoice(LevelEnum),
-    default="group",
+    default=None,
     help="Which level to match.",
 )
 
@@ -94,6 +83,14 @@ status = PartialOption(
     type=EnumChoice(StatusEnum),
     default="completed",
     help="Status level to set.",
+)
+
+script_method = PartialOption(
+    "--script_method",
+    type=EnumChoice(ScriptMethod),
+    default="bash",
+    envvar="CM_SCRIPT_METHOD",
+    help="How to submit scripts.",
 )
 
 max_running = PartialOption(
@@ -126,21 +123,26 @@ db = PartialOption(
     show_default=True,
 )
 
-handler = PartialOption(
-    "--handler",
-    default="lsst.cm.tools.db.sqlalch_handler.SQLAlchemyHandler",
-    help="Full import path to callback handler.",
-)
 
 data_query = PartialOption(
     "--data-query",
     help="Data query for entry",
 )
 
-config = PartialOption(
+config_yaml = PartialOption(
     "--config-yaml",
     type=click.Path(),
     help="Configuration Yaml.",
+)
+
+config_name = PartialOption(
+    "--config-name",
+    help="Configuration Name.",
+)
+
+config_block = PartialOption(
+    "--config-block",
+    help="Which block of configuration to use",
 )
 
 fullname = PartialOption(

@@ -1,12 +1,12 @@
 from __future__ import annotations  # Needed for class member returning class
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lsst.cm.tools.core.db_interface import TableBase
+    from lsst.cm.tools.core.db_interface import CMTableBase, TableBase
 
 
 class Rollback:
@@ -50,12 +50,12 @@ class Rollback:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def rollback_script(self, entry: Any, script: TableBase) -> None:
+    def rollback_script(self, entry: CMTableBase, script: TableBase) -> None:
         """Rollback the script in question
 
         Parameters
         ----------
-        entry : Any
+        entry : CMTableBase
             Database entry associated to the script to be rolled-back
 
         script : TableBase
