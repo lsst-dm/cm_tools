@@ -1,8 +1,28 @@
 from typing import Any
 
+from pandaclient import panda_api
+
 from lsst.cm.tools.core.db_interface import JobBase
 from lsst.cm.tools.core.slurm_utils import SlurmChecker
 from lsst.cm.tools.core.utils import StatusEnum
+
+
+def check_panda_conn():
+    """Check for existing PanDA connection
+
+    Returns
+    -------
+    conn: PandaAPI
+        connection to the PanDA API for calls
+    """
+    try:
+        conn
+    except NameError:
+        conn = panda_api.get_api()
+        statuscode, diagmess = conn.hello()
+    # TODO: add handling with status code for authorization
+
+    return conn
 
 
 def parse_bps_stdout(url: str) -> dict[str, str]:
@@ -19,9 +39,26 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
     return out_dict
 
 
-def check_panda_status(panda_url: str) -> str:
-    """Check the status of a panda job"""
-    return "Running"
+def check_panda_status(panda_url: str, panda_username=None) -> list[str]:
+    """Check the status of a panda job
+
+    Parameters
+    ----------
+    panda_url: str
+        typically a reqid associated with the job
+    panda_username: str
+        None by default, username required for other submitters
+
+    Returns
+    -------
+    job_statuses: list[str]
+        list of status messages with associated task_id
+    """
+    conn = check_panda_conn()
+    tasks = conn.get_tasks(task_ids=panda_url, username=panda_username)
+    job_statuses = [task["status"] for task in tasks]
+
+    return job_statuses
 
 
 class PandaChecker(SlurmChecker):  # pragma: no cover
