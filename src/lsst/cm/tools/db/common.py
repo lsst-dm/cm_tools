@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Any, Iterable, TextIO
 
 from sqlalchemy import select, update
@@ -45,6 +46,19 @@ class SQLTableMixin:
             if entry.status.value < StatusEnum.accepted.value:
                 return False
         return True
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return row as a dict"""
+        return OrderedDict([(c.name, getattr(self, c.name)) for c in self.__table__.columns])
+
+    def print_full(self) -> None:
+        """Print full row"""
+        for k, v in self.as_dict().items():
+            print(f"{k}: {v}")
+
+    def print_formatted(self, stream: TextIO, fmt: str) -> None:
+        stream.write(fmt.format(**self.__dict__))
+        stream.write("\n")
 
 
 class SQLScriptMixin(SQLTableMixin):
@@ -142,10 +156,13 @@ def return_first_column(dbi: DbInterface, sel: Any) -> int | None:
         return None
 
 
-def print_select(dbi: DbInterface, stream: TextIO, sel: Any) -> None:
+def print_select(dbi: DbInterface, stream: TextIO, sel: Any, fmt: str | None) -> None:
     """Prints all the rows matching a selection"""
     conn = dbi.connection()
     sel_result = conn.execute(sel)
     check_result(sel_result)
     for row in sel_result:
-        stream.write(f"{str(row)}\n")
+        if fmt is None:
+            stream.write(f"{str(row)}\n")
+        else:
+            row[0].print_formatted(stream, fmt)

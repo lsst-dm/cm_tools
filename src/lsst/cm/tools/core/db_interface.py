@@ -327,7 +327,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId, fmt: str | None = None) -> None:
         """Print a database entry or entries
 
         Parameters
@@ -341,10 +341,13 @@ class DbInterface:
         db_id: DbId
             Database ID specifying which entries to print.
             See class notes above.
+
+        fmt: str | None
+            If provided, format for printing
         """
         raise NotImplementedError()
 
-    def print_table(self, stream: TextIO, which_table: TableEnum) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum, *kwargs: Any) -> None:
         """Print a database table
 
         Parameters

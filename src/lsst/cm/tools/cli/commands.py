@@ -134,23 +134,26 @@ def print_tree(dbi: DbInterface, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
+@options.fmt()
 def print(dbi: DbInterface, **kwargs: Any) -> None:  # pylint: disable=redefined-builtin
     """Print a database entry or entries"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.print_(sys.stdout, the_db_id.level(), the_db_id)
+    dbi.print_(sys.stdout, the_db_id.level(), the_db_id, fmt=kwargs.get("fmt"))
 
 
 @cli.command()
 @options.dbi()
 @options.table()
-def print_table(dbi: DbInterface, table: TableEnum) -> None:
+@options.fmt()
+def print_table(dbi: DbInterface, table: TableEnum, **kwargs: Any) -> None:
     """Print a database table"""
-    dbi.print_table(sys.stdout, table)
+    dbi.print_table(sys.stdout, table, **kwargs)
 
 
 @cli.command()
 @options.dbi()
 @options.config_name()
+@options.fmt()
 def print_config(dbi: DbInterface, config_name: str) -> None:
     """Print a information about a configuration"""
     dbi.print_config(sys.stdout, config_name)

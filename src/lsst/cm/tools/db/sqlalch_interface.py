@@ -123,15 +123,15 @@ class SQLAlchemyInterface(DbInterface):
         )
         return self.connection().execute(sel)
 
-    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId, fmt: str | None = None) -> None:
         table = top.get_table_for_level(level)
         sel = table.get_match_query(db_id)
-        common.print_select(self, stream, sel)
+        common.print_select(self, stream, sel, fmt)
 
-    def print_table(self, stream: TextIO, which_table: TableEnum) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
         table = top.get_table(which_table)
         sel = select(table)
-        common.print_select(self, stream, sel)
+        common.print_select(self, stream, sel, fmt=kwargs.get("fmt"))
 
     def print_tree(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         entry = self.get_entry(level, db_id)
