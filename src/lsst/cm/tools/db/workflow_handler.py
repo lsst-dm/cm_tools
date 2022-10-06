@@ -30,10 +30,12 @@ class WorkflowHandler(GenericEntryHandler):
     level = LevelEnum.workflow
 
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
+        kwcopy = kwargs.copy()
         workflow_idx = len(parent.w_)
+        kwcopy["workflow_idx"] = workflow_idx
         insert_fields = dict(
             name=f"{workflow_idx:02}",
-            fullname=self.get_fullname(workflow_idx=workflow_idx, **kwargs),
+            fullname=self.get_fullname(**kwcopy),
             p_id=parent.p_.id,
             c_id=parent.c_.id,
             s_id=parent.s_.id,
@@ -43,7 +45,7 @@ class WorkflowHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             coll_in=parent.coll_in,
             coll_out=parent.coll_out,
-            data_query=kwargs.get("data_query"),
+            data_query=kwcopy.get("data_query"),
             status=StatusEnum.waiting,
         )
         workflow = Workflow.insert_values(dbi, **insert_fields)
