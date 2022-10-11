@@ -342,6 +342,6 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @options.panda_username()
 def check_panda_job(panda_url: str, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
-    pc = PandaChecker
+    pc = PandaChecker()
     statuses = pc.check_panda_status(panda_url, panda_username)
     print(statuses)
