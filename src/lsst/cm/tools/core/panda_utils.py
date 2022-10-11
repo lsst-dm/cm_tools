@@ -24,6 +24,9 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
 class PandaChecker(SlurmChecker):  # pragma: no cover
     """Checker to use a slurm job_id and panda_id to check job status"""
 
+    def __init__(self):
+        self.conn = panda_api.get_api()
+
     def check_url(self, job: JobBase) -> dict[str, Any]:
         update_vals = {}
         panda_url = job.panda_url
@@ -48,23 +51,6 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             update_vals["status"] = status
         return update_vals
 
-    def check_panda_conn(self):
-        """Check for existing PanDA connection and establishes it.
-
-        Returns
-        -------
-        conn: PandaAPI
-            connection to the PanDA API for calls
-        """
-        try:
-            self.conn
-        except NameError:
-            self.conn = panda_api.get_api()
-            statuscode, diagmess = self.conn.hello()
-        # TODO: add handling with status code for authorization
-
-        return
-
     def check_panda_status(self, panda_url: str, panda_username=None) -> list[str]:
         """Check the status of a panda job
 
@@ -80,7 +66,6 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         job_statuses: list[str]
             list of status messages with associated task_id
         """
-        self.check_panda_conn()
         tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username)
         job_statuses = [task["status"] for task in tasks]
 
