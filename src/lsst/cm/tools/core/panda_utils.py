@@ -69,4 +69,8 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username)
         job_statuses = [task["status"] for task in tasks]
 
+        print("panda-url is {}".format(panda_url))
+        print("panda-username is {}".format(panda_username))
+        print(job_statuses)
+
         return job_statuses
