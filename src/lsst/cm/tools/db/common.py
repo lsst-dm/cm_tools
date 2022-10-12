@@ -79,6 +79,8 @@ class SQLScriptMixin(SQLTableMixin):
     def check_status(cls, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
         """Check the status of a script"""
         checker = Checker.get_checker(script.checker)
+        if checker is None:
+            return script.status
         new_values = checker.check_url(script)
         if new_values:
             stmt = update(cls).where(cls.id == script.id).values(**new_values)

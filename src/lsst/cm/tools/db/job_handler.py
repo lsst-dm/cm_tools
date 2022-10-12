@@ -4,7 +4,7 @@ from typing import Any
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import JobHandlerBase
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
-from lsst.cm.tools.core.slurm_utils import submit_job
+from lsst.cm.tools.core.slurm_utils import SlurmChecker, submit_job
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.workflow import Workflow
@@ -30,7 +30,14 @@ class JobHandler(JobHandlerBase):
         )
     )
 
-    checker_class_name = YamlChecker().get_checker_class_name()
+    checker_class_dict = {
+        ScriptMethod.fake_run: None,
+        ScriptMethod.no_run: None,
+        ScriptMethod.no_script: None,
+        ScriptMethod.bash: YamlChecker,
+        ScriptMethod.slurm: SlurmChecker,
+    }
+
     rollback_class_name = FakeRollback().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> JobBase:
@@ -38,6 +45,11 @@ class JobHandler(JobHandlerBase):
         name = kwcopy.pop("name")
         prev_jobs = [job for job in parent.jobs_ if job.name == name]
         idx = len(prev_jobs)
+        checker_class = self.checker_class_dict[self.script_method]
+        if checker_class is None:  # pragma: no cover
+            checker_class_name = None
+        else:
+            checker_class_name = checker_class().get_checker_class_name()
         insert_fields = dict(
             name=name,
             idx=idx,
@@ -47,7 +59,7 @@ class JobHandler(JobHandlerBase):
             g_id=parent.db_id.g_id,
             w_id=parent.db_id.w_id,
             frag_id=self._fragment_id,
-            checker=self.checker_class_name,
+            checker=checker_class_name,
             rollback=self.rollback_class_name,
             coll_out=parent.coll_out,
             status=StatusEnum.ready,
@@ -74,7 +86,9 @@ class JobHandler(JobHandlerBase):
 
     def launch(self, dbi: DbInterface, job: JobBase) -> StatusEnum:
         parent = job.w_
-        if job.script_method == ScriptMethod.no_run:  # pragma: no cover
+        if job.script_method == ScriptMethod.fake_run:  # pragma: no cover
+            status = StatusEnum.running
+        elif job.script_method == ScriptMethod.no_run:  # pragma: no cover
             status = StatusEnum.ready
         elif job.script_method == ScriptMethod.no_script:  # pragma: no cover
             status = StatusEnum.running

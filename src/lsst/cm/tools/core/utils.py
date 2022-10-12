@@ -241,6 +241,9 @@ class ScriptType(enum.Enum):
 class ScriptMethod(enum.Enum):
     """Defines how to run a script
 
+    fake_run = -2
+        Write the script, and pretend it ran
+
     no_run = -1
         Don't actually run the script
 
@@ -257,6 +260,7 @@ class ScriptMethod(enum.Enum):
     More methods to come...
     """
 
+    fake_run = -2  # Write the script, and pretend it ran
     no_run = -1  # Don't actually run the script
     no_script = 0  # No actual script, just a placeholder
     bash = 1  # Bash script

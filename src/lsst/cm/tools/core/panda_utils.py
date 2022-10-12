@@ -37,7 +37,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             batch_status = slurm_dict.get("batch_status", job.batch_status)
             if batch_status != job.batch_status:
                 update_vals["batch_status"] = batch_status
-            if slurm_dict["status"] == StatusEnum.completed:
+            if slurm_dict.get("status") == StatusEnum.completed:
                 bps_dict = parse_bps_stdout(job.log_url)
                 panda_url = bps_dict["Run Id"]
                 update_vals["panda_url"] = panda_url

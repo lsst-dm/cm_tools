@@ -40,6 +40,8 @@ class ScriptHandler(ScriptHandlerBase):
 
     script_type: ScriptType = ScriptType.prepare
     checker_class_dict = {
+        ScriptMethod.fake_run: None,
+        ScriptMethod.no_run: None,
         ScriptMethod.no_script: None,
         ScriptMethod.bash: YamlChecker,
         ScriptMethod.slurm: SlurmChecker,
@@ -124,6 +126,8 @@ class ScriptHandler(ScriptHandlerBase):
         elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
             job_id = submit_job(script.script_url, script.log_url)
             Script.update_values(dbi, script.id, stamp_url=job_id)
+        elif script.script_method == ScriptMethod.fake_run:  # pragma : no cover
+            return StatusEnum.completed
         status = StatusEnum.running
         return status
 

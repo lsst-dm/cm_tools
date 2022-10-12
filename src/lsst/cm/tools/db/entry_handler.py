@@ -17,6 +17,7 @@ from lsst.cm.tools.db.handler_utils import (
     supersede_children,
     supersede_entry,
 )
+from lsst.cm.tools.db.script import Script
 
 # import datetime
 
@@ -161,7 +162,7 @@ class GenericEntryHandler(EntryHandler):
                 if script_.script_type != script_type:
                     continue
                 handler = script_.get_handler()
-                handler.run(
+                status = handler.run(
                     dbi,
                     entry,
                     script_,
@@ -169,5 +170,6 @@ class GenericEntryHandler(EntryHandler):
                     append="# Have a good day",
                     **fragment.data,
                 )
+                Script.update_values(dbi, script_.id, status=status)
                 scripts.append(script_)
         return scripts

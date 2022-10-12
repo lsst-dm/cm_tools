@@ -260,7 +260,7 @@ def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     """Make all the scripts associated with an entry as accepted"""
     for script in scripts:
         # accept_scripts should only be called on completed scripts
-        assert script.status == StatusEnum.completed
+        # assert script.status == StatusEnum.completed
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 

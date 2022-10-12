@@ -40,6 +40,8 @@ class Checker:
         There is a layer of caching here.
         1.  A `dict` of Checker objects, keyed by class name
         """
+        if class_name is None:
+            return None
         cached_checker = Checker.checker_cache.get(class_name)
         if cached_checker is None:
             checker_class = doImport(class_name)

@@ -284,8 +284,10 @@ def rollback(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, 
 @options.workflow()
 @options.status()
 @options.max_running()
-def fake_run(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
+@options.script_method()
+def fake_run(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Pretend to run workflows, this is for testing"""
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.fake_run(the_db_id.level(), the_db_id, status)
 
