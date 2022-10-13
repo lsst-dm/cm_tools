@@ -534,6 +534,28 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def requeue_jobs(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+    ) -> list[DbId]:
+        """Requeue all the failed jobs matching the selection
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are queuing
+
+        Returns
+        -------
+        entries : list[DbId]
+            Entries that were launched
+        """
+        raise NotImplementedError()
+
     def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Accept completed entries at a particular level
 

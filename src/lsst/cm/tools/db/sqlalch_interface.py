@@ -256,6 +256,23 @@ class SQLAlchemyInterface(DbInterface):
         self.check(level, db_id)
         return db_id_list
 
+    def requeue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        for job_ in entry.jobs_:
+            status = job_.status
+            if not status.bad():
+                continue
+            workflow = job_.w_
+            Job.update_values(self, job_.id, superseded=True)
+            handler = workflow.get_handler()
+            handler.requeue_job(self, workflow)
+            db_id_list.append(workflow.db_id)
+        self.connection().commit()
+        self.check(level, db_id)
+        return db_id_list
+
     def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()

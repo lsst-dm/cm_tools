@@ -170,8 +170,25 @@ def print_config(dbi: DbInterface, config_name: str) -> None:
 @options.script_method()
 def queue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Queue all the prepared jobs matching the selection"""
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.queue_jobs(the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script_method()
+def requeue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
+    """Queue all the prepared jobs matching the selection"""
+    Handler.script_method = script_method
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.requeue_jobs(the_db_id.level(), the_db_id)
 
 
 @cli.command()
