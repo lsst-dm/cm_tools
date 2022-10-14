@@ -655,7 +655,7 @@ class DbInterface:
 
     def fake_script(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
-    ) -> None:
+    ) -> list[int]:
         """Pretend to run scripts, this is for testing
 
         Parameters
@@ -668,6 +668,58 @@ class DbInterface:
 
         script_name : str
             Specifies which types of scripts to fake
+
+        status: StatusEnum
+            Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the scripts that were affected
+        """
+        raise NotImplementedError()
+
+    def set_job_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Pretend to run scripts, this is for testing
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        script_name : str
+            Specifies which types of scripts to set the status for
+
+        status: StatusEnum
+            Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the scripts that were affected
+        """
+        raise NotImplementedError()
+
+    def set_script_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        """Pretend to run scripts, this is for testing
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        script_name : str
+            Specifies which types of scripts to set the status for
 
         status: StatusEnum
             Status value to set

@@ -319,11 +319,45 @@ def fake_run(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, 
 @options.workflow()
 @options.script()
 @options.status()
-@options.max_running()
+@options.script_method()
 def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
     """Pretend to run scripts, this is for testing"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.fake_script(the_db_id.level(), the_db_id, script_name, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.status()
+@options.script_method()
+def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+    """Pretend to run scripts, this is for testing"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.set_job_status(the_db_id.level(), the_db_id, script_name, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.status()
+@options.script_method()
+def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+    """Pretend to run scripts, this is for testing"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.sec(the_db_id.level(), the_db_id, script_name, status)
 
 
 @cli.command()

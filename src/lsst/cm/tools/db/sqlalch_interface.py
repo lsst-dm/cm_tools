@@ -15,6 +15,7 @@ from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
+from lsst.cm.tools.db.script import Script
 
 
 class SQLAlchemyInterface(DbInterface):
@@ -350,6 +351,33 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             handler = script_.get_handler()
             handler.fake_run_hook(self, script_, status)
+            db_id_list.append(script_.id)
+        self.check(level, db_id)
+        return db_id_list
+
+    def set_job_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for job_ in entry.jobs_:
+            if job_.name != script_name:
+                continue
+            Job.update_values(self, job_.id, status)
+            db_id_list.append(job_.id)
+        self.connection().commit()
+        self.check(level, db_id)
+        return db_id_list
+
+    def set_script_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for script_ in entry.scripts_:
+            if script_.name != script_name:
+                continue
+            Script.update_values(self, script_.id, status)
             db_id_list.append(script_.id)
         self.check(level, db_id)
         return db_id_list

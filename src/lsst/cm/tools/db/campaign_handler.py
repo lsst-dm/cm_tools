@@ -32,8 +32,9 @@ class CampaignHandler(GenericEntryHandler):
             raise KeyError("prod_base_url must be specified with inserting a campaign")
         if "config_id" not in kwargs:  # pragma: no cover
             raise KeyError("config_id must be specified with inserting a campaign")
+        campaign_name = self.get_kwarg_value("campaign_name", **kwargs)
         insert_fields = dict(
-            name=self.get_kwarg_value("campaign_name", **kwargs),
+            name=campaign_name,
             fullname=self.get_fullname(**kwargs),
             data_query=self.get_config_var("data_query", None, **kwargs),
             root_coll=self.get_config_var("root_coll", "prod", **kwargs),
@@ -44,7 +45,11 @@ class CampaignHandler(GenericEntryHandler):
             butler_repo=kwargs["butler_repo"],
             prod_base_url=kwargs["prod_base_url"],
         )
-        coll_names = self.coll_names(insert_fields)
+        coll_names = self.coll_names(
+            insert_fields,
+            campaign_name=campaign_name,
+            production_name=parent.name,
+        )
         insert_fields.update(**coll_names)
         campaign = Campaign.insert_values(dbi, **insert_fields)
         return campaign
