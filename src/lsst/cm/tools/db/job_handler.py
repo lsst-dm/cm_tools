@@ -61,7 +61,7 @@ class JobHandler(JobHandlerBase):
             frag_id=self._fragment_id,
             checker=checker_class_name,
             rollback=self.rollback_class_name,
-            coll_out=parent.coll_out,
+            coll_out=f"{parent.coll_out}_{parent.idx:03}_{idx:03}",
             status=StatusEnum.ready,
             script_method=self.script_method,
             level=parent.level,
@@ -95,7 +95,7 @@ class JobHandler(JobHandlerBase):
         elif job.script_method == ScriptMethod.bash:
             os.system(f"source {job.script_url}")
             status = StatusEnum.running
-        elif job.script_method == ScriptMethod.slurm:  # pragma: no cover
+        elif job.script_method == ScriptMethod.slurm:  # pragma: no coveres
             job_id = submit_job(job.script_url, job.log_url)
             Job.update_values(dbi, job.id, stamp_url=job_id)
             status = StatusEnum.running
