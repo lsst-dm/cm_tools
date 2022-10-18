@@ -274,6 +274,29 @@ class SQLAlchemyInterface(DbInterface):
         self.check(level, db_id)
         return db_id_list
 
+    def rerun_scripts(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+    ) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        entry = self.get_entry(level, db_id)
+        for script_ in entry.all_scripts_:
+            status = script_.status
+            if not status.bad():
+                continue
+            if script_.name != script_name:
+                continue
+            Script.update_values(self, script_.id, superseded=True)
+            parent = script_.parent()
+            handler = parent.get_handler()
+            handler.rerun_script(self, parent, script_name, script_.script_type)
+            db_id_list.append(parent.db_id)
+        self.connection().commit()
+        self.check(level, db_id)
+        return db_id_list
+
     def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
@@ -355,6 +378,17 @@ class SQLAlchemyInterface(DbInterface):
         self.check(level, db_id)
         return db_id_list
 
+    def set_status(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        status: StatusEnum,
+    ) -> None:
+        entry = self.get_entry(level, db_id)
+        entry.update_values(self, entry.id, status=status)
+        self.connection().commit()
+        self.check(level, db_id)
+
     def set_job_status(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
     ) -> list[int]:
@@ -377,7 +411,7 @@ class SQLAlchemyInterface(DbInterface):
         for script_ in entry.scripts_:
             if script_.name != script_name:
                 continue
-            Script.update_values(self, script_.id, status)
+            Script.update_values(self, script_.id, status=status)
             db_id_list.append(script_.id)
         self.check(level, db_id)
         return db_id_list

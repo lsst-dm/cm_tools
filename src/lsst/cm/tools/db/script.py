@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import composite, relationship
 
@@ -57,3 +59,14 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
         return (
             f"Script {self.id}: {self.db_id} {self.name} {self.frag_} {self.status.name} {supersede_string}"
         )
+
+    def parent(self) -> Any:
+        if self.level == LevelEnum.workflow:
+            return self.w_
+        elif self.level == LevelEnum.group:
+            return self.g_
+        elif self.level == LevelEnum.step:
+            return self.s_
+        elif self.level == LevelEnum.campaign:
+            return self.c_
+        raise ValueError(f"Unknown level {self.level}")

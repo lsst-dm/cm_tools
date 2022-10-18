@@ -199,6 +199,23 @@ def requeue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> Non
 @options.step()
 @options.group()
 @options.workflow()
+@options.script()
+@options.script_method()
+def rerun_scripts(dbi: DbInterface, script_name: str, script_method: ScriptMethod, **kwargs: Any) -> None:
+    """Queue all the prepared jobs matching the selection"""
+    Handler.script_method = script_method
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.rerun_scripts(the_db_id.level(), the_db_id, script_name)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
 @options.script_method()
 @options.max_running()
 def launch(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kwargs: Any) -> None:
@@ -334,6 +351,21 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.step()
 @options.group()
 @options.workflow()
+@options.status()
+def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
+    """Pretend to run scripts, this is for testing"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.set_status(the_db_id.level(), the_db_id, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
 @options.script()
 @options.status()
 @options.script_method()
@@ -357,7 +389,7 @@ def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwa
 def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
     """Pretend to run scripts, this is for testing"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.sec(the_db_id.level(), the_db_id, script_name, status)
+    dbi.set_script_status(the_db_id.level(), the_db_id, script_name, status)
 
 
 @cli.command()

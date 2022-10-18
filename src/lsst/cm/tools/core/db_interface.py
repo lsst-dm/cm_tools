@@ -556,6 +556,32 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def rerun_scripts(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+    ) -> list[DbId]:
+        """Re-run all the failed scripts matching the selection
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are queuing
+
+        script_name : str
+            Name of the script in question
+
+        Returns
+        -------
+        entries : list[DbId]
+            Entries that were launched
+        """
+        raise NotImplementedError()
+
     def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Accept completed entries at a particular level
 
@@ -679,10 +705,26 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def set_status(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
+        """Set the status of an entry
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        status: StatusEnum
+            Status value to set
+        """
+        raise NotImplementedError()
+
     def set_job_status(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
     ) -> None:
-        """Pretend to run scripts, this is for testing
+        """Set the status of jobs
 
         Parameters
         ----------
@@ -708,7 +750,7 @@ class DbInterface:
     def set_script_status(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
     ) -> list[int]:
-        """Pretend to run scripts, this is for testing
+        """Set the status of scripts
 
         Parameters
         ----------
