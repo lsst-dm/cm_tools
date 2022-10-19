@@ -51,7 +51,7 @@ class WorkflowHandler(GenericEntryHandler):
         workflow = Workflow.insert_values(dbi, **insert_fields)
         return workflow
 
-    def requeue_job(self, dbi: DbInterface, entry: Any, job_name="job") -> None:
+    def requeue_job(self, dbi: DbInterface, entry: Any, job_name: str = "job") -> None:
         job_handler = entry.get_sub_handler(job_name)
         job_handler.insert(
             dbi,

@@ -51,7 +51,7 @@ def make_butler_associate_command(
     butler_repo: str,
     coll_in: str,
     coll_source: str,
-    data_query: Optional[str],
+    data_query: Optional[str] = None,
 ) -> str:
     """Build and return a butler associate command
 
@@ -63,7 +63,7 @@ def make_butler_associate_command(
     coll_in : str
         This will be the name given to the TAGGED collection
 
-    coll_source : str or list[str]
+    coll_source : str
         This is the source collection we are pulling from
 
     data_query : Optional[str]
@@ -75,12 +75,7 @@ def make_butler_associate_command(
         Requested butler command
 
     """
-    if isinstance(coll_source, list):
-        command = (
-            f"butler associate {butler_repo} {coll_in} --find-first --collections {','.join(coll_source)}"
-        )
-    else:
-        command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
+    command = f"butler associate {butler_repo} {coll_in} --collections {coll_source}"
     if data_query:
         command += f' --where "{data_query}"'
     return command

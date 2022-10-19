@@ -33,7 +33,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
     )
 
     def check_url(self, job: JobBase) -> dict[str, Any]:
-        update_vals = {}
+        update_vals: dict[str, Any] = {}
         panda_url = job.panda_url
         if panda_url is None:
             slurm_dict = SlurmChecker.check_url(self, job)
