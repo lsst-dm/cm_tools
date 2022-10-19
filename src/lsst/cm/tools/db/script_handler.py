@@ -118,7 +118,7 @@ class ScriptHandler(ScriptHandlerBase):
     ) -> StatusEnum:
         if script.script_method == ScriptMethod.no_run:  # pragma: no cover
             return StatusEnum.ready
-        elif script.script_method == ScriptMethod.no_script:  # pragma: no cover
+        if script.script_method == ScriptMethod.no_script:  # pragma: no cover
             return StatusEnum.running
         self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method == ScriptMethod.bash:

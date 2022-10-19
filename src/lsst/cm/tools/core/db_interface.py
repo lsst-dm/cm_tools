@@ -347,7 +347,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_table(self, stream: TextIO, which_table: TableEnum, *kwargs: Any) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
         """Print a database table
 
         Parameters
@@ -705,7 +705,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def set_status(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> None:
+    def set_status(self, level: LevelEnum, db_id: DbId, status: StatusEnum) -> None:
         """Set the status of an entry
 
         Parameters

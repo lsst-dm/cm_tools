@@ -8,7 +8,7 @@ from lsst.cm.tools.core.utils import StatusEnum
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
-    with open(url, "r") as fin:
+    with open(url, "r", encoding="utf8") as fin:
         line = fin.readline()
         while line:
             tokens = line.split(":")
@@ -21,11 +21,16 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
 
 def check_panda_status(panda_url: str) -> str:
     """Check the status of a panda job"""
+    assert panda_url
     return "Running"
 
 
 class PandaChecker(SlurmChecker):  # pragma: no cover
     """Checker to use a slurm job_id and panda_id to check job status"""
+
+    panda_status_map = dict(
+        Running=StatusEnum.running,
+    )
 
     def check_url(self, job: JobBase) -> dict[str, Any]:
         update_vals = {}

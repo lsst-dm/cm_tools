@@ -63,10 +63,10 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     def parent(self) -> Any:
         if self.level == LevelEnum.workflow:
             return self.w_
-        elif self.level == LevelEnum.group:
+        if self.level == LevelEnum.group:
             return self.g_
-        elif self.level == LevelEnum.step:
+        if self.level == LevelEnum.step:
             return self.s_
-        elif self.level == LevelEnum.campaign:
+        if self.level == LevelEnum.campaign:
             return self.c_
         raise ValueError(f"Unknown level {self.level}")

@@ -387,7 +387,6 @@ class SQLAlchemyInterface(DbInterface):
         entry = self.get_entry(level, db_id)
         entry.update_values(self, entry.id, status=status)
         self.connection().commit()
-        self.check(level, db_id)
 
     def set_job_status(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
@@ -397,10 +396,9 @@ class SQLAlchemyInterface(DbInterface):
         for job_ in entry.jobs_:
             if job_.name != script_name:
                 continue
-            Job.update_values(self, job_.id, status)
+            Job.update_values(self, job_.id, status=status)
             db_id_list.append(job_.id)
         self.connection().commit()
-        self.check(level, db_id)
         return db_id_list
 
     def set_script_status(
@@ -414,7 +412,6 @@ class SQLAlchemyInterface(DbInterface):
             Script.update_values(self, script_.id, status=status)
             db_id_list.append(script_.id)
         self.connection().commit()
-        self.check(level, db_id)
         return db_id_list
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
