@@ -30,6 +30,7 @@ class StepHandler(GenericEntryHandler):
 
     def insert(self, dbi: DbInterface, parent: Campaign, **kwargs: Any) -> Step:
         step_name = self.get_kwarg_value("step_name", **kwargs)
+        coll_source = self.get_kwarg_value("coll_source", **kwargs)
         insert_fields = dict(
             name=step_name,
             fullname=self.get_fullname(**kwargs),
@@ -38,8 +39,8 @@ class StepHandler(GenericEntryHandler):
             config_id=parent.config_id,
             frag_id=self._fragment_id,
             data_query=kwargs.get("data_query"),
-            coll_in=parent.coll_in,
-            coll_source=parent.coll_in,
+            coll_in=coll_source,
+            coll_source=coll_source,
             status=StatusEnum.waiting,
         )
         extra_fields = dict(

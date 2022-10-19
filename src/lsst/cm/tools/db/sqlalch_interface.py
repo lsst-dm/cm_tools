@@ -413,6 +413,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             Script.update_values(self, script_.id, status=status)
             db_id_list.append(script_.id)
+        self.connection().commit()
         self.check(level, db_id)
         return db_id_list
 
