@@ -61,7 +61,7 @@ class JobHandler(JobHandlerBase):
             frag_id=self._fragment_id,
             checker=checker_class_name,
             rollback=self.rollback_class_name,
-            coll_out=f"{parent.coll_out}_{parent.idx:03}_{idx:03}",
+            coll_out=f"{parent.c_.root_coll}/{parent.fullname}_{idx:03}",
             status=StatusEnum.ready,
             script_method=self.script_method,
             level=parent.level,
