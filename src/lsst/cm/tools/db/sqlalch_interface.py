@@ -220,6 +220,8 @@ class SQLAlchemyInterface(DbInterface):
             status = job_.status
             if status != StatusEnum.ready:
                 continue
+            if job_.superseded:
+                continue
             db_id_list.append(job_.db_id)
             handler = job_.get_handler()
             parent = job_.w_
@@ -245,6 +247,8 @@ class SQLAlchemyInterface(DbInterface):
             if n_running >= max_running:
                 break
             status = job_.status
+            if job_.superseded:
+                continue
             if status == StatusEnum.running:
                 n_running += 1
             if status != StatusEnum.prepared:
