@@ -180,7 +180,9 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         job_statuses: list[str]
             list of status messages with associated task_id
         """
-        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username)
+        # TODO: Fix to add in days argument to get around PanDA
+        # storing for only two weeks
+        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
         job_statuses = [task["status"] for task in tasks]
 
         print("panda-url is {}".format(panda_url))
@@ -188,3 +190,40 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         print(job_statuses)
 
         return job_statuses
+
+    def check_task_errors(self, panda_url: str, panda_username=None):
+        """Check the errors for a given panda reqid and
+        return aggregated information
+
+        Parameters
+        ----------
+        panda_url: str
+            a reqid associated with the job
+        panda_username: str
+            None by default, username required for other submissions
+
+        Returns
+        -------
+        errors_aggregate: list
+            a list of a list of dicts because I am a criminal, but
+            contains all the error codes from the jobs corresponding
+            to tasks in this panda reqid
+        diags_aggregate: list
+            as above, but with the diagnostic messages
+
+        """
+        # for a given reqid, return all our jeditaskids
+        # TODO: add in a days argument
+        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
+        jtids = [task["jeditaskid"] for task in tasks]
+
+        errors_aggregate = dict()
+        diags_aggregate = dict()
+        for jtid in jtids:
+            errors_all, diags_all = get_errors_from_jeditaskid(jtid)
+            # TODO: something to aggregate better here
+            # for now, we just slap it into a dict
+            errors_aggregate[str(jtid)] = errors_all
+            diags_aggregate[str(jtid)] = diags_all
+
+        return errors_aggregate, diags_aggregate
