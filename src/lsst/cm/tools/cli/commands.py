@@ -344,3 +344,8 @@ def check_panda_job(panda_url: str, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
     pc.check_panda_status(panda_url, panda_username)
+
+
+@cli.command()
+def check_panda_task(task_id: int):
+    """Check the status of a finished panda task"""
