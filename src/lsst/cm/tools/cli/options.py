@@ -22,6 +22,8 @@ __all__ = [
     "group",
     "level",
     "max_running",
+    "panda_url",
+    "panda_username",
     "prod_base",
     "production",
     "script",
@@ -193,6 +195,17 @@ config_dir = PartialOption(
     help="Directory root for entry configuration yaml files.",
     envvar="CM_CONFIGS",
     show_envvar=True,
+)
+
+panda_url = PartialOption(
+    "--panda-url",
+    help="ReqID associated with the PanDA job.",
+)
+
+panda_username = PartialOption(
+    "--panda-username",
+    help="Username in the PanDA workflow system.",
+    default="None",
 )
 
 

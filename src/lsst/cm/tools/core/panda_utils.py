@@ -7,24 +7,6 @@ from lsst.cm.tools.core.slurm_utils import SlurmChecker
 from lsst.cm.tools.core.utils import StatusEnum
 
 
-def check_panda_conn():
-    """Check for existing PanDA connection
-
-    Returns
-    -------
-    conn: PandaAPI
-        connection to the PanDA API for calls
-    """
-    try:
-        conn
-    except NameError:
-        conn = panda_api.get_api()
-        statuscode, diagmess = conn.hello()
-    # TODO: add handling with status code for authorization
-
-    return conn
-
-
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
@@ -57,7 +39,7 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
     """
     # TODO: try to find a way to do this with Client to avoid the
     # requirement on username storage
-    conn = check_panda_conn()
+    conn = panda_api.get_api()
     reqid_pull = conn.get_tasks(task_ids=reqid, username=username)
     jeditaskids = [reqid["jeditaskid"] for reqid in reqid_pull]
 
@@ -156,6 +138,9 @@ def get_errors_from_jeditaskid(jeditaskid: int):
 class PandaChecker(SlurmChecker):  # pragma: no cover
     """Checker to use a slurm job_id and panda_id to check job status"""
 
+    def __init__(self):
+        self.conn = panda_api.get_api()
+
     def check_url(self, job: JobBase) -> dict[str, Any]:
         update_vals = {}
         panda_url = job.panda_url
@@ -172,10 +157,34 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 update_vals["panda_url"] = panda_url
         if panda_url is None:
             return update_vals
-        # panda_status = check_panda_status(panda_url)
-        # if panda_status != job.panda_status:
-        #    update_vals["panda_status"] = panda_status
-        # status = self.panda_status_map[panda_status]
-        # if status != job.status:
-        #    update_vals["status"] = status
+        panda_status = self.check_panda_status(panda_url)
+        if panda_status != job.panda_status:
+            update_vals["panda_status"] = panda_status
+        status = self.panda_status_map[panda_status]
+        if status != job.status:
+            update_vals["status"] = status
         return update_vals
+
+    def check_panda_status(self, panda_url: str, panda_username=None) -> list[str]:
+        """Check the status of a panda job
+
+        Parameters
+        ----------
+        panda_url: str
+            typically a reqid associated with the job
+        panda_username: str
+            None by default, username required for other submitters
+
+        Returns
+        -------
+        job_statuses: list[str]
+            list of status messages with associated task_id
+        """
+        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username)
+        job_statuses = [task["status"] for task in tasks]
+
+        print("panda-url is {}".format(panda_url))
+        print("panda-username is {}".format(panda_username))
+        print(job_statuses)
+
+        return job_statuses
