@@ -98,6 +98,8 @@ def get_errors_from_jeditaskid(jeditaskid: int):
             errors = dict()
             diags = dict()
 
+            # TODO: store the hecking pandaIDs so people can look things up
+
             # brokerageErrorCode/Diag
             if job.brokerageErrorCode != 0:
                 errors["brokerage"] = job.brokerageErrorCode
@@ -204,11 +206,11 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
         Returns
         -------
-        errors_aggregate: list
-            a list of a list of dicts because I am a criminal, but
+        errors_aggregate: dict
+            a dict of a list of dicts because I am a criminal, but
             contains all the error codes from the jobs corresponding
             to tasks in this panda reqid
-        diags_aggregate: list
+        diags_aggregate: dict
             as above, but with the diagnostic messages
 
         """
