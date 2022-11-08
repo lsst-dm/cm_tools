@@ -347,5 +347,9 @@ def check_panda_job(panda_url: str, panda_username: str) -> list[str]:
 
 
 @cli.command()
-def check_panda_task(task_id: int):
+@options.panda_url()
+@options.panda_username()
+def get_panda_errors(panda_url: str, panda_username: str):
     """Check the status of a finished panda task"""
+    pc = PandaChecker()
+    errors_aggregate, diags_aggregate = pc.get_task_errors(panda_url, panda_username)

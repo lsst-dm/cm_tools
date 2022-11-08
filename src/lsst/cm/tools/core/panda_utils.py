@@ -193,7 +193,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
         return job_statuses
 
-    def check_task_errors(self, panda_url: str, panda_username=None):
+    def get_task_errors(self, panda_url: str, panda_username=None):
         """Check the errors for a given panda reqid and
         return aggregated information
 
@@ -227,5 +227,11 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             # for now, we just slap it into a dict
             errors_aggregate[str(jtid)] = errors_all
             diags_aggregate[str(jtid)] = diags_all
+
+        # TODO: intermediate aggregation step to count
+        # number of errors in each jtid
+        # and return these counts.
+        print(errors_aggregate)
+        print(diags_aggregate)
 
         return errors_aggregate, diags_aggregate
