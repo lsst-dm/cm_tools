@@ -1,0 +1,158 @@
+description: Lookup table for error codes from PanDA and error logs from science pipelines on HSC-RC2.
+
+pandaErrorCode:
+    trans, 1:
+        -
+            diagMessage: >
+                Execution of task 'characterizeImage' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                RuntimeError: Unable to measure aperture correction for required algorithm 'modelfit_CModel': only 0 sources, but
+                require at least 2.
+            function: characterizeImage
+        -
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            function: characterizeImage
+        -
+            diagMessage: >
+                Failed to solve for PSF matching kernel in GAaP for (*,*): Problematic scaling factors = 1.15 Errors: Exception
+                ('Unable to determine kernel sum; 0 candidates')
+            function: characterizeImage
+        -
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                RuntimeError: No matches to use for photocal
+            function: calibrate
+        -
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            function: calibrate
+        -
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                ValueError: PSF at (*,*) has an invalid FWHM value of nan
+            function: calibrate
+        -
+            diagMessage: >
+                Task <TaskDef(lsst.pipe.tasks.finalizeCharacterization.FinalizeCharacterizationTask, label=
+                finalizeCharacterization) dataId={instrument: 'HSC', visit: *, ...}> failed; processing will continue for remaining
+                 tasks.
+            function: finalizeCharacterization
+        -
+            diagMessage: "RuntimeError: can't start new thread"
+            function: finalizeCharacterization
+        -
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from * to *"
+            function: finalizeCharacterization
+        -
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from * to *"
+            function: finalizeCharacterization
+        -
+            diagMessage: >
+                terminate called after throwing an instance of 'std::system_error' what(): Resource temporarily unavailable
+            function: finalizeCharacterization
+        -
+            diagMessage: "ERROR; return code from pthread_create() is 11 Error detail: Resource temporarily unavailable"
+            function: finalizeCharacterization
+        -
+            diagMessage: >
+                url=/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json, error: TimeoutException: Timeout reached, timeout
+                =20 seconds .. trying to use data from cache=/tmp/atlas_4WNdEEY5/agis_schedconf.cvmfs.json
+            function: finalizeCharacterization
+        -
+            diagMessage: >
+                Execution of task 'measure' on quantum {band: 'y', skymap: 'hsc_rings_v1', tract: *, patch: *} failed. Exception
+                IndexError: Index (*,*) outside image bounds (*, *) to (*,*).
+            function: measure
+        -
+            diagMessage: >
+                Execution of task 'detection' on quantum {band: 'r', skymap: 'hsc_rings_v1', tract: *, patch: *} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            function: detection
+        -
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            function: subtractImages
+        -
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line *, in virtual std::shared_ptr<lsst::afw::image::
+                Image<double> > lsst::meas::algorithms::CoaddPsf::doComputeKernelImage(const Point2D&, const lsst::afw::image::
+                Color&) const\nCannot compute CoaddPsf at point (*,*); no input images at that point. {0} lsst::pex::exceptions::
+                InvalidParameterError: 'Cannot compute CoaddPsf at point (*,*); no input images at that point.'
+            function: subtractImages
+        -
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {instrument: 'HSC', detector:*, visit: *, ...} failed. Exception
+                RuntimeError: Cannot find any objects suitable for KernelCandidacy
+            function: subtractImages
+        -
+            diagMessage: >
+                Failed to execute payload:File "src/CoaddPsf.cc", line 254, in virtual std:shared_ptr > lsst:meas:
+                algorithms:CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const"
+            function: subtractImages
+        -
+            diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
+            function: subtractImages
+        -
+            diagMessage: "Unable to determine kernel sum; 0 candidates"
+            function: subtractImages
+        -
+            diagMessage: "Exception ValueError: cannot convert float NaN to integer"
+            function: subtractImages
+        -
+            diagMessage: >
+                Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
+                dataset * (objectTable_tract from file:///*/HSC/runs/RC2/*/*/*/objectTable_tract/*/objectTable_tract_*_hsc_rings_v1
+                *.parq): Unrecognized column name 'u_psfFlux_flag'.
+            function: catalogMatchTract
+    pilot, 1305:
+        -
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            function: calibrate
+        -
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            function: detection
+        -
+            diagMessage: "Failed to execute payload"
+            function: finalizeCharacterization
+        -
+            diagMessage: >
+                Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
+                CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
+            function: subtractImages
+        -
+            diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
+            function: subtractImages
+        -
+            diagMessage: >
+                Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
+                * (objectTable_tract from file:///*/objectTable_tract/*/objectTable_tract
+            function: catalogMatchTract
+    taskbuffer, 300:
+        -
+            diagMessage: "The worker was failed while the job was starting : 504812 gridjob roma shared 1 FAILED 0:53."
+            function:
+    pilot, 1344:
+        -
+            diagMessage: "Exception caught: [Errno 11] Resource temporarily unavailable"
+            function: finalizeCharacterization
+    trans, 134:
+        -
+            diagMessage: >
+                New trf: Transform received signal SIGABRT; Old trf: Athena core dump or timeout, or conddb DB connect exception
+            function: finalizeCharacterization
+    jobdispatcher, 102:
+        -
+            diagMessage: "Sent job didn't receive reply from pilot within 30 min"
+            function: finalizeCharacterization
+    jobdispatcher, 100:
+        -
+            diagMessage: "lost heartbeat"
+            function:
+    pilot, 1098:
+        -
+            diagMessage: "too little space left on local disk to run job: * B (need > * B)"
+            function: forcedPhotCcd
+    trans, 137:
+        -
+            diagMessage: "Transform received signal SIGKILL"
+            function:
