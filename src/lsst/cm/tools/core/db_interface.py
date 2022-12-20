@@ -391,6 +391,24 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def summarize_output(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        """Print a database table from a given entry
+        in a tree-like format
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        level: LevelEnum
+            Selects which database table to start with
+
+        db_id: DbId
+            Database ID specifying which entries to print.
+            See class notes above.
+        """
+        raise NotImplementedError()
+
     def check(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Check all database entries at a particular level
 

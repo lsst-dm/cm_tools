@@ -7,6 +7,7 @@ import yaml
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
+from lsst.cm.tools.core.butler_utils import print_dataset_summary
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -147,6 +148,14 @@ class SQLAlchemyInterface(DbInterface):
             frag = assoc.frag_
             stream.write(f"  {frag.tag}: {frag.id} {str(frag)}\n")
 
+    def summarize_output(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        if level == LevelEnum.campaign:
+            butler_repo = entry.butler_repo
+        else:
+            butler_repo = entry.c_.butler_repo
+        print_dataset_summary(stream, butler_repo, [entry.coll_out])
+
     def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
@@ -268,6 +277,8 @@ class SQLAlchemyInterface(DbInterface):
         for job_ in entry.jobs_:
             status = job_.status
             if not status.bad():
+                continue
+            if job_.superseded:
                 continue
             workflow = job_.w_
             Job.update_values(self, job_.id, superseded=True)
