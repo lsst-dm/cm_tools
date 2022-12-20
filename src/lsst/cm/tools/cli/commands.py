@@ -69,6 +69,22 @@ def insert(
 @options.campaign()
 @options.step()
 @options.group()
+def summarize_output(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Summarize the output of a particular entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.summarize_output(sys.stdout, the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
 @options.workflow()
 @options.config_name()
 @options.config_block()
@@ -153,7 +169,6 @@ def print_table(dbi: DbInterface, table: TableEnum, **kwargs: Any) -> None:
 @cli.command()
 @options.dbi()
 @options.config_name()
-@options.fmt()
 def print_config(dbi: DbInterface, config_name: str) -> None:
     """Print a information about a configuration"""
     dbi.print_config(sys.stdout, config_name)
@@ -202,7 +217,7 @@ def requeue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> Non
 @options.script()
 @options.script_method()
 def rerun_scripts(dbi: DbInterface, script_name: str, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Queue all the prepared jobs matching the selection"""
+    """Rerun particular failed  scripts"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.rerun_scripts(the_db_id.level(), the_db_id, script_name)
@@ -353,7 +368,7 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.workflow()
 @options.status()
 def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of an  entry"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_status(the_db_id.level(), the_db_id, status)
 
@@ -370,7 +385,7 @@ def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
 @options.status()
 @options.script_method()
 def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of a particular job"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_job_status(the_db_id.level(), the_db_id, script_name, status)
 
@@ -387,7 +402,7 @@ def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwa
 @options.status()
 @options.script_method()
 def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of a particular script"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_script_status(the_db_id.level(), the_db_id, script_name, status)
 
