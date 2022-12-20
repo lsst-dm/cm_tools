@@ -45,7 +45,7 @@ class WorkflowHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             coll_in=parent.coll_in,
             coll_out=parent.coll_out,
-            data_query=kwcopy.get("data_query"),
+            data_query=kwcopy.get("data_query", parent.data_query),
             status=StatusEnum.waiting,
         )
         workflow = Workflow.insert_values(dbi, **insert_fields)
