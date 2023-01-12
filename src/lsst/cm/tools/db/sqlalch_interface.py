@@ -7,7 +7,7 @@ import yaml
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from lsst.cm.tools.core.butler_utils import print_dataset_summary
+from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_dataset_summary
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -155,6 +155,21 @@ class SQLAlchemyInterface(DbInterface):
         else:
             butler_repo = entry.c_.butler_repo
         print_dataset_summary(stream, butler_repo, [entry.coll_out])
+
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        assert level == LevelEnum.step
+        butler_repo = entry.c_.butler_repo
+        output_collection = entry.coll_out
+        input_collections = []
+        for group_ in entry.g_:
+            group_colls = []
+            for job_ in group_.jobs_:
+                if job_.superseded:
+                    continue
+                group_colls.append(job_.coll_out)
+            input_collections.append(group_colls)
+        butler_associate_kludge(butler_repo, output_collection, input_collections)
 
     def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)

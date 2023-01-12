@@ -84,6 +84,21 @@ def summarize_output(
 @options.production()
 @options.campaign()
 @options.step()
+def associate_kludge(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Kludge the butler associate command"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.associate_kludge(the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
 @options.group()
 @options.workflow()
 @options.config_name()

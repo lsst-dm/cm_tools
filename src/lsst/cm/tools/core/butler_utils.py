@@ -1,7 +1,7 @@
 from typing import Iterable
 
 import numpy as np
-from lsst.daf.butler import Butler
+from lsst.daf.butler import Butler, CollectionType
 
 
 def get_sorted_array(itr: Iterable, field: str) -> np.ndarray:
@@ -80,3 +80,54 @@ def build_data_queries(
         previous_idx = idx
 
     return ret_list
+
+
+def clean_collection_set(
+    butler: Butler,
+    input_colls: list[list[str]],
+) -> list[list[str]]:
+
+    output_colls = []
+    for input_colls_ in input_colls:
+        existing_colls = []
+        for input_coll_ in input_colls_:
+            colls = butler.registry.queryCollections(input_coll_)
+            try:
+                count = 0
+                for cc in colls:
+                    count += 1
+            except Exception:
+                count = 0
+            if count:
+                existing_colls.append(input_coll_)
+        output_colls.append(existing_colls)
+    return output_colls
+
+
+def butler_associate_kludge(
+    butler_repo: str,
+    output_coll: str,
+    input_colls: list[list[str]],
+) -> None:
+
+    assert input_colls
+
+    butler = Butler(butler_repo, writeable=True)
+    input_colls = clean_collection_set(butler, input_colls)
+    first_colls = input_colls[0]
+    output_coll = output_coll + "_test"
+    tagged_coll = output_coll + "_tagged"
+
+    butler.registry.registerCollection(tagged_coll, CollectionType.TAGGED)
+    for input_colls_ in input_colls[1:]:
+        refset = butler.registry.queryDatasets(
+            ...,
+            collections=input_colls_,
+            findFirst=True,
+        ).byParentDatasetType()
+        for refs in refset:
+            if refs.parentDatasetType.dimensions:
+                butler.registry.associate(tagged_coll, refs)
+    butler.registry.registerCollection(output_coll, CollectionType.CHAINED)
+    all_cols = first_colls + [tagged_coll]
+    butler.registry.setCollectionChain(output_coll, all_cols)

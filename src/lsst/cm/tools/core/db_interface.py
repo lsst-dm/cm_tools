@@ -392,8 +392,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def summarize_output(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
-        """Print a database table from a given entry
-        in a tree-like format
+        """Print a summary of the outputs associated to a particular entry
 
         Parameters
         ----------
@@ -405,6 +404,20 @@ class DbInterface:
 
         db_id: DbId
             Database ID specifying which entries to print.
+            See class notes above.
+        """
+        raise NotImplementedError()
+
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+        """Run a kludged version of bulter associate
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to start with
+
+        db_id: DbId
+            Database ID specifying which entries to use.
             See class notes above.
         """
         raise NotImplementedError()
