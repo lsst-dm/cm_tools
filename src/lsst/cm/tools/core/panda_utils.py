@@ -217,7 +217,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         # for a given reqid, return all our jeditaskids
         # TODO: add in a days argument
         tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
-        jtids = [task["jeditaskid"] for task in tasks]
+        jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
 
         errors_aggregate = dict()
         diags_aggregate = dict()
