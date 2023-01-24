@@ -167,12 +167,12 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             update_vals["status"] = status
         return update_vals
 
-    def check_panda_status(self, panda_url: str, panda_username=None) -> list[str]:
+    def check_panda_status(self, panda_url: int, panda_username=None) -> list[str]:
         """Check the status of a panda job
 
         Parameters
         ----------
-        panda_url: str
+        panda_url: int
             typically a reqid associated with the job
         panda_username: str
             None by default, username required for other submitters
@@ -193,13 +193,13 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
         return job_statuses
 
-    def get_task_errors(self, panda_url: str, panda_username=None):
+    def get_task_errors(self, panda_url: int, panda_username=None):
         """Check the errors for a given panda reqid and
         return aggregated information
 
         Parameters
         ----------
-        panda_url: str
+        panda_url: int
             a reqid associated with the job
         panda_username: str
             None by default, username required for other submissions
@@ -218,7 +218,8 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         # TODO: add in a days argument
         tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
         jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
-
+        print(jtids)
+        print(type(panda_url))
         errors_aggregate = dict()
         diags_aggregate = dict()
         for jtid in jtids:

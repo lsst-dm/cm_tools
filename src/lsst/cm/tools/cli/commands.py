@@ -338,18 +338,18 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 
 
 @cli.command()
-@options.panda_url()
+@options.panda_url(type=int)
 @options.panda_username()
-def check_panda_job(panda_url: str, panda_username: str) -> list[str]:
+def check_panda_job(panda_url: int, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
     pc.check_panda_status(panda_url, panda_username)
 
 
 @cli.command()
-@options.panda_url()
+@options.panda_url(type=int)
 @options.panda_username()
-def get_panda_errors(panda_url: str, panda_username: str):
+def get_panda_errors(panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
     errors_aggregate, diags_aggregate = pc.get_task_errors(panda_url, panda_username)
