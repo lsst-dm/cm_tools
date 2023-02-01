@@ -52,7 +52,8 @@ def get_errors_from_jeditaskid(jeditaskid: int):
     Parameters
     ----------
     jeditaskid: int
-        A jeditaskid, which will have some number of pandaIDs associated.
+        A jeditaskid, which will have some number of
+        pandaIDs associated.
 
     Returns
     -------
@@ -137,11 +138,93 @@ def get_errors_from_jeditaskid(jeditaskid: int):
         return (errors_all, diags_all)
 
 
-class PandaChecker(SlurmChecker):  # pragma: no cover
-    """Checker to use a slurm job_id and panda_id to check job status"""
+def decide_panda_status(statuses: list) -> str:
+    """Look at the list of statuses for each
+    jeditaskid and return a choice for the entire
+    reqid status
 
-    def __init__(self):
-        self.conn = panda_api.get_api()
+    Parameters
+    ----------
+    statuses: list
+        a list of statuses for each jeditaskid
+        in the reqid
+
+    Returns
+    -------
+    panda_status: str
+        the panda job status
+    """
+    # probably a better choice than using an elif
+    # for this, but the elif lets us build
+    # in possible options for intermediate steps.
+
+    if "failed" in statuses:
+        panda_status = "failed"
+    elif "finished" in statuses:
+        panda_status = "failed"
+    elif "pending" in statuses:
+        panda_status = "running"
+    elif "registered" in statuses:
+        panda_status = "running"
+    elif "running" in statuses:
+        panda_status = "running"
+    else:
+        panda_status = "done"
+    return panda_status
+
+
+def check_panda_status(panda_reqid: int, panda_username=None) -> str:
+    """Check the errors for a given panda reqid and
+    return a final overarching error
+
+    Parameters
+    ----------
+    panda_reqid: int
+        a reqid associated with the job
+    panda_username: str
+        None by default, username required for other
+        submissions
+
+    Returns
+    -------
+    panda_status: str
+        the panda job status
+
+    """
+
+    # first pull down all the tasks
+    conn = panda_api.get_api()
+    tasks = conn.get_tasks(task_ids=panda_reqid, username=panda_username)
+    statuses = [task["status"] for task in tasks]
+
+    # TODO: for error database, currently unused
+    # errors_aggregate = dict()
+    # diags_aggregate = dict()
+    # jtids = [task["jeditaskid"] for task
+    # in tasks if task["status"] != "done"]
+    # for jtid in jtids:
+    #    errors_all, diags_all = get_errors_from_jeditaskid(jtid)
+    #    errors_aggregate[str(jtid)] = errors_all
+    #    diags_aggregate[str(jtid)] = diags_all
+
+    # now determine a final answer based on statuses for the entire reqid
+    panda_status = decide_panda_status(statuses)
+
+    return panda_status
+
+
+class PandaChecker(SlurmChecker):  # pragma: no cover
+    """Checker to use a slurm job_id and panda_id
+    to check job status"""
+
+    status_map = dict(
+        done=StatusEnum.completed,
+        failed=StatusEnum.failed,
+        finished=StatusEnum.failed,
+        pending=StatusEnum.running,
+        registered=StatusEnum.running,
+        running=StatusEnum.running,
+    )
 
     def check_url(self, job: JobBase) -> dict[str, Any]:
         update_vals = {}
@@ -159,80 +242,10 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 update_vals["panda_url"] = panda_url
         if panda_url is None:
             return update_vals
-        panda_status = self.check_panda_status(panda_url)
+        panda_status = check_panda_status(panda_url)
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
         status = self.panda_status_map[panda_status]
         if status != job.status:
             update_vals["status"] = status
         return update_vals
-
-    def check_panda_status(self, panda_url: int, panda_username=None) -> list[str]:
-        """Check the status of a panda job
-
-        Parameters
-        ----------
-        panda_url: int
-            typically a reqid associated with the job
-        panda_username: str
-            None by default, username required for other submitters
-
-        Returns
-        -------
-        job_statuses: list[str]
-            list of status messages with associated task_id
-        """
-        # TODO: Fix to add in days argument to get around PanDA
-        # storing for only two weeks
-        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
-        job_statuses = [task["status"] for task in tasks]
-
-        print("panda-url is {}".format(panda_url))
-        print("panda-username is {}".format(panda_username))
-        print(job_statuses)
-
-        return job_statuses
-
-    def get_task_errors(self, panda_url: int, panda_username=None):
-        """Check the errors for a given panda reqid and
-        return aggregated information
-
-        Parameters
-        ----------
-        panda_url: int
-            a reqid associated with the job
-        panda_username: str
-            None by default, username required for other submissions
-
-        Returns
-        -------
-        errors_aggregate: dict
-            a dict of a list of dicts because I am a criminal, but
-            contains all the error codes from the jobs corresponding
-            to tasks in this panda reqid
-        diags_aggregate: dict
-            as above, but with the diagnostic messages
-
-        """
-        # for a given reqid, return all our jeditaskids
-        # TODO: add in a days argument
-        tasks = self.conn.get_tasks(task_ids=panda_url, username=panda_username, days=90)
-        jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
-        print(jtids)
-        print(type(panda_url))
-        errors_aggregate = dict()
-        diags_aggregate = dict()
-        for jtid in jtids:
-            errors_all, diags_all = get_errors_from_jeditaskid(jtid)
-            # TODO: something to aggregate better here
-            # for now, we just slap it into a dict
-            errors_aggregate[str(jtid)] = errors_all
-            diags_aggregate[str(jtid)] = diags_all
-
-        # TODO: intermediate aggregation step to count
-        # number of errors in each jtid
-        # and return these counts.
-        print(errors_aggregate)
-        print(diags_aggregate)
-
-        return errors_aggregate, diags_aggregate
