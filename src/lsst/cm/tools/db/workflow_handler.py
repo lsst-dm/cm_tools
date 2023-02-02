@@ -30,10 +30,12 @@ class WorkflowHandler(GenericEntryHandler):
     level = LevelEnum.workflow
 
     def insert(self, dbi: DbInterface, parent: Group, **kwargs: Any) -> Workflow:
+        kwcopy = kwargs.copy()
         workflow_idx = len(parent.w_)
+        kwcopy["workflow_idx"] = workflow_idx
         insert_fields = dict(
             name=f"{workflow_idx:02}",
-            fullname=self.get_fullname(workflow_idx=workflow_idx, **kwargs),
+            fullname=self.get_fullname(**kwcopy),
             p_id=parent.p_.id,
             c_id=parent.c_.id,
             s_id=parent.s_.id,
@@ -43,11 +45,19 @@ class WorkflowHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             coll_in=parent.coll_in,
             coll_out=parent.coll_out,
-            data_query=kwargs.get("data_query"),
+            data_query=kwcopy.get("data_query", parent.data_query),
             status=StatusEnum.waiting,
         )
         workflow = Workflow.insert_values(dbi, **insert_fields)
         return workflow
+
+    def requeue_job(self, dbi: DbInterface, entry: Any, job_name: str = "job") -> None:
+        job_handler = entry.get_sub_handler(job_name)
+        job_handler.insert(
+            dbi,
+            entry,
+            name=job_name,
+        )
 
     def _make_jobs(self, dbi: DbInterface, entry: Any) -> None:
         job_handler = entry.get_sub_handler(self.config.get("job_config", "job"))

@@ -559,6 +559,7 @@ def test_insert() -> None:
         production_name="example",
         campaign_name="test",
         step_name="extra_step",
+        coll_source="{root_coll}/{fullname}_input",
     )
     assert new_step
 
