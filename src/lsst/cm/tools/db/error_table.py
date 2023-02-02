@@ -8,7 +8,7 @@ from lsst.cm.tools.db import common
 from lsst.cm.tools.db.job import Job
 
 
-class ErrorType(enum.Enum):
+class ErrorFlavor(enum.Enum):
     """ """
 
     pipelines = 0
@@ -51,7 +51,7 @@ class ErrorType(common.Base):
     is_known = Column(Boolean)
     is_resolved = Column(Boolean)
     is_rescueable = Column(Boolean)
-    error_type = Column(Enum(ErrorType))
+    error_flavor = Column(Enum(ErrorFlavor))
     action = Column(Enum(ErrorAction))
     max_intensity = Column(Float)
     instances_: Iterable = relationship("ErrorInstance", back_populates="error_type_")
@@ -71,7 +71,7 @@ class ErrorInstance(common.Base):
     function = Column(String)
     log_file_url = Column(String)  # some_file.log:3145
     data_id = Column(String)  # detector=32, visit=1341323412 or tract=1312, filter=really_blue
-    error_type = Column(Enum(ErrorType))
+    error_flavor = Column(Enum(ErrorFlavor))
     error_status = Column(Enum(ErrorStatus))
 
     job_: Job = relationship("Job", back_populates="errors_")
