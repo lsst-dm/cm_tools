@@ -449,6 +449,14 @@ def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @cli.command()
 @options.dbi()
 @options.config_yaml()
+def load_error_types(dbi: DbInterface, config_yaml: str) -> None:
+    """Load error types from a configuration file"""
+    dbi.load_error_types(config_yaml)
+
+
+@cli.command()
+@options.dbi()
+@options.config_yaml()
 @options.config_name()
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
     """Parse a configuration file and add the fragments to another config"""
@@ -471,3 +479,15 @@ def get_panda_errors(panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
     errors_aggregate, diags_aggregate = pc.get_task_errors(panda_url, panda_username)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+def report_errors(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Summarize the output of a particular entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.report_errors(sys.stdout, the_db_id.level(), the_db_id)

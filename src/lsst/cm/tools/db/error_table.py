@@ -9,7 +9,7 @@ from lsst.cm.tools.db.job import Job
 
 
 class ErrorFlavor(enum.Enum):
-    """ """
+    """What sort of error are we talking about"""
 
     pipelines = 0
     panda = 1
@@ -17,25 +17,13 @@ class ErrorFlavor(enum.Enum):
 
 
 class ErrorAction(enum.Enum):
-    """ """
+    """What should we do about it?"""
 
     ignore = 0
     rescue_job = 1
     email_orion = 2
     fail_job = 3
     email_yusra = 4
-
-
-class ErrorStatus(enum.Enum):
-    """ """
-
-    waiting_for_instructions = -1
-    ignored = 0
-    hold_to_rescue = 1
-    rescuing = 2
-    rescued = 3
-    hold_to_fail = 4
-    failed = 5
 
 
 class ErrorType(common.Base):
@@ -45,6 +33,7 @@ class ErrorType(common.Base):
 
     id = Column(Integer, primary_key=True)  # Unique ID
     panda_err_code = Column(String)
+    error_name = Column(String)
     diagnostic_message = Column(String)
     jira_ticket = Column(String)
     function = Column(String)
@@ -65,6 +54,7 @@ class ErrorInstance(common.Base):
     id = Column(Integer, primary_key=True)  # Unique ID
     job_id = Column(Integer, ForeignKey(Job.id))
     error_type_id = Column(Integer, ForeignKey(ErrorType.id))
+    error_name = Column(String)
 
     panda_err_code = Column(String)
     diagnostic_message = Column(String)
@@ -72,7 +62,6 @@ class ErrorInstance(common.Base):
     log_file_url = Column(String)  # some_file.log:3145
     data_id = Column(String)  # detector=32, visit=1341323412 or tract=1312, filter=really_blue
     error_flavor = Column(Enum(ErrorFlavor))
-    error_status = Column(Enum(ErrorStatus))
 
     job_: Job = relationship("Job", back_populates="errors_")
     error_type_: ErrorType = relationship("ErrorType", back_populates="instances_")

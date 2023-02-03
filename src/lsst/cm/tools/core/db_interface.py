@@ -466,6 +466,32 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def insert_rescue(
+        self,
+        db_id: DbId,
+        config_block: str,
+        **kwargs: Any,
+    ) -> CMTableBase:
+        """Insert a new database entry at a particular level
+
+        Parameters
+        ----------
+        db_id : DbId
+            Specifies the original version of the entry we are inserting
+
+        config_block: str
+            Specifics which part of the configuration to use for this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_entry : CMTableBase
+            Newly inserted entry
+        """
+        raise NotImplementedError()
+
     def add_script(
         self,
         parent_db_id: DbId,
@@ -841,6 +867,20 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def load_error_types(self, config_yaml: str) -> None:
+        """Parse a configuration file to load error types
+
+        Parameters
+        ----------
+        config_yaml : str
+            Path to the file with the configurations
+
+        Returns
+        -------
+        None
+        """
+        raise NotImplementedError()
+
     def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
         """Parse a configuration file and add it to an existing configuration
 
@@ -856,5 +896,22 @@ class DbInterface:
         -------
         config : ConfigBase
             The configuration object
+        """
+        raise NotImplementedError()
+
+    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        """Report the errors associated with a particular entry
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        level: LevelEnum
+            Selects which database table to start with
+
+        db_id: DbId
+            Database ID specifying which entries to print.
+            See class notes above.
         """
         raise NotImplementedError()

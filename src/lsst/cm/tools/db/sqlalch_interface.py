@@ -14,6 +14,7 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
+from lsst.cm.tools.db.error_table import ErrorAction, ErrorFlavor, ErrorType
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
@@ -201,6 +202,23 @@ class SQLAlchemyInterface(DbInterface):
             config = parent.config_
         handler = config.get_sub_handler(config_block)
         new_entry = handler.insert(self, parent, config_id=config.id, **kwargs)
+        self.connection().commit()
+        self.check(new_entry.level, new_entry.db_id)
+        return new_entry
+
+    def insert_rescue(
+        self,
+        db_id: DbId,
+        config_block: str,
+        **kwargs: Any,
+    ) -> CMTableBase:
+        parent = self.get_entry(db_id.level(), db_id)
+        last_workflow = parent.w_.back()  # replace with for loop if this
+        config = parent.config_
+        handler = config.get_sub_handler(config_block)
+        new_entry = handler.insert(
+            self, parent, config_id=config.id, data_query=last_workflow.data_query, **kwargs
+        )
         self.connection().commit()
         self.check(new_entry.level, new_entry.db_id)
         return new_entry
@@ -461,6 +479,27 @@ class SQLAlchemyInterface(DbInterface):
     def parse_config(self, config_name: str, config_yaml: str) -> Config:
         frag_names = self._build_fragments(config_name, config_yaml)
         return self._build_config(config_name, frag_names)
+
+    def load_error_types(self, config_yaml: str) -> None:
+        with open(config_yaml, "rt", encoding="utf-8") as config_file:
+            config_data = yaml.safe_load(config_file)
+        conn = self.connection()
+        error_code_dict = config_data["pandaErrorCode"]
+        for key, val in error_code_dict.items():
+            for error_type in val:
+                new_error_type = ErrorType(
+                    panda_err_code=key,
+                    diagnostic_message=error_type["diagMessage"],
+                    jira_ticket=str(error_type["ticket"]),
+                    function=error_type["function"],
+                    is_known=error_type["known"],
+                    is_resolved=error_type["resolved"],
+                    is_rescueable=error_type["rescue"],
+                    error_flavor=ErrorFlavor(error_type["panda"]),
+                    action=ErrorAction["email_orion"],
+                    max_intensity=error_type["intensity"],
+                )
+                conn.add(new_error_type)
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
