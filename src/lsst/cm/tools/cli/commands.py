@@ -185,6 +185,7 @@ def print_table(dbi: DbInterface, table: TableEnum, **kwargs: Any) -> None:
 @cli.command()
 @options.dbi()
 @options.config_name()
+@options.fmt()
 def print_config(dbi: DbInterface, config_name: str) -> None:
     """Print a information about a configuration"""
     dbi.print_config(sys.stdout, config_name)
@@ -384,7 +385,7 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.workflow()
 @options.status()
 def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
-    """Explicitly set the status of an  entry"""
+    """Explicitly set the status of an entry"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_status(the_db_id.level(), the_db_id, status)
 

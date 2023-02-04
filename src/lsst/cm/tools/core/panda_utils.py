@@ -230,6 +230,10 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         Running=StatusEnum.running,
     )
 
+    panda_status_map = dict(
+        Running=StatusEnum.running,
+    )
+
     def check_url(self, job: JobBase) -> dict[str, Any]:
         update_vals: dict[str, Any] = {}
         panda_url = job.panda_url
