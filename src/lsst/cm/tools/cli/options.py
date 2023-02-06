@@ -204,6 +204,13 @@ config_dir = PartialOption(
     show_envvar=True,
 )
 
+lsst_version = PartialOption(
+    "--lsst-version",
+    help="Version of LSST software stack",
+    envvar="CM_LSST_VERSION",
+    show_envvar=True,
+)
+
 panda_url = PartialOption(
     "--panda-url",
     help="ReqID associated with the PanDA job.",

@@ -1,6 +1,9 @@
 import os
 from typing import Any, Iterable, Optional
 
+from lsst.daf.butler import Butler
+
+from lsst.cm.tools.bulter_utils import build_data_queries
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
@@ -107,4 +110,27 @@ class StepHandler(GenericEntryHandler):
         group_configs : Iterable[dict[str, Any]]
             Iterator over the configs
         """
-        raise NotImplementedError()
+        out_dict = dict(
+            production_name=entry.p_.name,
+            campaign_name=entry.c_.name,
+            step_name=entry.name,
+        )
+        data_query_base = self.config["data_query_base"]
+        split_args = self.config.get("split_args", {})
+        if split_args:
+            butler = Butler(
+                entry.butler_repo,
+                collections=[entry.coll_source],
+            )
+            data_queries = build_data_queries(butler, **split_args)
+        else:
+            data_queries = [None]
+        for i, dq_ in enumerate(data_queries):
+            data_query = data_query_base
+            if dq_ is not None:
+                data_query += f" AND {dq_}"
+            out_dict.update(
+                group_name=f"group{i}",
+                data_query=data_query,
+            )
+            yield out_dict
