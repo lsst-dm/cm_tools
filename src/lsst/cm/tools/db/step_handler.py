@@ -3,7 +3,7 @@ from typing import Any, Iterable, Optional
 
 from lsst.daf.butler import Butler
 
-from lsst.cm.tools.bulter_utils import build_data_queries
+from lsst.cm.tools.core.butler_utils import build_data_queries
 from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign

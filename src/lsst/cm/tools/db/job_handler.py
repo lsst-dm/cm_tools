@@ -113,10 +113,13 @@ class JobHandler(JobHandlerBase):
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
 
-        bps_script_template = os.path.expandvars(self.config["bps_script_template"])
+        try:
+            bps_script_template = os.path.expandvars(self.config["bps_script_template"])
 
-        with open(bps_script_template, "r") as fin:
-            prepend = fin.read().replace("{lsst_version}", parent.c_.lsst_version)
+            with open(bps_script_template, "r") as fin:
+                prepend = fin.read().replace("{lsst_version}", parent.c_.lsst_version)
+        except KeyError:
+            prepend = ""
 
         command = make_bps_command(outpath, job.json_url, job.log_url)
         write_command_script(job, command, prepend=prepend)

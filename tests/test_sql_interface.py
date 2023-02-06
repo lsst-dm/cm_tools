@@ -75,6 +75,7 @@ def test_full_example() -> None:
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
 
     top_db_id = None
     iface.insert(top_db_id, None, None, production_name="example")
@@ -206,6 +207,7 @@ def test_failed_workflows() -> None:
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
 
     config_name = "test_failed"
     config_yaml = "example_config.yaml"
@@ -308,6 +310,7 @@ def test_recover_failed() -> None:
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
 
     config_name = "test_failed"
     config_yaml = "example_config.yaml"
@@ -436,6 +439,7 @@ def test_script_interface() -> None:
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
 
     config_name = "test_scripts"
     config_yaml = "example_test_scripts.yaml"
@@ -504,8 +508,10 @@ def test_insert() -> None:
     os.system("\\rm -rf archive_test")
 
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
+
     Handler.plugin_dir = "examples/handlers/"
     Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
 
     config_name = "test"
     config_yaml = "example_config.yaml"
