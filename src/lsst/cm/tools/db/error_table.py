@@ -45,6 +45,19 @@ class ErrorType(common.Base):
     max_intensity = Column(Float)
     instances_: Iterable = relationship("ErrorInstance", back_populates="error_type_")
 
+    def __repr__(self):
+        s = f"Id={self.id}\n"
+        s += f"  Panda Code: {self.panda_err_code}  Function: {self.function}\n"
+        s += f"  JIRA: {self.jira_ticket}\n"
+        s += "  Flags (known, resolved, rescuable): "
+        s += f"{self.is_known}, {self.is_resolved}, {self.is_rescueable}\n"
+        if len(self.diagnostic_message) > 50:
+            diag_message = self.diagnostic_message[0:49]
+        else:
+            diag_message = self.diagnostic_message
+        s += f"    {diag_message}"
+        return s
+
 
 class ErrorInstance(common.Base):
     """Database table to keep track of individual errors."""

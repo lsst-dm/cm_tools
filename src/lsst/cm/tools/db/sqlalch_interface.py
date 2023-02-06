@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from time import sleep
 from typing import Any, Iterable, Optional, TextIO
@@ -500,6 +501,15 @@ class SQLAlchemyInterface(DbInterface):
                     max_intensity=error_type["intensity"],
                 )
                 conn.add(new_error_type)
+        conn.commit()
+
+    def match_error_type(self, panda_code: str, diag_message: str) -> Any:
+        conn = self.connection()
+        possible_matches = conn.execute(select(ErrorType).where(ErrorType.panda_err_code == panda_code))
+        for match_ in possible_matches:
+            if re.match(match_[0].diagnostic_message, diag_message):
+                return match_[0]
+        return
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()

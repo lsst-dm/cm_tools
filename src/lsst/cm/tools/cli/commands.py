@@ -457,6 +457,16 @@ def load_error_types(dbi: DbInterface, config_yaml: str) -> None:
 
 @cli.command()
 @options.dbi()
+@options.panda_code()
+@options.diag_message()
+def match_error_type(dbi: DbInterface, panda_code: str, diag_message: str) -> None:
+    """Load error types from a configuration file"""
+    error_type = dbi.match_error_type(panda_code, diag_message)
+    sys.stdout.write(f"{repr(error_type)}\n")
+
+
+@cli.command()
+@options.dbi()
 @options.config_yaml()
 @options.config_name()
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
