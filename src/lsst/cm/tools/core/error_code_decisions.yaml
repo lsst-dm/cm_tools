@@ -4,12 +4,12 @@ pandaErrorCode:
     trans, 1:
         -
             diagMessage: >
-                Execution of task 'characterizeImage' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                Execution of task 'characterizeImage' on quantum {.*} failed. Exception
                 RuntimeError: Unable to measure aperture correction for required algorithm 'modelfit_CModel': only 0 sources, but
                 require at least 2.
             function: characterizeImage
             known: 1
-            ticket: ["DM-36763", "DM36356"]
+            ticket: ["DM-36763", "DM-36356"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -25,7 +25,7 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Failed to solve for PSF matching kernel in GAaP for (*,*): Problematic scaling factors = 1.15 Errors: Exception
+                Failed to solve for PSF matching kernel in GAaP for (.*): Problematic scaling factors = .* Errors: Exception
                 ('Unable to determine kernel sum; 0 candidates')
             function: characterizeImage
             known: 1
@@ -36,7 +36,7 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
                 RuntimeError: No matches to use for photocal
             function: calibrate
             known: 1
@@ -47,7 +47,7 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
                 ValueError: cannot convert float NaN to integer
             function: calibrate
             known: 1
@@ -58,8 +58,8 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Execution of task 'calibrate' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
-                ValueError: PSF at (*,*) has an invalid FWHM value of nan
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                ValueError: PSF at (.*) has an invalid FWHM value of nan
             function: calibrate
             known: 1
             ticket: ["DM-36763"]
@@ -70,7 +70,7 @@ pandaErrorCode:
         -
             diagMessage: >
                 Task <TaskDef(lsst.pipe.tasks.finalizeCharacterization.FinalizeCharacterizationTask, label=
-                finalizeCharacterization) dataId={instrument: 'HSC', visit: *, ...}> failed; processing will continue for remaining
+                finalizeCharacterization) dataId={.*}> failed; processing will continue for remaining
                  tasks.
             function: finalizeCharacterization
             known: 1
@@ -89,7 +89,7 @@ pandaErrorCode:
             panda: 1
             intensity: 0
         -
-            diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from * to *"
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from .* to .*"
             function: finalizeCharacterization
             known: 1
             ticket: ["DM-36066"]
@@ -98,7 +98,7 @@ pandaErrorCode:
             panda: 1
             intensity: 0
         -
-            diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from * to *"
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from .* to .*"
             function: finalizeCharacterization
             known: 1
             ticket: ["DM-36066"]
@@ -139,7 +139,7 @@ pandaErrorCode:
         -
             diagMessage: >
                 Execution of task 'measure' on quantum {band: 'y', skymap: 'hsc_rings_v1', tract: *, patch: *} failed. Exception
-                IndexError: Index (*,*) outside image bounds (*, *) to (*,*).
+                IndexError: Index (.*) outside image bounds (.*) to (.*).
             function: measure
             known: 1
             ticket: ["DM-35722", "DM-36066"]
@@ -169,11 +169,11 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Execution of task 'subtractImages' on quantum {instrument: 'HSC', detector: *, visit: *, ...} failed. Exception
-                InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line *, in virtual std::shared_ptr<lsst::afw::image::
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
+                InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line .*, in virtual std::shared_ptr<lsst::afw::image::
                 Image<double> > lsst::meas::algorithms::CoaddPsf::doComputeKernelImage(const Point2D&, const lsst::afw::image::
-                Color&) const\nCannot compute CoaddPsf at point (*,*); no input images at that point. {0} lsst::pex::exceptions::
-                InvalidParameterError: 'Cannot compute CoaddPsf at point (*,*); no input images at that point.'
+                Color&) const\nCannot compute CoaddPsf at point (.*); no input images at that point. {0} lsst::pex::exceptions::
+                InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
             function: subtractImages
             known: 1
             ticket: ["DM-36265", "DM-36356", "DM-36066"]
@@ -183,7 +183,7 @@ pandaErrorCode:
             intensity: 0.001
         -
             diagMessage: >
-                Execution of task 'subtractImages' on quantum {instrument: 'HSC', detector:*, visit: *, ...} failed. Exception
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
                 RuntimeError: Cannot find any objects suitable for KernelCandidacy
             function: subtractImages
             known: 1
@@ -233,8 +233,7 @@ pandaErrorCode:
         -
             diagMessage: >
                 Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
-                dataset * (objectTable_tract from file:///*/HSC/runs/RC2/*/*/*/objectTable_tract/*/objectTable_tract_*_hsc_rings_v1
-                *.parq): Unrecognized column name 'u_psfFlux_flag'.
+                dataset .*: Unrecognized column name 'u_psfFlux_flag'.
             function: catalogMatchTract
             known: 1
             ticket: ["DM-36305", "DM-36356"]
@@ -293,7 +292,7 @@ pandaErrorCode:
         -
             diagMessage: >
                 Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
-                * (objectTable_tract from file:///*/objectTable_tract/*/objectTable_tract
+                .*
             function: catalogMatchTract
             known: 1
             ticket: ["DM-36306", "DM-36356"]
@@ -354,7 +353,7 @@ pandaErrorCode:
             intensity: 0
     pilot, 1098:
         -
-            diagMessage: "too little space left on local disk to run job: * B (need > * B)"
+            diagMessage: "too little space left on local disk to run job: .* B (need > .* B)"
             function: forcedPhotCcd
             known: 1
             ticket: ["DM-36066"]
