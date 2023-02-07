@@ -184,7 +184,6 @@ class SQLAlchemyInterface(DbInterface):
         config: ConfigBase | None,
         **kwargs: Any,
     ) -> CMTableBase:
-
         if parent_db_id is None:
             parent_level = None
         else:
