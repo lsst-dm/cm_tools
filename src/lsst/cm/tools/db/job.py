@@ -57,7 +57,7 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     job_cputime = Column(Float)
 
     level = Column(Enum(LevelEnum))
-    db_id: DbId = composite(DbId, p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
+    db_id: DbId = composite(DbId, p_id, c_id, s_id, g_id, w_id)
     c_: Campaign = relationship("Campaign", back_populates="jobs_")
     s_: Step = relationship("Step", back_populates="jobs_")
     g_: Group = relationship("Group", back_populates="jobs_")

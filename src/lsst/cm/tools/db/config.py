@@ -14,6 +14,7 @@ class Fragment(common.Base):
     """
 
     __tablename__ = "fragment"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique fragment ID
     name = Column(String)  # Name associated to the file this fragement came from
@@ -34,6 +35,7 @@ class Config(common.Base):
     """Database table to manage configurations fragments into configurations"""
 
     __tablename__ = "config"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique association ID
     name = Column(String)  # Name associated this configuration
@@ -57,6 +59,7 @@ class ConfigAssociation(common.Base):
     """Database table to associate fragments into configurations"""
 
     __tablename__ = "config_association"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique association ID
     frag_id = Column(Integer, ForeignKey(Fragment.id))

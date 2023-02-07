@@ -17,6 +17,8 @@ class SQLTableMixin:
     functions for Database tables
     """
 
+    __allow_unmapped__ = True
+
     depend_: Iterable
     id: int | None
 

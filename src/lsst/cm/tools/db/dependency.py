@@ -24,6 +24,7 @@ class Dependency(DependencyBase, common.Base):
     """
 
     __tablename__ = "dependency"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique dependency ID
     p_id = Column(Integer)

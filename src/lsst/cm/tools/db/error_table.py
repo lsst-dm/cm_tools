@@ -30,6 +30,7 @@ class ErrorType(common.Base):
     """Database table to keep track of types of errors."""
 
     __tablename__ = "error_type"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique ID
     panda_err_code = Column(String)
@@ -63,6 +64,7 @@ class ErrorInstance(common.Base):
     """Database table to keep track of individual errors."""
 
     __tablename__ = "error_instance"
+    __allow_unmapped__ = True
 
     id = Column(Integer, primary_key=True)  # Unique ID
     job_id = Column(Integer, ForeignKey(Job.id))

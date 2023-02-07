@@ -44,7 +44,7 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
     script_type = Column(Enum(ScriptType))  # What sort of thing the script does
     script_method = Column(Enum(ScriptMethod))  # How the script is invoked
     level = Column(Enum(LevelEnum))
-    db_id: DbId = composite(DbId, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
+    db_id: DbId = composite(DbId, c_id, s_id, g_id, w_id)
     c_: Campaign = relationship("Campaign", back_populates="all_scripts_")
     s_: Step = relationship("Step", back_populates="all_scripts_")
     g_: Group = relationship("Group", back_populates="all_scripts_")

@@ -81,9 +81,7 @@ class Workflow(common.Base, common.CMTable):
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        return (
-            f"Workflow {self.fullname} {self.db_id}: {self.frag_id} {self.status.name} {supersede_string}\n"
-        )
+        return f"Workflow {self.fullname} {self.db_id}: {self.frag_id} {self.status.name} {supersede_string}"
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""

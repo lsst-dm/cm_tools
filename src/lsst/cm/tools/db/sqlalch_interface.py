@@ -593,9 +593,9 @@ class SQLAlchemyInterface(DbInterface):
         table = top.get_table_for_level(level)
         parent_field = table.parent_id
         if parent_field is None:
-            sel = select([table.id]).where(table.name == match_name)
+            sel = select(table.id).where(table.name == match_name)
         else:
-            sel = select([table.id]).where(and_(parent_field == parent_id, table.name == match_name))
+            sel = select(table.id).where(and_(parent_field == parent_id, table.name == match_name))
         return common.return_first_column(self, sel)
 
     def _verify_entry(self, entry: int | None, level: LevelEnum, db_id: DbId) -> None:
