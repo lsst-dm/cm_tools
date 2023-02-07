@@ -34,6 +34,7 @@ def create(dbi: DbInterface) -> None:
 @options.data_query()
 @options.butler()
 @options.lsst_version()
+@options.root_coll()
 @options.prod_base()
 @options.workflow()
 @options.config_name()
