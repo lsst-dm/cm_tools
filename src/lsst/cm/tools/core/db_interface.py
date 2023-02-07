@@ -327,7 +327,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId, fmt: str | None = None) -> None:
         """Print a database entry or entries
 
         Parameters
@@ -341,10 +341,13 @@ class DbInterface:
         db_id: DbId
             Database ID specifying which entries to print.
             See class notes above.
+
+        fmt: str | None
+            If provided, format for printing
         """
         raise NotImplementedError()
 
-    def print_table(self, stream: TextIO, which_table: TableEnum) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
         """Print a database table
 
         Parameters
@@ -385,6 +388,37 @@ class DbInterface:
 
         config_name : str
             Name of the configuration in question
+        """
+        raise NotImplementedError()
+
+    def summarize_output(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        """Print a summary of the outputs associated to a particular entry
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        level: LevelEnum
+            Selects which database table to start with
+
+        db_id: DbId
+            Database ID specifying which entries to print.
+            See class notes above.
+        """
+        raise NotImplementedError()
+
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+        """Run a kludged version of bulter associate
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to start with
+
+        db_id: DbId
+            Database ID specifying which entries to use.
+            See class notes above.
         """
         raise NotImplementedError()
 
@@ -531,6 +565,54 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def requeue_jobs(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+    ) -> list[DbId]:
+        """Requeue all the failed jobs matching the selection
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are queuing
+
+        Returns
+        -------
+        entries : list[DbId]
+            Entries that were launched
+        """
+        raise NotImplementedError()
+
+    def rerun_scripts(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+    ) -> list[DbId]:
+        """Re-run all the failed scripts matching the selection
+
+        Parameters
+        ----------
+        level: LevelEnum
+            Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are queuing
+
+        script_name : str
+            Name of the script in question
+
+        Returns
+        -------
+        entries : list[DbId]
+            Entries that were launched
+        """
+        raise NotImplementedError()
+
     def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
         """Accept completed entries at a particular level
 
@@ -630,7 +712,7 @@ class DbInterface:
 
     def fake_script(
         self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
-    ) -> None:
+    ) -> list[int]:
         """Pretend to run scripts, this is for testing
 
         Parameters
@@ -643,6 +725,74 @@ class DbInterface:
 
         script_name : str
             Specifies which types of scripts to fake
+
+        status: StatusEnum
+            Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the scripts that were affected
+        """
+        raise NotImplementedError()
+
+    def set_status(self, level: LevelEnum, db_id: DbId, status: StatusEnum) -> None:
+        """Set the status of an entry
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        status: StatusEnum
+            Status value to set
+        """
+        raise NotImplementedError()
+
+    def set_job_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        """Set the status of jobs
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        script_name : str
+            Specifies which types of scripts to set the status for
+
+        status: StatusEnum
+            Status value to set
+
+        Returns
+        -------
+        db_id_list : list[DbId]
+            Ids of the scripts that were affected
+        """
+        raise NotImplementedError()
+
+    def set_script_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        """Set the status of scripts
+
+        Parameters
+        ----------
+        level: LevelEnum
+           Selects which database table to search
+
+        db_id : DbId
+            Specifies the entries we are running
+
+        script_name : str
+            Specifies which types of scripts to set the status for
 
         status: StatusEnum
             Status value to set

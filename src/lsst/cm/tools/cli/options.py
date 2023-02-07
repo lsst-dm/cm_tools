@@ -18,6 +18,7 @@ __all__ = [
     "config_block",
     "data_query",
     "dbi",
+    "fmt",
     "fullname",
     "group",
     "level",
@@ -78,6 +79,12 @@ table = PartialOption(
     type=EnumChoice(TableEnum),
     default="workflow",
     help="Which database table to manipulate.",
+)
+
+fmt = PartialOption(
+    "--fmt",
+    default=None,
+    help="Format for printing",
 )
 
 status = PartialOption(

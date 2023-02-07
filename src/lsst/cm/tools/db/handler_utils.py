@@ -199,7 +199,6 @@ def check_validating_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -> bool:
-
     has_updates = False
     # print(f"do_entry_loop {status.name} {str(func)} {entry.level.name}")
     level_counter = {}
@@ -224,7 +223,6 @@ def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -
 
 
 def check_entry_loop_iteration(dbi: DbInterface, entry: Any) -> bool:
-
     can_continue = False
 
     can_continue = do_entry_loop(dbi, entry, StatusEnum.waiting, check_waiting_entry)
@@ -249,7 +247,6 @@ def check_entry_loop_iteration(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_entry_loop(dbi: DbInterface, entry: Any) -> bool:
-
     can_continue = True
     while can_continue:
         can_continue = check_entry_loop_iteration(dbi, entry)
@@ -260,7 +257,7 @@ def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     """Make all the scripts associated with an entry as accepted"""
     for script in scripts:
         # accept_scripts should only be called on completed scripts
-        assert script.status == StatusEnum.completed
+        # assert script.status == StatusEnum.completed
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 

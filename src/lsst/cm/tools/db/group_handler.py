@@ -26,8 +26,9 @@ class GroupHandler(GenericEntryHandler):
     level = LevelEnum.group
 
     def insert(self, dbi: DbInterface, parent: Step, **kwargs: Any) -> Group:
+        group_name = self.get_kwarg_value("group_name", **kwargs)
         insert_fields = dict(
-            name=self.get_kwarg_value("group_name", **kwargs),
+            name=group_name,
             fullname=self.get_fullname(**kwargs),
             p_id=parent.p_.id,
             c_id=parent.c_.id,
@@ -41,6 +42,10 @@ class GroupHandler(GenericEntryHandler):
         extra_fields = dict(
             prod_base_url=parent.prod_base_url,
             root_coll=parent.root_coll,
+            production_name=parent.p_.name,
+            campaign_name=parent.c_.name,
+            step_name=parent.name,
+            group_name=group_name,
         )
         coll_names = self.coll_names(insert_fields, **extra_fields)
         insert_fields.update(**coll_names)
@@ -55,5 +60,6 @@ class GroupHandler(GenericEntryHandler):
             campaign_name=entry.c_.name,
             step_name=entry.s_.name,
             group_name=entry.name,
+            data_query=entry.data_query,
         )
         return StatusEnum.populating

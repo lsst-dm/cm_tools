@@ -29,21 +29,26 @@ class StepHandler(GenericEntryHandler):
     level = LevelEnum.step
 
     def insert(self, dbi: DbInterface, parent: Campaign, **kwargs: Any) -> Step:
+        step_name = self.get_kwarg_value("step_name", **kwargs)
+        coll_source = self.get_kwarg_value("coll_source", **kwargs)
         insert_fields = dict(
-            name=self.get_kwarg_value("step_name", **kwargs),
+            name=step_name,
             fullname=self.get_fullname(**kwargs),
             p_id=parent.p_.id,
             c_id=parent.id,
             config_id=parent.config_id,
             frag_id=self._fragment_id,
             data_query=kwargs.get("data_query"),
-            coll_in=parent.coll_in,
-            coll_source=parent.coll_in,
+            coll_in=coll_source,
+            coll_source=coll_source,
             status=StatusEnum.waiting,
         )
         extra_fields = dict(
             prod_base_url=parent.prod_base_url,
             root_coll=parent.root_coll,
+            production_name=parent.p_.name,
+            campaign_name=parent.name,
+            step_name=step_name,
         )
         coll_names = self.coll_names(insert_fields, **extra_fields)
         insert_fields.update(**coll_names)

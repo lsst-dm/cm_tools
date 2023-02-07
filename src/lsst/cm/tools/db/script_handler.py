@@ -40,6 +40,8 @@ class ScriptHandler(ScriptHandlerBase):
 
     script_type: ScriptType = ScriptType.prepare
     checker_class_dict = {
+        ScriptMethod.fake_run: None,
+        ScriptMethod.no_run: None,
         ScriptMethod.no_script: None,
         ScriptMethod.bash: YamlChecker,
         ScriptMethod.slurm: SlurmChecker,
@@ -116,7 +118,7 @@ class ScriptHandler(ScriptHandlerBase):
     ) -> StatusEnum:
         if script.script_method == ScriptMethod.no_run:  # pragma: no cover
             return StatusEnum.ready
-        elif script.script_method == ScriptMethod.no_script:  # pragma: no cover
+        if script.script_method == ScriptMethod.no_script:  # pragma: no cover
             return StatusEnum.running
         self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method == ScriptMethod.bash:
@@ -124,6 +126,8 @@ class ScriptHandler(ScriptHandlerBase):
         elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
             job_id = submit_job(script.script_url, script.log_url)
             Script.update_values(dbi, script.id, stamp_url=job_id)
+        elif script.script_method == ScriptMethod.fake_run:  # pragma : no cover
+            return StatusEnum.completed
         status = StatusEnum.running
         return status
 
@@ -167,8 +171,22 @@ class CollectScriptHandler(ScriptHandler):
     script_type: ScriptType = ScriptType.collect
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        input_colls = [child.coll_out for child in parent.children()]
+        input_colls = [child.coll_out for child in parent.children() if not child.superseded]
         command = make_butler_chain_command(parent.butler_repo, parent.coll_out, input_colls)
+        write_command_script(script, command, **kwargs)
+
+    def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
+        return parent.coll_out
+
+
+class CollectStepScriptHandler(ScriptHandler):
+    """Script handler for scripts that collect output collections"""
+
+    script_type: ScriptType = ScriptType.collect
+
+    def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
+        input_colls = [child.coll_out for child in parent.jobs_ if not child.superseded]
+        command = make_butler_associate_command(parent.butler_repo, parent.coll_out, input_colls, None)
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:

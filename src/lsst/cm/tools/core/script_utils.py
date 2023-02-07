@@ -51,7 +51,7 @@ def make_butler_associate_command(
     butler_repo: str,
     coll_in: str,
     coll_source: str,
-    data_query: Optional[str],
+    data_query: Optional[str] = None,
 ) -> str:
     """Build and return a butler associate command
 

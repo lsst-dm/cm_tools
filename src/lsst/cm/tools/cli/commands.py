@@ -70,6 +70,37 @@ def insert(
 @options.campaign()
 @options.step()
 @options.group()
+def summarize_output(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Summarize the output of a particular entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.summarize_output(sys.stdout, the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+def associate_kludge(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Kludge the butler associate command"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.associate_kludge(the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
 @options.workflow()
 @options.config_name()
 @options.config_block()
@@ -135,18 +166,20 @@ def print_tree(dbi: DbInterface, **kwargs: Any) -> None:
 @options.step()
 @options.group()
 @options.workflow()
+@options.fmt()
 def print(dbi: DbInterface, **kwargs: Any) -> None:  # pylint: disable=redefined-builtin
     """Print a database entry or entries"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.print_(sys.stdout, the_db_id.level(), the_db_id)
+    dbi.print_(sys.stdout, the_db_id.level(), the_db_id, fmt=kwargs.get("fmt"))
 
 
 @cli.command()
 @options.dbi()
 @options.table()
-def print_table(dbi: DbInterface, table: TableEnum) -> None:
+@options.fmt()
+def print_table(dbi: DbInterface, table: TableEnum, **kwargs: Any) -> None:
     """Print a database table"""
-    dbi.print_table(sys.stdout, table)
+    dbi.print_table(sys.stdout, table, **kwargs)
 
 
 @cli.command()
@@ -168,8 +201,42 @@ def print_config(dbi: DbInterface, config_name: str) -> None:
 @options.script_method()
 def queue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Queue all the prepared jobs matching the selection"""
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.queue_jobs(the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script_method()
+def requeue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
+    """Queue all the prepared jobs matching the selection"""
+    Handler.script_method = script_method
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.requeue_jobs(the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.script_method()
+def rerun_scripts(dbi: DbInterface, script_name: str, script_method: ScriptMethod, **kwargs: Any) -> None:
+    """Rerun particular failed  scripts"""
+    Handler.script_method = script_method
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.rerun_scripts(the_db_id.level(), the_db_id, script_name)
 
 
 @cli.command()
@@ -282,8 +349,10 @@ def rollback(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, 
 @options.workflow()
 @options.status()
 @options.max_running()
-def fake_run(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
+@options.script_method()
+def fake_run(dbi: DbInterface, status: StatusEnum, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Pretend to run workflows, this is for testing"""
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.fake_run(the_db_id.level(), the_db_id, status)
 
@@ -298,11 +367,60 @@ def fake_run(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
 @options.workflow()
 @options.script()
 @options.status()
-@options.max_running()
+@options.script_method()
 def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
     """Pretend to run scripts, this is for testing"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.fake_script(the_db_id.level(), the_db_id, script_name, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.status()
+def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
+    """Explicitly set the status of an  entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.set_status(the_db_id.level(), the_db_id, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.status()
+@options.script_method()
+def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+    """Explicitly set the status of a particular job"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.set_job_status(the_db_id.level(), the_db_id, script_name, status)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+@options.workflow()
+@options.script()
+@options.status()
+@options.script_method()
+def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+    """Explicitly set the status of a particular script"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.set_script_status(the_db_id.level(), the_db_id, script_name, status)
 
 
 @cli.command()

@@ -7,6 +7,7 @@ import yaml
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
+from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_dataset_summary
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -15,6 +16,7 @@ from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
+from lsst.cm.tools.db.script import Script
 
 
 class SQLAlchemyInterface(DbInterface):
@@ -123,15 +125,15 @@ class SQLAlchemyInterface(DbInterface):
         )
         return self.connection().execute(sel)
 
-    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def print_(self, stream: TextIO, level: LevelEnum, db_id: DbId, fmt: str | None = None) -> None:
         table = top.get_table_for_level(level)
         sel = table.get_match_query(db_id)
-        common.print_select(self, stream, sel)
+        common.print_select(self, stream, sel, fmt)
 
-    def print_table(self, stream: TextIO, which_table: TableEnum) -> None:
+    def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
         table = top.get_table(which_table)
         sel = select(table)
-        common.print_select(self, stream, sel)
+        common.print_select(self, stream, sel, fmt=kwargs.get("fmt"))
 
     def print_tree(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         entry = self.get_entry(level, db_id)
@@ -146,6 +148,29 @@ class SQLAlchemyInterface(DbInterface):
             frag = assoc.frag_
             stream.write(f"  {frag.tag}: {frag.id} {str(frag)}\n")
 
+    def summarize_output(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        if level == LevelEnum.campaign:
+            butler_repo = entry.butler_repo
+        else:
+            butler_repo = entry.c_.butler_repo
+        print_dataset_summary(stream, butler_repo, [entry.coll_out])
+
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        assert level == LevelEnum.step
+        butler_repo = entry.c_.butler_repo
+        output_collection = entry.coll_out
+        input_collections = []
+        for group_ in entry.g_:
+            group_colls = []
+            for job_ in group_.jobs_:
+                if job_.superseded:
+                    continue
+                group_colls.append(job_.coll_out)
+            input_collections.append(group_colls)
+        butler_associate_kludge(butler_repo, output_collection, input_collections)
+
     def check(self, level: LevelEnum, db_id: DbId) -> StatusEnum:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
@@ -159,7 +184,6 @@ class SQLAlchemyInterface(DbInterface):
         config: ConfigBase | None,
         **kwargs: Any,
     ) -> CMTableBase:
-
         if parent_db_id is None:
             parent_level = None
         else:
@@ -219,6 +243,8 @@ class SQLAlchemyInterface(DbInterface):
             status = job_.status
             if status != StatusEnum.ready:
                 continue
+            if job_.superseded:
+                continue
             db_id_list.append(job_.db_id)
             handler = job_.get_handler()
             parent = job_.w_
@@ -244,6 +270,8 @@ class SQLAlchemyInterface(DbInterface):
             if n_running >= max_running:
                 break
             status = job_.status
+            if job_.superseded:
+                continue
             if status == StatusEnum.running:
                 n_running += 1
             if status != StatusEnum.prepared:
@@ -252,6 +280,48 @@ class SQLAlchemyInterface(DbInterface):
             handler = job_.get_handler()
             handler.launch(self, job_)
             n_running += 1
+        self.connection().commit()
+        self.check(level, db_id)
+        return db_id_list
+
+    def requeue_jobs(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        entry = self.get_entry(level, db_id)
+        handler = entry.get_handler()
+        for job_ in entry.jobs_:
+            status = job_.status
+            if not status.bad():
+                continue
+            if job_.superseded:
+                continue
+            workflow = job_.w_
+            Job.update_values(self, job_.id, superseded=True)
+            handler = workflow.get_handler()
+            handler.requeue_job(self, workflow)
+            db_id_list.append(workflow.db_id)
+        self.connection().commit()
+        self.check(level, db_id)
+        return db_id_list
+
+    def rerun_scripts(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+    ) -> list[DbId]:
+        db_id_list: list[DbId] = []
+        entry = self.get_entry(level, db_id)
+        for script_ in entry.all_scripts_:
+            status = script_.status
+            if not status.bad():
+                continue
+            if script_.name != script_name:
+                continue
+            Script.update_values(self, script_.id, superseded=True)
+            parent = script_.parent()
+            handler = parent.get_handler()
+            handler.rerun_script(self, parent, script_name, script_.script_type)
+            db_id_list.append(parent.db_id)
         self.connection().commit()
         self.check(level, db_id)
         return db_id_list
@@ -335,6 +405,42 @@ class SQLAlchemyInterface(DbInterface):
             handler.fake_run_hook(self, script_, status)
             db_id_list.append(script_.id)
         self.check(level, db_id)
+        return db_id_list
+
+    def set_status(
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        status: StatusEnum,
+    ) -> None:
+        entry = self.get_entry(level, db_id)
+        entry.update_values(self, entry.id, status=status)
+        self.connection().commit()
+
+    def set_job_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for job_ in entry.jobs_:
+            if job_.name != script_name:
+                continue
+            Job.update_values(self, job_.id, status=status)
+            db_id_list.append(job_.id)
+        self.connection().commit()
+        return db_id_list
+
+    def set_script_status(
+        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+    ) -> list[int]:
+        entry = self.get_entry(level, db_id)
+        db_id_list: list[int] = []
+        for script_ in entry.scripts_:
+            if script_.name != script_name:
+                continue
+            Script.update_values(self, script_.id, status=status)
+            db_id_list.append(script_.id)
+        self.connection().commit()
         return db_id_list
 
     def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:

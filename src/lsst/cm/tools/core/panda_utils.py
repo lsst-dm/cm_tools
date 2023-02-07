@@ -10,7 +10,7 @@ from lsst.cm.tools.core.utils import StatusEnum
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
-    with open(url, "r") as fin:
+    with open(url, "r", encoding="utf8") as fin:
         line = fin.readline()
         while line:
             tokens = line.split(":")
@@ -226,8 +226,12 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         running=StatusEnum.running,
     )
 
+    panda_status_map = dict(
+        Running=StatusEnum.running,
+    )
+
     def check_url(self, job: JobBase) -> dict[str, Any]:
-        update_vals = {}
+        update_vals: dict[str, Any] = {}
         panda_url = job.panda_url
         if panda_url is None:
             slurm_dict = SlurmChecker.check_url(self, job)
@@ -236,7 +240,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             batch_status = slurm_dict.get("batch_status", job.batch_status)
             if batch_status != job.batch_status:
                 update_vals["batch_status"] = batch_status
-            if slurm_dict["status"] == StatusEnum.completed:
+            if slurm_dict.get("status") == StatusEnum.completed:
                 bps_dict = parse_bps_stdout(job.log_url)
                 panda_url = bps_dict["Run Id"]
                 update_vals["panda_url"] = panda_url
