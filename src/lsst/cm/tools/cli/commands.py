@@ -7,6 +7,7 @@ from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
+from ..core.panda_utils import PandaChecker
 from ..core.utils import ScriptMethod, StatusEnum, TableEnum
 
 
@@ -452,3 +453,21 @@ def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
     """Parse a configuration file and add the fragments to another config"""
     dbi.extend_config(config_name, config_yaml)
+
+
+@cli.command()
+@options.panda_url(type=int)
+@options.panda_username()
+def check_panda_job(panda_url: int, panda_username: str) -> list[str]:
+    """Check the status of a panda job"""
+    pc = PandaChecker()
+    pc.check_panda_status(panda_url, panda_username)
+
+
+@cli.command()
+@options.panda_url(type=int)
+@options.panda_username()
+def get_panda_errors(panda_url: int, panda_username: str):
+    """Check the status of a finished panda task"""
+    pc = PandaChecker()
+    errors_aggregate, diags_aggregate = pc.get_task_errors(panda_url, panda_username)
