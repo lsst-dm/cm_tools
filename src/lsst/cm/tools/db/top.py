@@ -6,7 +6,9 @@ from sqlalchemy_utils import create_database, database_exists
 from lsst.cm.tools.core.utils import LevelEnum, TableEnum
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.campaign import Campaign
+from lsst.cm.tools.db.config import Config, Fragment
 from lsst.cm.tools.db.dependency import Dependency
+from lsst.cm.tools.db.error_table import ErrorInstance, ErrorType
 from lsst.cm.tools.db.group import Group
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
@@ -60,5 +62,9 @@ def get_table(which_table: TableEnum) -> Table:
         TableEnum.script: Script,
         TableEnum.job: Job,
         TableEnum.dependency: Dependency,
+        TableEnum.config: Config,
+        TableEnum.fragment: Fragment,
+        TableEnum.error_type: ErrorType,
+        TableEnum.error_instance: ErrorInstance,
     }
     return all_tables[which_table]

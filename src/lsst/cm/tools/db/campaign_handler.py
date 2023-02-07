@@ -38,6 +38,7 @@ class CampaignHandler(GenericEntryHandler):
             fullname=self.get_fullname(**kwargs),
             data_query=self.get_config_var("data_query", None, **kwargs),
             root_coll=self.get_config_var("root_coll", "prod", **kwargs),
+            lsst_version=self.get_config_var("lsst_version", None, **kwargs),
             p_id=parent.id,
             config_id=kwargs["config_id"],
             frag_id=self._fragment_id,

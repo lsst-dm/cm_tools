@@ -155,6 +155,8 @@ class TableEnum(enum.Enum):
     dependency = 7
     fragment = 8
     config = 9
+    error_type = 10
+    error_instance = 11
 
 
 class InputType(enum.Enum):

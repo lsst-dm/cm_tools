@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import composite, relationship
 
@@ -61,12 +63,15 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     g_: Group = relationship("Group", back_populates="jobs_")
     w_: Workflow = relationship("Workflow", back_populates="jobs_")
     frag_: Fragment = relationship("Fragment", viewonly=True)
+    errors_: Iterable = relationship("ErrorInstance", back_populates="job_")
 
     def __repr__(self) -> str:
         if self.superseded:
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        string_out = f"BatchJob {self.id}: {self.db_id} {self.name} {self.frag_} {self.status.name}"
+        string_out = (
+            f"BatchJob {self.id}: {self.db_id} {self.name} {self.frag_} {self.status.name} {self.w_.id}"
+        )
         string_out += f" {supersede_string}"
         return string_out

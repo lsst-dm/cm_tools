@@ -1,15 +1,12 @@
 import os
 from typing import Any, Iterable
 
-import yaml
-
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
-from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
+from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, write_status_to_yaml
+from lsst.cm.tools.core.utils import StatusEnum
 from lsst.cm.tools.db.job_handler import JobHandler
 from lsst.cm.tools.db.step import Step
 from lsst.cm.tools.db.step_handler import StepHandler
-from lsst.cm.tools.db.workflow import Workflow
 
 if os.environ.get("CM_PROFILE", 0) == "1":  # pragma: no cover
     NGROUP1 = 500
@@ -27,34 +24,10 @@ class ExampleJobHandler(JobHandler):
     yaml_checker_class = YamlChecker().get_checker_class_name()
     fake_rollback_class = FakeRollback().get_rollback_class_name()
 
-    def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
-        """Internal function to write the bps.yaml file for a given workflow"""
-        if Handler.config_dir and not os.getenv("CM_CONFIGS"):
-            os.environ["CM_CONFIGS"] = Handler.config_dir
-        workflow_template_yaml = os.path.expandvars(self.config["bps_template_yaml"])
-        butler_repo = parent.butler_repo
-
-        outpath = job.config_url
-
-        with open(workflow_template_yaml, "rt", encoding="utf-8") as fin:
-            workflow_config = yaml.safe_load(fin)
-
-        workflow_config["project"] = parent.p_.name
-        workflow_config["campaign"] = f"{parent.p_.name}/{parent.c_.name}"
-
-        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][parent.s_.name]
-        payload = dict(
-            payloadName=f"{parent.p_.name}/{parent.c_.name}",
-            output=parent.coll_out,
-            butlerConfig=butler_repo,
-            inCollection=f"{parent.coll_in},{parent.c_.coll_ancil}",
-        )
-        workflow_config["payload"] = payload
-        with open(outpath, "wt", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
-
-        command = make_bps_command(outpath, job.json_url, job.log_url)
-        write_command_script(job, command)
+    def fake_run_hook(
+        self, dbi: DbInterface, job: JobBase, status: StatusEnum = StatusEnum.completed
+    ) -> None:
+        write_status_to_yaml(job.stamp_url, status)
 
 
 class ExampleStep1Handler(StepHandler):

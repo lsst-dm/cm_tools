@@ -7,6 +7,7 @@ from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
+from ..core.panda_utils import PandaChecker
 from ..core.utils import ScriptMethod, StatusEnum, TableEnum
 
 
@@ -32,6 +33,7 @@ def create(dbi: DbInterface) -> None:
 @options.group()
 @options.data_query()
 @options.butler()
+@options.lsst_version()
 @options.prod_base()
 @options.workflow()
 @options.config_name()
@@ -60,6 +62,37 @@ def insert(
     else:
         the_config = None
     dbi.insert(the_db_id, config_block, the_config, **kwargs)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.group()
+def summarize_output(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Summarize the output of a particular entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.summarize_output(sys.stdout, the_db_id.level(), the_db_id)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+def associate_kludge(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Kludge the butler associate command"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.associate_kludge(the_db_id.level(), the_db_id)
 
 
 @cli.command()
@@ -202,7 +235,7 @@ def requeue(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> Non
 @options.script()
 @options.script_method()
 def rerun_scripts(dbi: DbInterface, script_name: str, script_method: ScriptMethod, **kwargs: Any) -> None:
-    """Queue all the prepared jobs matching the selection"""
+    """Rerun particular failed  scripts"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.rerun_scripts(the_db_id.level(), the_db_id, script_name)
@@ -353,7 +386,7 @@ def fake_script(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs
 @options.workflow()
 @options.status()
 def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of an entry"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_status(the_db_id.level(), the_db_id, status)
 
@@ -370,7 +403,7 @@ def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
 @options.status()
 @options.script_method()
 def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of a particular job"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_job_status(the_db_id.level(), the_db_id, script_name, status)
 
@@ -387,7 +420,7 @@ def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwa
 @options.status()
 @options.script_method()
 def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
-    """Pretend to run scripts, this is for testing"""
+    """Explicitly set the status of a particular script"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.set_script_status(the_db_id.level(), the_db_id, script_name, status)
 
@@ -418,7 +451,55 @@ def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @cli.command()
 @options.dbi()
 @options.config_yaml()
+def load_error_types(dbi: DbInterface, config_yaml: str) -> None:
+    """Load error types from a configuration file"""
+    dbi.load_error_types(config_yaml)
+
+
+@cli.command()
+@options.dbi()
+@options.panda_code()
+@options.diag_message()
+def match_error_type(dbi: DbInterface, panda_code: str, diag_message: str) -> None:
+    """Load error types from a configuration file"""
+    error_type = dbi.match_error_type(panda_code, diag_message)
+    sys.stdout.write(f"{repr(error_type)}\n")
+
+
+@cli.command()
+@options.dbi()
+@options.config_yaml()
 @options.config_name()
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
     """Parse a configuration file and add the fragments to another config"""
     dbi.extend_config(config_name, config_yaml)
+
+
+@cli.command()
+@options.panda_url(type=int)
+@options.panda_username()
+def check_panda_job(panda_url: int, panda_username: str) -> list[str]:
+    """Check the status of a panda job"""
+    pc = PandaChecker()
+    pc.check_panda_status(panda_url, panda_username)
+
+
+@cli.command()
+@options.panda_url(type=int)
+@options.panda_username()
+def get_panda_errors(panda_url: int, panda_username: str):
+    """Check the status of a finished panda task"""
+    pc = PandaChecker()
+    errors_aggregate, diags_aggregate = pc.get_task_errors(panda_url, panda_username)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+def report_errors(
+    dbi: DbInterface,
+    **kwargs: Any,
+) -> None:
+    """Summarize the output of a particular entry"""
+    the_db_id = dbi.get_db_id(**kwargs)
+    dbi.report_errors(sys.stdout, the_db_id.level(), the_db_id)

@@ -23,7 +23,7 @@ def submit_job(job_path: str, log_path: str) -> str:  # pragma: no cover
         The slurm job_id
     """
     with subprocess.Popen(
-        ["sbatch", "-o", log_path, "--parsable", job_path],
+        ["sbatch", "-o", log_path, "--mem", "16448", "-p", "roma", "--parsable", job_path],
         stdout=subprocess.PIPE,
     ) as sbatch:
         assert sbatch.stdout
