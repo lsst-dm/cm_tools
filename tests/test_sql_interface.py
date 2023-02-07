@@ -14,7 +14,6 @@ from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 def run_production(
     iface: SQLAlchemyInterface, campaign_name: str, config_name: str, config_yaml: str
 ) -> None:
-
     db_p_id = iface.get_db_id(production_name="example")
 
     config = iface.parse_config(config_name, config_yaml)
@@ -34,7 +33,6 @@ def run_production(
     db_c_id = iface.get_db_id(production_name="example", campaign_name=campaign_name)
 
     for step_name in ["step1", "step2", "step3"]:
-
         result = iface.queue_jobs(LevelEnum.campaign, db_c_id)
         # assert result
 
