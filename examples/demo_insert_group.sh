@@ -10,8 +10,8 @@ p_name="example"
 c_name="test"
 
 export CM_DB="sqlite:///${db_path}"
-export CM_PLUGINS="$EXAMPLES/handlers"
-export CM_CONFIGS="$EXAMPLES/configs"
+export CM_PLUGINS="$EXAMPLES/examples/handlers"
+export CM_CONFIGS="$EXAMPLES/examples/configs"
 export CM_PROD_URL="$EXAMPLES/output/archive_insert_group"
 
 rm -rf "$db_path" "$CM_PROD_URL"
