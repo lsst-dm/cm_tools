@@ -65,7 +65,6 @@ def run_production(
 
 
 def test_full_example() -> None:
-
     try:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
@@ -196,7 +195,6 @@ def test_full_example() -> None:
 
 
 def test_failed_workflows() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -298,7 +296,6 @@ def test_failed_workflows() -> None:
 
 
 def test_recover_failed() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -370,7 +367,6 @@ def test_recover_failed() -> None:
 
 
 def test_failed_scripts() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -426,7 +422,6 @@ def test_failed_scripts() -> None:
 
 
 def test_script_interface() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -496,7 +491,6 @@ def test_script_interface() -> None:
 
 
 def test_insert() -> None:
-
     try:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
@@ -568,13 +562,11 @@ def test_insert() -> None:
 
 
 def test_bad_db() -> None:
-
     with pytest.raises(RuntimeError):
         SQLAlchemyInterface("sqlite:///bad.db", echo=False)
 
 
 def test_table_repr() -> None:
-
     depend = Dependency()
     assert repr(depend)
 
