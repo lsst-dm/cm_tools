@@ -14,7 +14,6 @@ from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 def run_production(
     iface: SQLAlchemyInterface, campaign_name: str, config_name: str, config_yaml: str
 ) -> None:
-
     db_p_id = iface.get_db_id(production_name="example")
 
     config = iface.parse_config(config_name, config_yaml)
@@ -34,7 +33,6 @@ def run_production(
     db_c_id = iface.get_db_id(production_name="example", campaign_name=campaign_name)
 
     for step_name in ["step1", "step2", "step3"]:
-
         result = iface.queue_jobs(LevelEnum.campaign, db_c_id)
         # assert result
 
@@ -65,7 +63,6 @@ def run_production(
 
 
 def test_full_example() -> None:
-
     try:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
@@ -197,7 +194,6 @@ def test_full_example() -> None:
 
 
 def test_failed_workflows() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -300,7 +296,6 @@ def test_failed_workflows() -> None:
 
 
 def test_recover_failed() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -373,7 +368,6 @@ def test_recover_failed() -> None:
 
 
 def test_failed_scripts() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -429,7 +423,6 @@ def test_failed_scripts() -> None:
 
 
 def test_script_interface() -> None:
-
     try:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
@@ -500,7 +493,6 @@ def test_script_interface() -> None:
 
 
 def test_insert() -> None:
-
     try:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
@@ -574,13 +566,11 @@ def test_insert() -> None:
 
 
 def test_bad_db() -> None:
-
     with pytest.raises(RuntimeError):
         SQLAlchemyInterface("sqlite:///bad.db", echo=False)
 
 
 def test_table_repr() -> None:
-
     depend = Dependency()
     assert repr(depend)
 

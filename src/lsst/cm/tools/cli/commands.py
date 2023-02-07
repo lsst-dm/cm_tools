@@ -187,7 +187,6 @@ def print_table(dbi: DbInterface, table: TableEnum, **kwargs: Any) -> None:
 @cli.command()
 @options.dbi()
 @options.config_name()
-@options.fmt()
 def print_config(dbi: DbInterface, config_name: str) -> None:
     """Print a information about a configuration"""
     dbi.print_config(sys.stdout, config_name)

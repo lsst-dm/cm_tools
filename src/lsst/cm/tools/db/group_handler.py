@@ -52,8 +52,6 @@ class GroupHandler(GenericEntryHandler):
         return Group.insert_values(dbi, **insert_fields)
 
     def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
-        # if self.config.get("scripts", {}).get("prepare") is None:
-        #    data_query = entry.data_query
         workflow_handler = entry.get_sub_handler("workflow")
         workflow_handler.insert(
             dbi,

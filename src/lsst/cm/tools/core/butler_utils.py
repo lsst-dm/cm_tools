@@ -58,7 +58,6 @@ def build_data_queries(
     min_queries: int = 1,
     max_step_size: int = 10000000,
 ) -> list[str]:
-
     itr = butler.registry.queryDatasets(dataset)
     sorted_field_values = get_sorted_array(itr, field)
 
@@ -86,7 +85,6 @@ def clean_collection_set(
     butler: Butler,
     input_colls: list[list[str]],
 ) -> list[list[str]]:
-
     output_colls = []
     for input_colls_ in input_colls:
         existing_colls = []
@@ -109,7 +107,6 @@ def butler_associate_kludge(
     output_coll: str,
     input_colls: list[list[str]],
 ) -> None:
-
     assert input_colls
 
     butler = Butler(butler_repo, writeable=True)
