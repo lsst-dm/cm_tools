@@ -7,5 +7,7 @@
 
 click
 lsst-daf-butler
+panda-client
+psycopg2-binary
 sqlalchemy < 2.0
 sqlalchemy-utils
