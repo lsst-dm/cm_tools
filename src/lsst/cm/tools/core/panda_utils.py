@@ -213,6 +213,19 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
     return panda_status
 
 
+def get_panda_errors(panda_reqid: int, panda_username=None) -> str:
+    conn = panda_api.get_api()
+    tasks = conn.get_tasks(task_ids=panda_reqid, username=panda_username)
+    errors_aggregate = dict()
+    diags_aggregate = dict()
+    jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    for jtid in jtids:
+        errors_all, diags_all = get_errors_from_jeditaskid(jtid)
+        errors_aggregate[jtid] = errors_all
+        diags_aggregate[jtid] = diags_all
+    return errors_aggregate, diags_aggregate
+
+
 class PandaChecker(SlurmChecker):  # pragma: no cover
     """Checker to use a slurm job_id and panda_id
     to check job status"""
@@ -257,3 +270,11 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         if status != job.status:
             update_vals["status"] = status
         return update_vals
+
+    @classmethod
+    def check_panda_status(cls, panda_reqid: int, panda_username=None) -> str:
+        return check_panda_status(panda_reqid, panda_username)
+
+    @classmethod
+    def get_panda_errors(cls, panda_reqid: int, panda_username=None) -> str:
+        return get_panda_errors(panda_reqid, panda_username)
