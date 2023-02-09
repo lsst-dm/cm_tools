@@ -222,7 +222,7 @@ panda_url = PartialOption(
 panda_username = PartialOption(
     "--panda-username",
     help="Username in the PanDA workflow system.",
-    default="None",
+    default=None,
 )
 
 panda_code = PartialOption(

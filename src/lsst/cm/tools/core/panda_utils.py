@@ -40,7 +40,7 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
     # TODO: try to find a way to do this with Client to avoid the
     # requirement on username storage
     conn = panda_api.get_api()
-    reqid_pull = conn.get_tasks(task_ids=reqid, username=username)
+    reqid_pull = conn.get_tasks(reqid, username=username)
     jeditaskids = [reqid["jeditaskid"] for reqid in reqid_pull]
 
     return jeditaskids
@@ -70,7 +70,7 @@ def get_errors_from_jeditaskid(jeditaskid: int):
     if conn_status == 0:
         job_ids = list(task_status["PandaID"])
         jobs_list = []
-        if len(job_ids) > 0:
+        if len(job_ids) > 1:
             chunksize = 2000  # max number of allowed connections to PanDA
             chunks = [job_ids[i : i + chunksize] for i in range(0, len(job_ids), chunksize)]
             for chunk in chunks:
@@ -92,6 +92,7 @@ def get_errors_from_jeditaskid(jeditaskid: int):
     diags_all = []
 
     failed_jobs = [job for job in jobs_list if job.jobStatus == "failed"]
+    print(f"failed jobs {failed_jobs} {jobs_list}")
     if len(failed_jobs) == 0:
         return (errors_all, diags_all)
     else:
@@ -194,7 +195,7 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
 
     # first pull down all the tasks
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(task_ids=panda_reqid, username=panda_username)
+    tasks = conn.get_tasks(panda_reqid, username=panda_username)
     statuses = [task["status"] for task in tasks]
 
     # TODO: for error database, currently unused
@@ -215,7 +216,7 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
 
 def get_panda_errors(panda_reqid: int, panda_username=None) -> str:
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(task_ids=panda_reqid, username=panda_username)
+    tasks = conn.get_tasks(panda_reqid, username=panda_username)
     errors_aggregate = dict()
     diags_aggregate = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]

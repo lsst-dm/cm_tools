@@ -495,7 +495,8 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 def check_panda_job(panda_url: int, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
-    pc.check_panda_status(panda_url, panda_username)
+    status = pc.check_panda_status(panda_url, panda_username)
+    sys.stdout.write(f"{str(status)}\n")
 
 
 @cli.command()
@@ -505,7 +506,7 @@ def get_panda_errors(panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
     errors_aggregate, diags_aggregate = pc.get_panda_errors(panda_url, panda_username)
-    sys.write(errors_aggregate)
+    sys.stdout.write(str(errors_aggregate))
 
 
 @cli.command()
