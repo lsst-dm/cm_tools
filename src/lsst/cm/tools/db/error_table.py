@@ -34,7 +34,7 @@ class ErrorType(common.Base):
 
     id = Column(Integer, primary_key=True)  # Unique ID
     panda_err_code = Column(String)
-    error_name = Column(String)
+    error_name = Column(String, unique=True)  # unique=True prevents loading the same error twice
     diagnostic_message = Column(String)
     jira_ticket = Column(String)
     function = Column(String)

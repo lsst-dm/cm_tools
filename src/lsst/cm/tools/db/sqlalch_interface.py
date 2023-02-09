@@ -500,8 +500,11 @@ class SQLAlchemyInterface(DbInterface):
                     action=ErrorAction["email_orion"],
                     max_intensity=error_type["intensity"],
                 )
-                conn.add(new_error_type)
-        conn.commit()
+                try:
+                    conn.add(new_error_type)
+                    conn.commit()
+                except Exception:
+                    print(f"Avoiding duplicate error entry {error_name}")
 
     def match_error_type(self, panda_code: str, diag_message: str) -> Any:
         conn = self.connection()
