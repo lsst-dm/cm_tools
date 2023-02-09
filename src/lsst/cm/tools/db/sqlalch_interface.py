@@ -486,8 +486,9 @@ class SQLAlchemyInterface(DbInterface):
         conn = self.connection()
         error_code_dict = config_data["pandaErrorCode"]
         for key, val in error_code_dict.items():
-            for error_type in val:
+            for error_name, error_type in val.items():
                 new_error_type = ErrorType(
+                    error_name=error_name,
                     panda_err_code=key,
                     diagnostic_message=error_type["diagMessage"],
                     jira_ticket=str(error_type["ticket"]),
@@ -509,6 +510,23 @@ class SQLAlchemyInterface(DbInterface):
             if re.match(match_[0].diagnostic_message, diag_message):
                 return match_[0]
         return
+
+    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+        entry = self.get_entry(level, db_id)
+        error_dict = {}
+        for job_ in entry.jobs_:
+            for err_ in job_.errors_:
+                try:
+                    error_dict[err_.error_name].append(err_)
+                except KeyError:
+                    error_dict[err_.error_name] = [err_]
+        stream.write("~Here are the errors!~\n")
+        for error_name, error_list in error_dict.items():
+            stream.write(f"Error: {error_name}")
+            for i, err in enumerate(error_list):
+                if i > 10:
+                    break
+                stream.write(f"\tData ID: {err.data_id}")
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()

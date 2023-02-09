@@ -2,372 +2,372 @@ description: Lookup table for error codes from PanDA and error logs from science
 
 pandaErrorCode:
     trans, 1:
-        - aperture_correction:
-              diagMessage: >
+        aperture_correction:
+            diagMessage: >
                 Execution of task 'characterizeImage' on quantum {.*} failed. Exception
                 RuntimeError: Unable to measure aperture correction for required algorithm 'modelfit_CModel': only 0 sources, but
                 require at least 2.
-              function: characterizeImage
-              known: 1
-              ticket: ["DM-36763", "DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - psf_matching_kernel:
-              diagMessage: "ERROR: Unable to calculate psf matching kernel"
-              function: characterizeImage
-              known: 1
-              ticket: ["DM-36763", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - psf_in_GAaP:
-              diagMessage: >
-                  Failed to solve for PSF matching kernel in GAaP for (.*): Problematic scaling factors = .* Errors: Exception
-                  ('Unable to determine kernel sum; 0 candidates')
-              function: characterizeImage
-              known: 1
-              ticket: ["DM-33375", "DM-36763", "DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - no_use_for_photocal:
-              diagMessage: >
-                  Execution of task 'calibrate' on quantum {.*} failed. Exception
-                  RuntimeError: No matches to use for photocal
-              function: calibrate
-              known: 1
-              ticket: ["DM-32291", "DM-36763"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - p_NaN_to_int_calibrate:
-              diagMessage: >
-                  Execution of task 'calibrate' on quantum {.*} failed. Exception
-                  ValueError: cannot convert float NaN to integer
-              function: calibrate
-              known: 1
-              ticket: ["DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - FWHM_value_of_nan:
-              diagMessage: >
-                  Execution of task 'calibrate' on quantum {.*} failed. Exception
-                  ValueError: PSF at (.*) has an invalid FWHM value of nan
-              function: calibrate
-              known: 1
-              ticket: ["DM-36763"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - finalizeCharacterization_failed:
-              diagMessage: >
-                  Task <TaskDef(lsst.pipe.tasks.finalizeCharacterization.FinalizeCharacterizationTask, label=
-                  finalizeCharacterization) dataId={.*}> failed; processing will continue for remaining
-                  tasks.
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - cant_start_new_thread:
-              diagMessage: "RuntimeError: can't start new thread"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - rchar:
-              diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from .* to .*"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - read_bytes:
-              diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from .* to .*"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - terminate_after_sys_err:
-              diagMessage: >
-                  terminate called after throwing an instance of 'std::system_error' what(): Resource temporarily unavailable
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - pthread_create:
-              diagMessage: "ERROR; return code from pthread_create() is 11 Error detail: Resource temporarily unavailable"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - url_timeout:
-              diagMessage: >
-                  url=/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json, error: TimeoutException: Timeout reached,
-                   timeout=20 seconds .. trying to use data from cache=/tmp/atlas_4WNdEEY5/agis_schedconf.cvmfs.json
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - outside_image_bounds:
-              diagMessage: >
-                  Execution of task 'measure' on quantum {.*} failed. Exception
-                  IndexError: Index (.*) outside image bounds (.*) to (.*).
-              function: measure
-              known: 1
-              ticket: ["DM-35722", "DM-36066"]
-              resolved: 1
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - p_NaN_to_int_detection:
-              diagMessage: >
-                  Execution of task 'detection' on quantum {.*} failed. Exception
-                  ValueError: cannot convert float NaN to integer
-              function: detection
-              known: 1
-              ticket: ["DM-36763", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - psf_matching_kernel_subtractImages:
-              diagMessage: "ERROR: Unable to calculate psf matching kernel"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - cannot_compute_coaddpsf:
-              diagMessage: >
-                  Execution of task 'subtractImages' on quantum {.*} failed. Exception
-                  InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line .*, in virtual std::shared_ptr<lsst::afw::image::
-                  Image<double> > lsst::meas::algorithms::CoaddPsf::doComputeKernelImage(const Point2D&, const lsst::afw::image::
-                  Color&) const\nCannot compute CoaddPsf at point (.*); no input images at that point. {0} lsst::pex::exceptions::
-                  InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - kernel_candidacy:
-              diagMessage: >
-                  Execution of task 'subtractImages' on quantum {.*} failed. Exception
-                  RuntimeError: Cannot find any objects suitable for KernelCandidacy
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - p_do_compute_kernel_image:
-              diagMessage: >
-                  File "src/CoaddPsf.cc", line 254, in virtual std:shared_ptr > lsst:meas:
-                  algorithms:CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - kernel_does_not_exist:
-              diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - kernel_sum:
-              diagMessage: "Unable to determine kernel sum; 0 candidates"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - p_NaN_to_int_subtractImages:
-              diagMessage: "Exception ValueError: cannot convert float NaN to integer"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - u_psf:
-              diagMessage: >
-                  Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
-                  dataset .*: Unrecognized column name 'u_psfFlux_flag'.
-              function: catalogMatchTract
-              known: 1
-              ticket: ["DM-36305", "DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-36763", "DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        psf_matching_kernel:
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-36763", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        psf_in_GAaP:
+            diagMessage: >
+                Failed to solve for PSF matching kernel in GAaP for (.*): Problematic scaling factors = .* Errors: Exception
+                ('Unable to determine kernel sum; 0 candidates')
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-33375", "DM-36763", "DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        no_use_for_photocal:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                RuntimeError: No matches to use for photocal
+            function: calibrate
+            known: 1
+            ticket: ["DM-32291", "DM-36763"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_NaN_to_int_calibrate:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            function: calibrate
+            known: 1
+            ticket: ["DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        FWHM_value_of_nan:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                ValueError: PSF at (.*) has an invalid FWHM value of nan
+            function: calibrate
+            known: 1
+            ticket: ["DM-36763"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        finalizeCharacterization_failed:
+            diagMessage: >
+                Task <TaskDef(lsst.pipe.tasks.finalizeCharacterization.FinalizeCharacterizationTask, label=
+                finalizeCharacterization) dataId={.*}> failed; processing will continue for remaining
+                tasks.
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        cant_start_new_thread:
+            diagMessage: "RuntimeError: can't start new thread"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        rchar:
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from .* to .*"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        read_bytes:
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from .* to .*"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        terminate_after_sys_err:
+            diagMessage: >
+                terminate called after throwing an instance of 'std::system_error' what(): Resource temporarily unavailable
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        pthread_create:
+            diagMessage: "ERROR; return code from pthread_create() is 11 Error detail: Resource temporarily unavailable"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        url_timeout:
+            diagMessage: >
+                url=/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json, error: TimeoutException: Timeout reached,
+                timeout=20 seconds .. trying to use data from cache=/tmp/atlas_4WNdEEY5/agis_schedconf.cvmfs.json
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        outside_image_bounds:
+            diagMessage: >
+                Execution of task 'measure' on quantum {.*} failed. Exception
+                IndexError: Index (.*) outside image bounds (.*) to (.*).
+            function: measure
+            known: 1
+            ticket: ["DM-35722", "DM-36066"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_NaN_to_int_detection:
+            diagMessage: >
+                Execution of task 'detection' on quantum {.*} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            function: detection
+            known: 1
+            ticket: ["DM-36763", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        psf_matching_kernel_subtractImages:
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        cannot_compute_coaddpsf:
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
+                InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line .*, in virtual std::shared_ptr<lsst::afw::image::
+                Image<double> > lsst::meas::algorithms::CoaddPsf::doComputeKernelImage(const Point2D&, const lsst::afw::image::
+                Color&) const\nCannot compute CoaddPsf at point (.*); no input images at that point. {0} lsst::pex::exceptions::
+                InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        kernel_candidacy:
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
+                RuntimeError: Cannot find any objects suitable for KernelCandidacy
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_do_compute_kernel_image:
+            diagMessage: >
+                File "src/CoaddPsf.cc", line 254, in virtual std:shared_ptr > lsst:meas:
+                algorithms:CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        kernel_does_not_exist:
+            diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        kernel_sum:
+            diagMessage: "Unable to determine kernel sum; 0 candidates"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_NaN_to_int_subtractImages:
+            diagMessage: "Exception ValueError: cannot convert float NaN to integer"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        u_psf:
+            diagMessage: >
+                Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
+                dataset .*: Unrecognized column name 'u_psfFlux_flag'.
+            function: catalogMatchTract
+            known: 1
+            ticket: ["DM-36305", "DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
     pilot, 1305:
-        - NaN_to_int_calibrate:
-              diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
-              function: calibrate
-              known: 1
-              ticket: ["DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - NaN_to_int_detection:
-              diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
-              function: detection
-              known: 1
-              ticket: ["DM-36763", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - vague_finalizeCharacterization:
-              diagMessage: "Failed to execute payload"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
-        - do_compute_kernel_image:
-              diagMessage: >
-                  Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
-                  CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - p_kernel_candidacy:
-              diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
-              function: subtractImages
-              known: 1
-              ticket: ["DM-36265", "DM-36356", "DM-36066"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
-        - parquet_formatter:
-              diagMessage: >
-                  Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
-                  .*
-              function: catalogMatchTract
-              known: 1
-              ticket: ["DM-36306", "DM-36356"]
-              resolved: 0
-              rescue: 0
-              panda: 0
-              intensity: 0.001
+        NaN_to_int_calibrate:
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            function: calibrate
+            known: 1
+            ticket: ["DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        NaN_to_int_detection:
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            function: detection
+            known: 1
+            ticket: ["DM-36763", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        vague_finalizeCharacterization:
+            diagMessage: "Failed to execute payload"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
+        do_compute_kernel_image:
+            diagMessage: >
+                Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
+                CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_kernel_candidacy:
+            diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        parquet_formatter:
+            diagMessage: >
+                Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
+                .*
+            function: catalogMatchTract
+            known: 1
+            ticket: ["DM-36306", "DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
     taskbuffer, 300:
-        - failed_while_starting_job:
-              diagMessage: "The worker was failed while the job was starting : 504812 gridjob roma shared 1 FAILED 0:53."
-              function:
-              known: 1
-              ticket: ["DM-36845", "DM-36763"]
-              resolved: 0
-              rescue: 1
-              panda: 1
-              intensity: 0
+        failed_while_starting_job:
+            diagMessage: "The worker was failed while the job was starting : 504812 gridjob roma shared 1 FAILED 0:53."
+            function:
+            known: 1
+            ticket: ["DM-36845", "DM-36763"]
+            resolved: 0
+            rescue: 1
+            panda: 1
+            intensity: 0
     pilot, 1344:
-        - resource_temporarily_unavailable:
-              diagMessage: "Exception caught: [Errno 11] Resource temporarily unavailable"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        resource_temporarily_unavailable:
+            diagMessage: "Exception caught: [Errno 11] Resource temporarily unavailable"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
     trans, 134:
-        - sigabrt:
-              diagMessage: >
-                  New trf: Transform received signal SIGABRT; Old trf: Athena core dump or timeout, or conddb DB connect exception
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        sigabrt:
+            diagMessage: >
+                New trf: Transform received signal SIGABRT; Old trf: Athena core dump or timeout, or conddb DB connect exception
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
     jobdispatcher, 102:
-        - no_reply:
-              diagMessage: "Sent job didn't receive reply from pilot within 30 min"
-              function: finalizeCharacterization
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        no_reply:
+            diagMessage: "Sent job didn't receive reply from pilot within 30 min"
+            function: finalizeCharacterization
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
     jobdispatcher, 100:
-        - lost_heartbeat:
-              diagMessage: "lost heartbeat"
-              function:
-              known: 1
-              ticket: ["DM-36356"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        lost_heartbeat:
+            diagMessage: "lost heartbeat"
+            function:
+            known: 1
+            ticket: ["DM-36356"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
     pilot, 1098:
-        - no_space_on_disk:
-              diagMessage: "too little space left on local disk to run job: .* B (need > .* B)"
-              function: forcedPhotCcd
-              known: 1
-              ticket: ["DM-36066"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        no_space_on_disk:
+            diagMessage: "too little space left on local disk to run job: .* B (need > .* B)"
+            function: forcedPhotCcd
+            known: 1
+            ticket: ["DM-36066"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
     trans, 137:
-        - sigkill:
-              diagMessage: "Transform received signal SIGKILL"
-              function:
-              known: 1
-              ticket: ["DM-36356", "DM-36741"]
-              resolved: 1
-              rescue: 1
-              panda: 1
-              intensity: 0
+        sigkill:
+            diagMessage: "Transform received signal SIGKILL"
+            function:
+            known: 1
+            ticket: ["DM-36356", "DM-36741"]
+            resolved: 1
+            rescue: 1
+            panda: 1
+            intensity: 0
