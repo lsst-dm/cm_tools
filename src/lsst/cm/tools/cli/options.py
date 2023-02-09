@@ -1,0 +1,267 @@
+from enum import Enum
+from functools import partial, wraps
+from typing import Any, Callable, Type, TypeVar, cast
+
+import click
+from click.decorators import F
+
+from ..core.db_interface import DbInterface
+from ..core.handler import Handler
+from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
+from ..db.sqlalch_interface import SQLAlchemyInterface
+
+__all__ = [
+    "butler",
+    "campaign",
+    "config_yaml",
+    "config_name",
+    "config_block",
+    "data_query",
+    "diag_message",
+    "dbi",
+    "fmt",
+    "fullname",
+    "group",
+    "level",
+    "lsst_version",
+    "max_running",
+    "panda_url",
+    "panda_username",
+    "prod_base",
+    "production",
+    "root_coll",
+    "script",
+    "script_method",
+    "status",
+    "step",
+    "table",
+    "workflow",
+]
+
+
+EnumType_co = TypeVar("EnumType_co", bound=Type[Enum], covariant=True)
+
+
+class EnumChoice(click.Choice):
+    """A version of click.Choice specialized for enum types"""
+
+    def __init__(self, enum: EnumType_co, case_sensitive: bool = True) -> None:
+        self._enum = enum
+        super().__init__(list(enum.__members__.keys()), case_sensitive=case_sensitive)
+
+    def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> EnumType_co:
+        converted_str = super().convert(value, param, ctx)
+        return self._enum.__members__[converted_str]
+
+
+class PartialOption:
+    """Wraps click.option with partial arguments for convenient reuse"""
+
+    def __init__(self, *param_decls: Any, **kwargs: Any) -> None:
+        self._partial = partial(click.option, *param_decls, cls=partial(click.Option), **kwargs)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self._partial(*args, **kwargs)
+
+
+echo = PartialOption(
+    "--echo",
+    help="Echo DB commands",
+    is_flag=True,
+)
+
+level = PartialOption(
+    "--level",
+    type=EnumChoice(LevelEnum),
+    default=None,
+    help="Which level to match.",
+)
+
+table = PartialOption(
+    "--table",
+    type=EnumChoice(TableEnum),
+    default="workflow",
+    help="Which database table to manipulate.",
+)
+
+fmt = PartialOption(
+    "--fmt",
+    default=None,
+    help="Format for printing",
+)
+
+status = PartialOption(
+    "--status",
+    type=EnumChoice(StatusEnum),
+    default="completed",
+    help="Status level to set.",
+)
+
+script_method = PartialOption(
+    "--script_method",
+    type=EnumChoice(ScriptMethod),
+    default="bash",
+    envvar="CM_SCRIPT_METHOD",
+    help="How to submit scripts.",
+)
+
+max_running = PartialOption(
+    "--max-running",
+    default=50,
+    help="Maximum number of running workflows.",
+)
+
+butler = PartialOption(
+    "--butler-repo",
+    default="repo",
+    help="URL for butler.",
+)
+
+prod_base = PartialOption(
+    "--prod-base-url",
+    help="URL for production area base",
+    default="archive",
+    envvar="CM_PROD_URL",
+    show_envvar=True,
+    show_default=True,
+)
+
+db = PartialOption(
+    "--db",
+    help="URL for campaign management database.",
+    default="sqlite:///cm.db",
+    envvar="CM_DB",
+    show_envvar=True,
+    show_default=True,
+)
+
+
+data_query = PartialOption(
+    "--data-query",
+    help="Data query for entry",
+)
+
+config_yaml = PartialOption(
+    "--config-yaml",
+    type=click.Path(),
+    help="Configuration Yaml.",
+)
+
+config_name = PartialOption(
+    "--config-name",
+    help="Configuration Name.",
+)
+
+config_block = PartialOption(
+    "--config-block",
+    help="Which block of configuration to use",
+)
+
+fullname = PartialOption(
+    "--fullname",
+    help="Full entry name.",
+)
+
+production = PartialOption(
+    "--production-name",
+    help="Production name.",
+)
+
+campaign = PartialOption(
+    "--campaign-name",
+    help="Campaign name.",
+)
+
+step = PartialOption(
+    "--step-name",
+    help="Step name.",
+)
+
+group = PartialOption(
+    "--group-name",
+    help="Group name.",
+)
+
+workflow = PartialOption(
+    "--workflow-idx",
+    type=int,
+    help="Workflow index.",
+)
+
+script = PartialOption(
+    "--script-name",
+    help="Script name.",
+)
+
+plugin_dir = PartialOption(
+    "--plugin-dir",
+    help="Additional directory to search for callback plug-ins.",
+    envvar="CM_PLUGINS",
+    show_envvar=True,
+)
+
+config_dir = PartialOption(
+    "--config-dir",
+    help="Directory root for entry configuration yaml files.",
+    envvar="CM_CONFIGS",
+    show_envvar=True,
+)
+
+lsst_version = PartialOption(
+    "--lsst-version",
+    help="Version of LSST software stack",
+    envvar="CM_LSST_VERSION",
+    show_envvar=True,
+)
+
+panda_url = PartialOption(
+    "--panda-url",
+    help="ReqID associated with the PanDA job.",
+)
+
+panda_username = PartialOption(
+    "--panda-username",
+    help="Username in the PanDA workflow system.",
+    default="None",
+)
+
+panda_code = PartialOption(
+    "--panda-code",
+    help="Error code generated by PanDA.",
+)
+
+root_coll = PartialOption(
+    "--root-coll",
+    help="Root for output collection names.",
+)
+
+diag_message = PartialOption(
+    "--diag-message",
+    help="Diagnostic Error Message.",
+)
+
+
+def dbi(create: bool = False) -> Callable[[F], F]:
+    def decorator(f: F) -> F:
+        @db(expose_value=False, callback=record_meta)
+        @plugin_dir(expose_value=False, callback=record_meta)
+        @config_dir(expose_value=False, callback=record_meta)
+        @echo(expose_value=False, callback=record_meta)
+        @click.option("--dbi", hidden=True, callback=make_dbi)
+        @wraps(f)
+        def wrapper(*args, **kwargs):  # type: ignore
+            return f(*args, **kwargs)
+
+        return cast(F, wrapper)
+
+    def record_meta(ctx: click.Context, param: click.Parameter, value: Any) -> None:
+        if value and param.name:
+            ctx.meta[param.name] = value
+
+    def make_dbi(ctx: click.Context, param: click.Parameter, value: Any) -> DbInterface:
+        db_url = ctx.meta.get("db", param.get_default(ctx))
+        Handler.plugin_dir = ctx.meta.get("plugin_dir", param.get_default(ctx))
+        Handler.config_dir = ctx.meta.get("config_dir", param.get_default(ctx))
+        return SQLAlchemyInterface(db_url, echo=ctx.meta.get("echo", param.get_default(ctx)), create=create)
+
+    return decorator

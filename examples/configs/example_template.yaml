@@ -1,0 +1,10 @@
+includeConfigs:
+- ${{CTRL_BPS_DIR}}/config/bps_idf.yaml
+- requestMemory.yaml
+- clustering_alt.yaml
+
+project: example
+campaign: example/test
+
+saveClusteredQgraph: true
+saveGenericWorkflow: true
