@@ -137,7 +137,7 @@ def get_errors_from_jeditaskid(jeditaskid: int):
         return error_dicts
 
 
-def decide_panda_status(statuses: list) -> str:
+def decide_panda_status(statuses: list, errors_agg: dict) -> str:
     """Look at the list of statuses for each
     jeditaskid and return a choice for the entire
     reqid status
@@ -148,25 +148,36 @@ def decide_panda_status(statuses: list) -> str:
         a list of statuses for each jeditaskid
         in the reqid
 
+    errors_agg: dict
+        a dict of dicts for each jtid with recorded
+        error messages
+
     Returns
     -------
     panda_status: str
         the panda job status
     """
-    # probably a better choice than using an elif
-    # for this, but the elif lets us build
-    # in possible options for intermediate steps.
 
-    if "failed" in statuses:
-        panda_status = "failed"
-    elif "finished" in statuses:
-        panda_status = "failed"
-    elif "pending" in statuses:
+    # if stuff still running, just let it keep
+    # running
+    if "pending" in statuses:
         panda_status = "running"
     elif "registered" in statuses:
         panda_status = "running"
     elif "running" in statuses:
         panda_status = "running"
+    # if it is done reading and has failures,
+    # probably leave it as failed
+    elif "failed" in statuses:
+        panda_status = "failed"
+    # if it returns as finished, we need to
+    # check the specific errors to make decisions
+    elif "finished" in statuses:
+        # TODO: engine that compares errors_agg against
+        # our error types and makes an aggergate
+        # decision
+        panda_status = "failed"
+    # and if it is just done, we just move on
     else:
         panda_status = "done"
     return panda_status
