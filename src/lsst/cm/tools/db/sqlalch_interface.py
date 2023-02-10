@@ -5,7 +5,7 @@ from time import sleep
 from typing import Any, Iterable, Optional, TextIO
 
 import yaml
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session
 
 from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_dataset_summary
@@ -513,6 +513,13 @@ class SQLAlchemyInterface(DbInterface):
             if re.match(match_[0].diagnostic_message, diag_message):
                 return match_[0]
         return
+
+    def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
+        stmt = update(ErrorType).where(ErrorType.error_name == error_name).values(**kwargs)
+        conn = self.connection()
+        upd_result = conn.execute(stmt)
+        conn.commit()
+        assert upd_result
 
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         entry = self.get_entry(level, db_id)

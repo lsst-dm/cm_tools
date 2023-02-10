@@ -48,7 +48,7 @@ class ErrorType(common.Base):
 
     def __repr__(self):
         s = f"Id={self.id}\n"
-        s += f"  Panda Code: {self.panda_err_code}  Function: {self.function}\n"
+        s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Function: {self.function}\n"
         s += f"  JIRA: {self.jira_ticket}\n"
         s += "  Flags (known, resolved, rescuable): "
         s += f"{self.is_known}, {self.is_resolved}, {self.is_rescueable}\n"

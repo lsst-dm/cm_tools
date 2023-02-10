@@ -899,6 +899,23 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
+        """put what it does before committing
+        Parameters
+        ----------
+        error_name: str
+            Unique name for this ErrorType
+
+        Keywords
+        --------
+        Key-value pairs to modify
+
+        Returns
+        -------
+        None
+        """
+        raise NotImplementedError()
+
     def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
         """Parse a configuration file and add it to an existing configuration
 

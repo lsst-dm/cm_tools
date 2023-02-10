@@ -19,6 +19,7 @@ __all__ = [
     "data_query",
     "diag_message",
     "dbi",
+    "error_name",
     "fmt",
     "fullname",
     "group",
@@ -35,6 +36,7 @@ __all__ = [
     "status",
     "step",
     "table",
+    "update_item",
     "workflow",
 ]
 
@@ -238,6 +240,17 @@ root_coll = PartialOption(
 diag_message = PartialOption(
     "--diag-message",
     help="Diagnostic Error Message.",
+)
+
+error_name = PartialOption(
+    "--error-name",
+    help="Unique name for this ErrorType.",
+)
+
+update_item = PartialOption(
+    "--update-item",
+    type=(str, str),
+    help="Item to update in Error.",
 )
 
 
