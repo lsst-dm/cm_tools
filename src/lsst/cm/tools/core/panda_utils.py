@@ -130,10 +130,15 @@ def get_errors_from_jeditaskid(jeditaskid: int):
                 error_dict["diagnostic_message"] = "check the logging"
             error_dict["function"] = job.jobName.split("_")[-3]
             error_dict["log_file_url"] = job.pilotID.split("|")[0]
-            # TODO: currently not found in Python
-            # providing nearest substitute
+            # TODO: currently not found in PanDA job object
+            # providing nearest substitute, the
+            # quantum graph
             error_dict["data_id"] = (job.Files[0]).lfn
             error_dicts.append(error_dict)
+
+        # TODO: code to update the ErrorInstance db with this
+        # information
+
         return error_dicts
 
 
