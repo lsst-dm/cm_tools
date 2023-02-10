@@ -482,6 +482,14 @@ def modify_error_type(dbi: DbInterface, error_name: str, update_item: Tuple[str,
 
 @cli.command()
 @options.dbi()
+@options.error_name()
+def report_error_trend(dbi: DbInterface, error_name: str) -> None:
+    """Report if errors have been seen in prior workflows and if so, when"""
+    dbi.report_error_trend(sys.stdout, error_name)
+
+
+@cli.command()
+@options.dbi()
 @options.panda_code()
 @options.diag_message()
 def match_error_type(dbi: DbInterface, panda_code: str, diag_message: str) -> None:

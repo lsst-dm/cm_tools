@@ -950,3 +950,17 @@ class DbInterface:
             See class notes above.
         """
         raise NotImplementedError()
+
+    def report_error_trend(self, stream: TextIO, error_name: str) -> None:
+        """Report if errors have been seen in prior workflows and if so, when
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        error_name: str
+            Unique name for this ErrorType
+
+        """
+        raise NotImplementedError()

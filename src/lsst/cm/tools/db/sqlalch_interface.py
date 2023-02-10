@@ -538,6 +538,12 @@ class SQLAlchemyInterface(DbInterface):
                     break
                 stream.write(f"\tData ID: {err.data_id}")
 
+    def report_error_trend(self, stream: TextIO, error_name: str) -> None:
+        conn = self.connection()
+        error_type = conn.execute(select(ErrorType).where(ErrorType.error_name == error_name)).scalar()
+        for instance_ in error_type.instances_:
+            stream.write(f"{instance_.job_.w_}")
+
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
         config = conn.execute(select(Config).where(Config.name == config_name)).scalar()
