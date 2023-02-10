@@ -196,17 +196,14 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
     tasks = conn.get_tasks(task_ids=panda_reqid, username=panda_username)
     statuses = [task["status"] for task in tasks]
 
-    # TODO: for error database, currently unused
-    # errors_aggregate = dict()
-    # diags_aggregate = dict()
-    # jtids = [task["jeditaskid"] for task
-    # in tasks if task["status"] != "done"]
-    # for jtid in jtids:
-    #    errors_dict = get_errors_from_jeditaskid(jtid)
-    #    errors_aggregate[str(jtid)] = errors_dict
+    # then pull all the errors for the tasks
+    errors_aggregate = dict()
+    jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    for jtid in jtids:
+        errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(jtid)
 
     # now determine a final answer based on statuses for the entire reqid
-    panda_status = decide_panda_status(statuses)
+    panda_status = decide_panda_status(statuses, errors_aggregate)
 
     return panda_status
 
