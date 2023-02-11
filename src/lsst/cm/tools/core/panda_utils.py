@@ -47,7 +47,8 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
 
 
 def get_errors_from_jeditaskid(jeditaskid: int):
-    """Return the errors associated with a jeditaskid
+    """Return the errors associated with a jeditaskid as
+    a dictionary for each job.
 
     Parameters
     ----------
@@ -57,12 +58,9 @@ def get_errors_from_jeditaskid(jeditaskid: int):
 
     Returns
     -------
-    error_codes: list[dict]
-        A list of dictionaries matching error code category
-        to the returned value.
-    error_diags: list[dict]
-        A list of dictionaries matching error code categories
-        to the associated diagnostic messages.
+    error_dicts: list[dict]
+        A list of dictionaries containing everything
+        we want to update the error instance db with
     """
     conn_status, task_status = Client.getJediTaskDetails({"jediTaskID": jeditaskid}, True, True)
 
@@ -88,58 +86,64 @@ def get_errors_from_jeditaskid(jeditaskid: int):
             # because something went wrong
 
     # now we need to parse all the error codes for failed PandaIDs
-    errors_all = []
-    diags_all = []
+    error_dicts = []
 
     failed_jobs = [job for job in jobs_list if job.jobStatus == "failed"]
     print(f"failed jobs {failed_jobs} {jobs_list}")
     if len(failed_jobs) == 0:
-        return (errors_all, diags_all)
+        return error_dicts
     else:
         for job in failed_jobs:
-            errors = dict()
-            diags = dict()
-
+            error_dict = dict()
             # TODO: store the hecking pandaIDs so people can look things up
 
             # brokerageErrorCode/Diag
             if job.brokerageErrorCode != 0:
-                errors["brokerage"] = job.brokerageErrorCode
-                diags["brokerage"] = job.brokerageErrorDiag
+                error_dict["panda_err_code"] = "brokerage, " + job.brokerageErrorCode
+                error_dict["diagnostic_message"] = job.brokerageErrorDiag
             # ddmErrorCode/Diag
             if job.ddmErrorCode != 0:
-                errors["ddm"] = job.ddmErrorCode
-                diags["ddm"] = job.ddmErrorDiag
+                error_dict["panda_err_code"] = "ddm, " + job.ddmErrorCode
+                error_dict["diagnostic_message"] = job.ddmErrorDiag
             # exeErrorCode/Diag
             if job.exeErrorCode != 0:
-                errors["exe"] = job.exeErrorCode
-                diags["exe"] = job.exeErrorDiag
+                error_dict["panda_err_code"] = "exe, " + job.exeErrorCode
+                error_dict["diagnostic_message"] = job.exeErrorDiag
             # jobDispatcherErrorCode/Diag
             if job.jobDispatcherErrorCode != 0:
-                errors["jobDispatcher"] = job.jobDispatcherErrorCode
-                diags["jobDispatcher"] = job.jobDispatcherErrorDiag
+                error_dict["panda_err_code"] = "jobDispatcher, " + job.jobDispatcherErrorCode
+                error_dict["diagnostic_message"] = job.jobDispatcherErrorDiag
             # pilotErrorCode/Diag
             if job.pilotErrorCode != 0:
-                errors["pilot"] = job.pilotErrorCode
-                diags["pilot"] = job.pilotErrorDiag
+                error_dict["panda_err_code"] = "pilot, " + job.pilotErrorCode
+                error_dict["diagnostic_message"] = job.pilotErrorDiag
             # supErrorCode/Diag
             if job.supErrorCode != 0:
-                errors["sup"] = job.supErrorCode
-                diags["sup"] = job.supErrorDiag
+                error_dict["panda_err_code"] = "sup, " + job.supErrorCode
+                error_dict["diagnostic_message"] = job.supErrorDiag
             # taskBufferErrorCode/Diag
             if job.taskBufferErrorCode != 0:
-                errors["taskBuffer"] = job.taskBufferErrorCode
-                diags["taskBuffer"] = job.taskBufferErrorDiag
+                error_dict["panda_err_code"] = "taskBuffer, " + job.taskBufferErrorCode
+                error_dict["diagnostic_message"] = job.taskBufferErrorDiag
             # transExitCode (no Diag)
             if job.transExitCode != 0:
-                errors["trans"] = job.transExitCode
-                diags["trans"] = "check the logs"
-            errors_all.append(errors)
-            diags_all.append(diags)
-        return (errors_all, diags_all)
+                error_dict["panda_err_code"] = "trans, " + job.transErrorCode
+                error_dict["diagnostic_message"] = "check the logging"
+            error_dict["function"] = job.jobName.split("_")[-3]
+            error_dict["log_file_url"] = job.pilotID.split("|")[0]
+            # TODO: currently not found in PanDA job object
+            # providing nearest substitute, the
+            # quantum graph
+            error_dict["data_id"] = (job.Files[0]).lfn
+            error_dicts.append(error_dict)
+
+        # TODO: code to update the ErrorInstance db with this
+        # information
+
+        return error_dicts
 
 
-def decide_panda_status(statuses: list) -> str:
+def decide_panda_status(statuses: list, errors_agg: dict) -> str:
     """Look at the list of statuses for each
     jeditaskid and return a choice for the entire
     reqid status
@@ -150,25 +154,36 @@ def decide_panda_status(statuses: list) -> str:
         a list of statuses for each jeditaskid
         in the reqid
 
+    errors_agg: dict
+        a dict of dicts for each jtid with recorded
+        error messages
+
     Returns
     -------
     panda_status: str
         the panda job status
     """
-    # probably a better choice than using an elif
-    # for this, but the elif lets us build
-    # in possible options for intermediate steps.
 
-    if "failed" in statuses:
-        panda_status = "failed"
-    elif "finished" in statuses:
-        panda_status = "failed"
-    elif "pending" in statuses:
+    # if stuff still running, just let it keep
+    # running
+    if "pending" in statuses:
         panda_status = "running"
     elif "registered" in statuses:
         panda_status = "running"
     elif "running" in statuses:
         panda_status = "running"
+    # if it is done reading and has failures,
+    # probably leave it as failed
+    elif "failed" in statuses:
+        panda_status = "failed"
+    # if it returns as finished, we need to
+    # check the specific errors to make decisions
+    elif "finished" in statuses:
+        # TODO: engine that compares errors_agg against
+        # our error types and makes an aggergate
+        # decision
+        panda_status = "failed"
+    # and if it is just done, we just move on
     else:
         panda_status = "done"
     return panda_status
@@ -198,18 +213,14 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
     tasks = conn.get_tasks(panda_reqid, username=panda_username)
     statuses = [task["status"] for task in tasks]
 
-    # TODO: for error database, currently unused
-    # errors_aggregate = dict()
-    # diags_aggregate = dict()
-    # jtids = [task["jeditaskid"] for task
-    # in tasks if task["status"] != "done"]
-    # for jtid in jtids:
-    #    errors_all, diags_all = get_errors_from_jeditaskid(jtid)
-    #    errors_aggregate[str(jtid)] = errors_all
-    #    diags_aggregate[str(jtid)] = diags_all
+    # then pull all the errors for the tasks
+    errors_aggregate = dict()
+    jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    for jtid in jtids:
+        errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(jtid)
 
     # now determine a final answer based on statuses for the entire reqid
-    panda_status = decide_panda_status(statuses)
+    panda_status = decide_panda_status(statuses, errors_aggregate)
 
     return panda_status
 
@@ -218,13 +229,11 @@ def get_panda_errors(panda_reqid: int, panda_username=None) -> str:
     conn = panda_api.get_api()
     tasks = conn.get_tasks(panda_reqid, username=panda_username)
     errors_aggregate = dict()
-    diags_aggregate = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
-        errors_all, diags_all = get_errors_from_jeditaskid(jtid)
-        errors_aggregate[jtid] = errors_all
-        diags_aggregate[jtid] = diags_all
-    return errors_aggregate, diags_aggregate
+        errors_dict = get_errors_from_jeditaskid(jtid)
+        errors_aggregate[jtid] = errors_dict
+    return errors_aggregate
 
 
 class PandaChecker(SlurmChecker):  # pragma: no cover
