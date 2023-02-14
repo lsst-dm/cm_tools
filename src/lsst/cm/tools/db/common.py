@@ -85,7 +85,7 @@ class SQLScriptMixin(SQLTableMixin):
         checker = Checker.get_checker(script.checker)
         if checker is None:
             return script.status
-        new_values = checker.check_url(script)
+        new_values = checker.check_url(dbi, script)
         if new_values:
             stmt = update(cls).where(cls.id == script.id).values(**new_values)
             conn = dbi.connection()

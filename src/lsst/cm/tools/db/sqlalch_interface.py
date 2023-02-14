@@ -15,7 +15,7 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
-from lsst.cm.tools.db.error_table import ErrorAction, ErrorFlavor, ErrorType
+from lsst.cm.tools.db.error_table import ErrorAction, ErrorFlavor, ErrorInstance, ErrorType
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
 from lsst.cm.tools.db.script import Script
@@ -521,6 +521,28 @@ class SQLAlchemyInterface(DbInterface):
         conn.commit()
         assert upd_result
 
+    def rematch_errors(self) -> Any:
+        conn = self.connection()
+        unmatched_errors = conn.execute(select(ErrorInstance).where(ErrorInstance.id is None))
+        for unmatched_error_ in unmatched_errors:
+            error_type = self.match_error_type(
+                unmatched_error_[0].panda_err_code,
+                unmatched_error_[0].diagnostic_message,
+            )
+            if error_type is None:
+                print(
+                    f"Unknown {unmatched_error_[0].panda_err_code} {unmatched_error_[0].diagnostic_message}"
+                )
+                continue
+            print(error_type.error_name, error_type.id)
+            stmt = (
+                update(ErrorInstance)
+                .where(ErrorInstance.id == unmatched_error_[0].id)
+                .values(error_name=error_type.error_name, error_type_id=error_type.id)
+            )
+            conn.execute(stmt)
+        conn.commit()
+
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         entry = self.get_entry(level, db_id)
         error_dict = {}
@@ -532,11 +554,26 @@ class SQLAlchemyInterface(DbInterface):
                     error_dict[err_.error_name] = [err_]
         stream.write("~Here are the errors!~\n")
         for error_name, error_list in error_dict.items():
-            stream.write(f"Error: {error_name}")
+            stream.write(f"Error: {error_name}\n")
             for i, err in enumerate(error_list):
                 if i > 10:
+                    stream.write("\tTruncating list at 10\n")
                     break
-                stream.write(f"\tData ID: {err.data_id}")
+                stream.write(f"\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\tData ID: {err.data_id}\n")
+
+    def commit_errors(self, job_id: int, errors_aggregate: Any) -> None:
+        conn = self.connection()
+        for jeditaskid, error_list in errors_aggregate.items():
+            for error_ in error_list:
+                copy_dict = error_.copy()
+                error_type = copy_dict.pop("error_type")
+                copy_dict["job_id"] = job_id
+                if error_type is not None:
+                    copy_dict["error_type_id"] = error_type.id
+                    copy_dict["error_flavor"] = error_type.error_flavor
+                error_instance = ErrorInstance(**copy_dict)
+                conn.add(error_instance)
+        conn.commit()
 
     def report_error_trend(self, stream: TextIO, error_name: str) -> None:
         conn = self.connection()

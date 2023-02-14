@@ -2,7 +2,7 @@ from typing import Any
 
 from pandaclient import Client, panda_api
 
-from lsst.cm.tools.core.db_interface import JobBase
+from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.slurm_utils import SlurmChecker
 from lsst.cm.tools.core.utils import StatusEnum
 
@@ -15,6 +15,7 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
         while line:
             tokens = line.split(":")
             if len(tokens) != 2:
+                line = fin.readline()
                 continue
             out_dict[tokens[0]] = tokens[1]
             line = fin.readline()
@@ -40,18 +41,25 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
     # TODO: try to find a way to do this with Client to avoid the
     # requirement on username storage
     conn = panda_api.get_api()
-    reqid_pull = conn.get_tasks(reqid, username=username)
+    import pdb
+
+    pdb.set_trace()
+    reqid_pull = conn.get_tasks(int(reqid), username=username)
     jeditaskids = [reqid["jeditaskid"] for reqid in reqid_pull]
 
     return jeditaskids
 
 
-def get_errors_from_jeditaskid(jeditaskid: int):
+def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
     """Return the errors associated with a jeditaskid as
     a dictionary for each job.
 
     Parameters
     ----------
+
+    dbi: DbInterface
+        Used to look up the error types
+
     jeditaskid: int
         A jeditaskid, which will have some number of
         pandaIDs associated.
@@ -63,6 +71,7 @@ def get_errors_from_jeditaskid(jeditaskid: int):
         we want to update the error instance db with
     """
     conn_status, task_status = Client.getJediTaskDetails({"jediTaskID": jeditaskid}, True, True)
+    print(f"Checking {jeditaskid}")
 
     # grab all the PanDA IDs
     if conn_status == 0:
@@ -80,8 +89,7 @@ def get_errors_from_jeditaskid(jeditaskid: int):
             if conn_status == 0:
                 jobs_list = ret_jobs
         else:
-            print("no jobs found")
-            return [], []
+            return []
             # TODO: properly address this break condition,
             # because something went wrong
 
@@ -89,7 +97,6 @@ def get_errors_from_jeditaskid(jeditaskid: int):
     error_dicts = []
 
     failed_jobs = [job for job in jobs_list if job.jobStatus == "failed"]
-    print(f"failed jobs {failed_jobs} {jobs_list}")
     if len(failed_jobs) == 0:
         return error_dicts
     else:
@@ -99,42 +106,48 @@ def get_errors_from_jeditaskid(jeditaskid: int):
 
             # brokerageErrorCode/Diag
             if job.brokerageErrorCode != 0:
-                error_dict["panda_err_code"] = "brokerage, " + job.brokerageErrorCode
+                error_dict["panda_err_code"] = "brokerage, " + str(job.brokerageErrorCode)
                 error_dict["diagnostic_message"] = job.brokerageErrorDiag
             # ddmErrorCode/Diag
-            if job.ddmErrorCode != 0:
-                error_dict["panda_err_code"] = "ddm, " + job.ddmErrorCode
+            elif job.ddmErrorCode != 0:
+                error_dict["panda_err_code"] = "ddm, " + str(job.ddmErrorCode)
                 error_dict["diagnostic_message"] = job.ddmErrorDiag
             # exeErrorCode/Diag
-            if job.exeErrorCode != 0:
-                error_dict["panda_err_code"] = "exe, " + job.exeErrorCode
+            elif job.exeErrorCode != 0:
+                error_dict["panda_err_code"] = "exe, " + str(job.exeErrorCode)
                 error_dict["diagnostic_message"] = job.exeErrorDiag
             # jobDispatcherErrorCode/Diag
-            if job.jobDispatcherErrorCode != 0:
-                error_dict["panda_err_code"] = "jobDispatcher, " + job.jobDispatcherErrorCode
+            elif job.jobDispatcherErrorCode != 0:
+                error_dict["panda_err_code"] = "jobDispatcher, " + str(job.jobDispatcherErrorCode)
                 error_dict["diagnostic_message"] = job.jobDispatcherErrorDiag
             # pilotErrorCode/Diag
-            if job.pilotErrorCode != 0:
-                error_dict["panda_err_code"] = "pilot, " + job.pilotErrorCode
+            elif job.pilotErrorCode != 0:
+                error_dict["panda_err_code"] = "pilot, " + str(job.pilotErrorCode)
                 error_dict["diagnostic_message"] = job.pilotErrorDiag
             # supErrorCode/Diag
-            if job.supErrorCode != 0:
-                error_dict["panda_err_code"] = "sup, " + job.supErrorCode
+            elif job.supErrorCode != 0:
+                error_dict["panda_err_code"] = "sup, " + str(job.supErrorCode)
                 error_dict["diagnostic_message"] = job.supErrorDiag
             # taskBufferErrorCode/Diag
-            if job.taskBufferErrorCode != 0:
-                error_dict["panda_err_code"] = "taskBuffer, " + job.taskBufferErrorCode
+            elif job.taskBufferErrorCode != 0:
+                error_dict["panda_err_code"] = "taskBuffer, " + str(job.taskBufferErrorCode)
                 error_dict["diagnostic_message"] = job.taskBufferErrorDiag
             # transExitCode (no Diag)
-            if job.transExitCode != 0:
-                error_dict["panda_err_code"] = "trans, " + job.transErrorCode
+            elif job.transExitCode != 0:
+                error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
                 error_dict["diagnostic_message"] = "check the logging"
+            else:
+                raise RuntimeError("Not sure what kinda error we got")
             error_dict["function"] = job.jobName.split("_")[-3]
             error_dict["log_file_url"] = job.pilotID.split("|")[0]
             # TODO: currently not found in PanDA job object
             # providing nearest substitute, the
             # quantum graph
             error_dict["data_id"] = (job.Files[0]).lfn
+            error_dict["error_type"] = dbi.match_error_type(
+                error_dict["panda_err_code"], error_dict["diagnostic_message"]
+            )
+
             error_dicts.append(error_dict)
 
         # TODO: code to update the ErrorInstance db with this
@@ -189,7 +202,7 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
     return panda_status
 
 
-def check_panda_status(panda_reqid: int, panda_username=None) -> str:
+def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) -> str:
     """Check the errors for a given panda reqid and
     return a final overarching error
 
@@ -206,32 +219,35 @@ def check_panda_status(panda_reqid: int, panda_username=None) -> str:
     panda_status: str
         the panda job status
 
+    error_aggregate: list[dict]
+        A list of dictionaries containing everything
+        we want to update the error instance db with
     """
 
     # first pull down all the tasks
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(panda_reqid, username=panda_username)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
     statuses = [task["status"] for task in tasks]
 
     # then pull all the errors for the tasks
     errors_aggregate = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
-        errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(jtid)
+        errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
 
     # now determine a final answer based on statuses for the entire reqid
     panda_status = decide_panda_status(statuses, errors_aggregate)
 
-    return panda_status
+    return panda_status, errors_aggregate
 
 
-def get_panda_errors(panda_reqid: int, panda_username=None) -> str:
+def get_panda_errors(dbi: DbInterface, panda_reqid: int, panda_username=None) -> dict[int, dict[str, Any]]:
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(panda_reqid, username=panda_username)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
     errors_aggregate = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
-        errors_dict = get_errors_from_jeditaskid(jtid)
+        errors_dict = get_errors_from_jeditaskid(dbi, jtid)
         errors_aggregate[jtid] = errors_dict
     return errors_aggregate
 
@@ -250,18 +266,16 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
     )
 
     panda_status_map = dict(
+        done=StatusEnum.completed,
         Running=StatusEnum.running,
+        failed=StatusEnum.failed,
     )
 
-    panda_status_map = dict(
-        Running=StatusEnum.running,
-    )
-
-    def check_url(self, job: JobBase) -> dict[str, Any]:
+    def check_url(self, dbi: DbInterface, job: JobBase) -> dict[str, Any]:
         update_vals: dict[str, Any] = {}
         panda_url = job.panda_url
         if panda_url is None:
-            slurm_dict = SlurmChecker.check_url(self, job)
+            slurm_dict = SlurmChecker.check_url(self, dbi, job)
             if not slurm_dict:
                 return update_vals
             batch_status = slurm_dict.get("batch_status", job.batch_status)
@@ -273,18 +287,24 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 update_vals["panda_url"] = panda_url
         if panda_url is None:
             return update_vals
-        panda_status = check_panda_status(panda_url)
+        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url))
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
-        status = self.panda_status_map[panda_status]
+        # Uncomment these lines to actually update the DB
+        # Also remove the status = job.status line below
+        # dbi.commit_errors(job.id, errors_aggregate)
+        # status = self.panda_status_map[panda_status]
+        status = job.status
         if status != job.status:
             update_vals["status"] = status
         return update_vals
 
     @classmethod
-    def check_panda_status(cls, panda_reqid: int, panda_username=None) -> str:
-        return check_panda_status(panda_reqid, panda_username)
+    def check_panda_status(cls, dbi: DbInterface, panda_reqid: int, panda_username=None) -> str:
+        return check_panda_status(dbi, panda_reqid, panda_username)
 
     @classmethod
-    def get_panda_errors(cls, panda_reqid: int, panda_username=None) -> str:
-        return get_panda_errors(panda_reqid, panda_username)
+    def get_panda_errors(
+        cls, dbi: DbInterface, panda_reqid: int, panda_username=None
+    ) -> dict[int, dict[str, Any]]:
+        return get_panda_errors(dbi, panda_reqid, panda_username)
