@@ -41,9 +41,6 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
     # TODO: try to find a way to do this with Client to avoid the
     # requirement on username storage
     conn = panda_api.get_api()
-    import pdb
-
-    pdb.set_trace()
     reqid_pull = conn.get_tasks(int(reqid), username=username)
     jeditaskids = [reqid["jeditaskid"] for reqid in reqid_pull]
 
