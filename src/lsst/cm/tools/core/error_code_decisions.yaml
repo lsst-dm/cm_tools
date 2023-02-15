@@ -2,19 +2,19 @@ description: Lookup table for error codes from PanDA and error logs from science
 
 pandaErrorCode:
     trans, 1:
-        aperture_correction:
+        p_aperture_correction:
             diagMessage: >
                 Execution of task 'characterizeImage' on quantum {.*} failed. Exception
                 RuntimeError: Unable to measure aperture correction for required algorithm 'modelfit_CModel': only 0 sources, but
                 require at least 2.
             function: characterizeImage
             known: 1
-            ticket: ["DM-36763", "DM-36356"]
+            ticket: ["DM-37089", "DM-36763", "DM-36356"]
             resolved: 0
             rescue: 0
             panda: 0
             intensity: 0.001
-        psf_matching_kernel:
+        p_psf_matching_kernel:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
             function: characterizeImage
             known: 1
@@ -34,13 +34,13 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
-        no_use_for_photocal:
+        p_no_use_for_photocal:
             diagMessage: >
                 Execution of task 'calibrate' on quantum {.*} failed. Exception
                 RuntimeError: No matches to use for photocal
             function: calibrate
             known: 1
-            ticket: ["DM-32291", "DM-36763"]
+            ticket: ["DM-37089", "DM-32291", "DM-36763"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -56,13 +56,13 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
-        FWHM_value_of_nan:
+        p_FWHM_value_of_nan:
             diagMessage: >
                 Execution of task 'calibrate' on quantum {.*} failed. Exception
                 ValueError: PSF at (.*) has an invalid FWHM value of nan
             function: calibrate
             known: 1
-            ticket: ["DM-36763"]
+            ticket: ["DM-37089", "DM-36763"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -158,11 +158,11 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
-        psf_matching_kernel_subtractImages:
+        p_psf_matching_kernel_subtractImages:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
             function: subtractImages
             known: 1
-            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -176,12 +176,12 @@ pandaErrorCode:
                 InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
             function: subtractImages
             known: 1
-            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
             intensity: 0.001
-        kernel_candidacy:
+        p_kernel_candidacy:
             diagMessage: >
                 Execution of task 'subtractImages' on quantum {.*} failed. Exception
                 RuntimeError: Cannot find any objects suitable for KernelCandidacy
@@ -242,11 +242,40 @@ pandaErrorCode:
             panda: 0
             intensity: 0.001
     pilot, 1305:
+        aperture_correction:
+            diagMessage: >
+                Unable to measure aperture correction for required algorithm 'modelfit_CModel': only .* sources, but
+                require at least 2
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-37089"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        FWHM_value_of_nan:
+            diagMessage: "Failed to execute payload:PSF at (.*) has an invalid FWHM value of nan"
+            function: calibrate
+            known: 1
+            ticket: ["DM-37089"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
         NaN_to_int_calibrate:
             diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
             function: calibrate
             known: 1
             ticket: ["DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        no_use_for_photocal:
+            diagMessage: "Failed to execute payload:No matches to use for photocal"
+            function: calibrate
+            known: 1
+            ticket: ["DM-37089", "DM-32291", "DM-36763"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -275,16 +304,25 @@ pandaErrorCode:
                 CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
             function: subtractImages
             known: 1
-            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
             intensity: 0.001
-        p_kernel_candidacy:
+        kernel_candidacy:
             diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
             function: subtractImages
             known: 1
-            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        psf_matching_kernel_subtractImages:
+            diagMessage: "Failed to execute payload:Unable to calculate psf matching kernel"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-37089"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -306,6 +344,16 @@ pandaErrorCode:
             function:
             known: 1
             ticket: ["DM-36845", "DM-36763"]
+            resolved: 0
+            rescue: 1
+            panda: 1
+            intensity: 0
+    taskbuffer, 102:
+        expired_in_pending:
+            diagMessage: "expired in pending. status unchanged"
+            function:
+            known: 1
+            ticket: ["DM-37089"]
             resolved: 0
             rescue: 1
             panda: 1
