@@ -1,5 +1,5 @@
 import sys
-from typing import Any
+from typing import Any, Tuple
 
 import click
 
@@ -468,6 +468,24 @@ def parse(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 def load_error_types(dbi: DbInterface, config_yaml: str) -> None:
     """Load error types from a configuration file"""
     dbi.load_error_types(config_yaml)
+
+
+@cli.command()
+@options.dbi()
+@options.error_name()
+@options.update_item()
+def modify_error_type(dbi: DbInterface, error_name: str, update_item: Tuple[str, str]) -> None:
+    """Modify values of a particular ErrorType"""
+    kwargs = {update_item[0]: update_item[1]}
+    dbi.modify_error_type(error_name, **kwargs)
+
+
+@cli.command()
+@options.dbi()
+@options.error_name()
+def report_error_trend(dbi: DbInterface, error_name: str) -> None:
+    """Report if errors have been seen in prior workflows and if so, when"""
+    dbi.report_error_trend(sys.stdout, error_name)
 
 
 @cli.command()

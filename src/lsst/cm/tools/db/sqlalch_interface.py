@@ -5,7 +5,7 @@ from time import sleep
 from typing import Any, Iterable, Optional, TextIO
 
 import yaml
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session
 
 from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_dataset_summary
@@ -500,8 +500,11 @@ class SQLAlchemyInterface(DbInterface):
                     action=ErrorAction["email_orion"],
                     max_intensity=error_type["intensity"],
                 )
-                conn.add(new_error_type)
-        conn.commit()
+                try:
+                    conn.add(new_error_type)
+                    conn.commit()
+                except Exception:
+                    print(f"Avoiding duplicate error entry {error_name}")
 
     def match_error_type(self, panda_code: str, diag_message: str) -> Any:
         conn = self.connection()
@@ -510,6 +513,13 @@ class SQLAlchemyInterface(DbInterface):
             if re.match(match_[0].diagnostic_message, diag_message):
                 return match_[0]
         return
+
+    def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
+        stmt = update(ErrorType).where(ErrorType.error_name == error_name).values(**kwargs)
+        conn = self.connection()
+        upd_result = conn.execute(stmt)
+        conn.commit()
+        assert upd_result
 
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
         entry = self.get_entry(level, db_id)
@@ -527,6 +537,12 @@ class SQLAlchemyInterface(DbInterface):
                 if i > 10:
                     break
                 stream.write(f"\tData ID: {err.data_id}")
+
+    def report_error_trend(self, stream: TextIO, error_name: str) -> None:
+        conn = self.connection()
+        error_type = conn.execute(select(ErrorType).where(ErrorType.error_name == error_name)).scalar()
+        for instance_ in error_type.instances_:
+            stream.write(f"{instance_.job_.w_}")
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()

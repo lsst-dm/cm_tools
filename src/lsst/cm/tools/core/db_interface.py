@@ -899,6 +899,23 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
+        """put what it does before committing
+        Parameters
+        ----------
+        error_name: str
+            Unique name for this ErrorType
+
+        Keywords
+        --------
+        Key-value pairs to modify
+
+        Returns
+        -------
+        None
+        """
+        raise NotImplementedError()
+
     def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
         """Parse a configuration file and add it to an existing configuration
 
@@ -931,5 +948,19 @@ class DbInterface:
         db_id: DbId
             Database ID specifying which entries to print.
             See class notes above.
+        """
+        raise NotImplementedError()
+
+    def report_error_trend(self, stream: TextIO, error_name: str) -> None:
+        """Report if errors have been seen in prior workflows and if so, when
+
+        Parameters
+        ----------
+        stream : TextIO
+            Stream we will print to
+
+        error_name: str
+            Unique name for this ErrorType
+
         """
         raise NotImplementedError()

@@ -34,7 +34,7 @@ class ErrorType(common.Base):
 
     id = Column(Integer, primary_key=True)  # Unique ID
     panda_err_code = Column(String)
-    error_name = Column(String)
+    error_name = Column(String, unique=True)  # unique=True prevents loading the same error twice
     diagnostic_message = Column(String)
     jira_ticket = Column(String)
     function = Column(String)
@@ -48,7 +48,7 @@ class ErrorType(common.Base):
 
     def __repr__(self):
         s = f"Id={self.id}\n"
-        s += f"  Panda Code: {self.panda_err_code}  Function: {self.function}\n"
+        s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Function: {self.function}\n"
         s += f"  JIRA: {self.jira_ticket}\n"
         s += "  Flags (known, resolved, rescuable): "
         s += f"{self.is_known}, {self.is_resolved}, {self.is_rescueable}\n"
