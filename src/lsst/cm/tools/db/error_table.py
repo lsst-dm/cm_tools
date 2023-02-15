@@ -80,3 +80,26 @@ class ErrorInstance(common.Base):
 
     job_: Job = relationship("Job", back_populates="errors_")
     error_type_: ErrorType = relationship("ErrorType", back_populates="instances_")
+
+    def __repr__(self):
+        error_type = self.error_type_
+        if error_type is not None:
+            is_known = error_type.is_known
+            is_resolved = error_type.is_resolved
+            is_rescueable = error_type.is_rescueable
+        else:
+            is_known = False
+            is_resolved = False
+            is_rescueable = False
+
+        s = f"Id={self.id} {self.job_id}\n"
+        s += f"  Error_name: {self.error_name} {self.error_type_id} Function: {self.function}\n"
+        s += f"  Data_id: {self.data_id}\n"
+        s += "  Flags (known, resolved, rescuable): "
+        s += f"{is_known}, {is_resolved}, {is_rescueable}\n"
+        if len(self.diagnostic_message) > 50:
+            diag_message = self.diagnostic_message[0:49]
+        else:
+            diag_message = self.diagnostic_message
+        s += f"    {diag_message}"
+        return s

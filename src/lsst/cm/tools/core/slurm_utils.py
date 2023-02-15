@@ -2,7 +2,7 @@ import subprocess
 from typing import Any
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import ScriptBase
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.utils import StatusEnum
 
 
@@ -62,7 +62,7 @@ def check_job_status(job_id: str | None) -> str:  # pragma: no cover
 class SlurmChecker(Checker):  # pragma: no cover
     """Simple Checker to use a slurm job_id to check job status"""
 
-    status_map = dict(
+    slurm_status_map = dict(
         BOOT_FAIL=StatusEnum.failed,
         CANCELLED=StatusEnum.failed,
         COMPLETED=StatusEnum.completed,
@@ -90,14 +90,14 @@ class SlurmChecker(Checker):  # pragma: no cover
         TIMEOUT=StatusEnum.failed,
     )
 
-    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+    def check_url(self, dbi: DbInterface, script: ScriptBase) -> dict[str, Any]:
         new_values: dict[str, Any] = {}
         if script.stamp_url is None:
             return new_values
         slurm_status = check_job_status(script.stamp_url)
         if slurm_status != script.batch_status:
             new_values["batch_status"] = slurm_status
-        status = self.status_map[slurm_status]
+        status = self.slurm_status_map[slurm_status]
         if status != script.status:
             new_values["status"] = status
         return new_values

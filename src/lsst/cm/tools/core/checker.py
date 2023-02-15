@@ -6,7 +6,7 @@ from typing import Any
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from lsst.cm.tools.core.db_interface import ScriptBase
+from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 
 
 class Checker:
@@ -53,11 +53,14 @@ class Checker:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+    def check_url(self, dbi: DbInterface, script: ScriptBase) -> dict[str, Any]:
         """Return the status of the script being checked
 
         Parameters
         ----------
+        dbi: DbiInterface
+            Interface to database we are using
+
         script: ScriptBase
             Script we are checking the status of
 

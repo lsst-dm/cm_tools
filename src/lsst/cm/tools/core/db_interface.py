@@ -916,6 +916,10 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def rematch_errors(self) -> Any:
+        """Rematch the error instances"""
+        raise NotImplementedError()
+
     def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:
         """Parse a configuration file and add it to an existing configuration
 
@@ -961,6 +965,18 @@ class DbInterface:
 
         error_name: str
             Unique name for this ErrorType
+        """
+        raise NotImplementedError()
 
+    def commit_errors(self, job_id: int, errors_aggregate: Any) -> None:
+        """Commit the errors associated with a particular job
+
+        Parameters
+        ----------
+        job_id: int
+            The job in question
+
+        errors_aggregate: Any
+            The set of errors
         """
         raise NotImplementedError()

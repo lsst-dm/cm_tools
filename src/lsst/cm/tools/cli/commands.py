@@ -493,9 +493,16 @@ def report_error_trend(dbi: DbInterface, error_name: str) -> None:
 @options.panda_code()
 @options.diag_message()
 def match_error_type(dbi: DbInterface, panda_code: str, diag_message: str) -> None:
-    """Load error types from a configuration file"""
+    """Search for a specific error based on the error messages"""
     error_type = dbi.match_error_type(panda_code, diag_message)
     sys.stdout.write(f"{repr(error_type)}\n")
+
+
+@cli.command()
+@options.dbi()
+def rematch_errors(dbi: DbInterface) -> None:
+    """Match errors against existing error types"""
+    dbi.rematch_errors()
 
 
 @cli.command()
@@ -508,23 +515,26 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 
 
 @cli.command()
+@options.dbi()
 @options.panda_url(type=int)
 @options.panda_username()
-def check_panda_job(panda_url: int, panda_username: str) -> list[str]:
+def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
-    status = pc.check_panda_status(panda_url, panda_username)
+    status, _ = pc.check_panda_status(dbi, panda_url, panda_username)
     sys.stdout.write(f"{str(status)}\n")
 
 
 @cli.command()
+@options.dbi()
 @options.panda_url(type=int)
 @options.panda_username()
-def get_panda_errors(panda_url: int, panda_username: str):
+def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
-    errors_aggregate, diags_aggregate = pc.get_panda_errors(panda_url, panda_username)
-    sys.stdout.write(str(errors_aggregate))
+    errors_aggregate = pc.get_panda_errors(dbi, panda_url, panda_username)
+    for key, val in errors_aggregate.items():
+        sys.stdout.write(f"Key = {key}: Val = {val}")
 
 
 @cli.command()

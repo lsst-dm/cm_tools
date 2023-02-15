@@ -4,7 +4,7 @@ from typing import Any, Optional
 import yaml
 
 from lsst.cm.tools.core.checker import Checker
-from lsst.cm.tools.core.db_interface import CMTableBase, ScriptBase, TableBase
+from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
 from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
 
@@ -232,7 +232,7 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
 class YamlChecker(Checker):
     """Simple Checker to look in a yaml file for a status flag"""
 
-    def check_url(self, script: ScriptBase) -> dict[str, Any]:
+    def check_url(self, dbi: DbInterface, script: ScriptBase) -> dict[str, Any]:
         new_status = check_status_from_yaml(script.stamp_url, script.status)
         if new_status == script.status:
             return {}
