@@ -270,6 +270,8 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
     def check_url(self, dbi: DbInterface, job: JobBase) -> dict[str, Any]:
         update_vals: dict[str, Any] = {}
+        if job.status not in [StatusEnum.populating, StatusEnum.running]:
+            return update_vals
         panda_url = job.panda_url
         if panda_url is None:
             slurm_dict = SlurmChecker.check_url(self, dbi, job)
@@ -282,6 +284,9 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 bps_dict = parse_bps_stdout(job.log_url)
                 panda_url = bps_dict["Run Id"]
                 update_vals["panda_url"] = panda_url
+            elif slurm_dict.get("status") == StatusEnum.failed:
+                update_vals["status"] = StatusEnum.failed
+                return update_vals
         if panda_url is None:
             return update_vals
         panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url))
