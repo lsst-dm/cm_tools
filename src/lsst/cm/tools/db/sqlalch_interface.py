@@ -579,7 +579,7 @@ class SQLAlchemyInterface(DbInterface):
         conn = self.connection()
         error_type = conn.execute(select(ErrorType).where(ErrorType.error_name == error_name)).scalar()
         for instance_ in error_type.instances_:
-            stream.write(f"{instance_.job_.w_}")
+            stream.write(f"{instance_.job_.w_}\n")
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
