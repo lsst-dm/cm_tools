@@ -127,7 +127,7 @@ class StepHandler(GenericEntryHandler):
         elif split_vals:
             split_field = split_vals["field"]
             split_list = split_vals["values"]
-            data_queries = [f"{split_field} == {split_value_}" for split_value_ in split_list]
+            data_queries = [f"{split_field} in ({split_value_})" for split_value_ in split_list]
         else:
             data_queries = [None]
         for i, dq_ in enumerate(data_queries):
