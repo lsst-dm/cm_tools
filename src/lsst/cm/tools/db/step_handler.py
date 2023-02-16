@@ -117,12 +117,17 @@ class StepHandler(GenericEntryHandler):
         )
         data_query_base = self.config["data_query_base"]
         split_args = self.config.get("split_args", {})
+        split_vals = self.config.get("split_vals", {})
         if split_args:
             butler = Butler(
                 entry.butler_repo,
                 collections=[entry.coll_source],
             )
             data_queries = build_data_queries(butler, **split_args)
+        elif split_vals:
+            split_field = split_vals["field"]
+            split_list = split_vals["values"]
+            data_queries = [f"{split_field} in ({split_value_})" for split_value_ in split_list]
         else:
             data_queries = [None]
         for i, dq_ in enumerate(data_queries):
