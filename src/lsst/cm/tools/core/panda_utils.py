@@ -283,7 +283,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             if slurm_dict.get("status") == StatusEnum.completed:
                 bps_dict = parse_bps_stdout(job.log_url)
                 panda_url = bps_dict["Run Id"]
-                update_vals["panda_url"] = panda_url
+                update_vals["panda_url"] = panda_url.strip()
             elif slurm_dict.get("status") == StatusEnum.failed:
                 update_vals["status"] = StatusEnum.failed
                 return update_vals
