@@ -173,29 +173,45 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
     panda_status: str
         the panda job status
     """
+    # map to take the many statuses and map them to end results
+    jtid_status_map = dict(
+        topreprocess="running",
+        registered="running",
+        tobroken="failed",
+        broken="failed",
+        preprocessing="running",
+        defined="running",
+        pending="running",
+        ready="running",
+        assigning="running",
+        paused="running",
+        aborting="failed",
+        aborted="failed",
+        running="running",
+        throttled="running",
+        scouting="running",
+        scouted="running",
+        finishing="running",
+        passed="running",
+        exhausted="failed",
+        finished="failed",
+        done="done",
+        toretry="running",
+        failed="failed",
+        toincexec="running",
+    )
+    # take our statuses and convert them
+    status_mapped = [jtid_status_map[status] for status in statuses]
 
-    # if stuff still running, just let it keep
-    # running
-    if "pending" in statuses:
+    if "running" in status_mapped:
         panda_status = "running"
-    elif "registered" in statuses:
-        panda_status = "running"
-    elif "running" in statuses:
-        panda_status = "running"
-    # if it is done reading and has failures,
-    # probably leave it as failed
-    elif "failed" in statuses:
+    elif "failed" in status_mapped:
         panda_status = "failed"
-    # if it returns as finished, we need to
-    # check the specific errors to make decisions
-    elif "finished" in statuses:
-        # TODO: engine that compares errors_agg against
-        # our error types and makes an aggergate
-        # decision
-        panda_status = "failed"
-    # and if it is just done, we just move on
-    else:
+    # TODO: nuance case where finished can get
+    # moved to done
+    elif "complete" in status_mapped:
         panda_status = "done"
+
     return panda_status
 
 
@@ -264,7 +280,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
     panda_status_map = dict(
         done=StatusEnum.completed,
-        Running=StatusEnum.running,
+        running=StatusEnum.running,
         failed=StatusEnum.failed,
     )
 
@@ -294,9 +310,8 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             update_vals["panda_status"] = panda_status
         # Uncomment these lines to actually update the DB
         # Also remove the status = job.status line below
-        # dbi.commit_errors(job.id, errors_aggregate)
-        # status = self.panda_status_map[panda_status]
-        status = job.status
+        dbi.commit_errors(job.id, errors_aggregate)
+        status = self.panda_status_map[panda_status]
         if status != job.status:
             update_vals["status"] = status
         return update_vals
