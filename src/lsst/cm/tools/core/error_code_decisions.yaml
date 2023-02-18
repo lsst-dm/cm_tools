@@ -18,7 +18,7 @@ pandaErrorCode:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
             function: characterizeImage
             known: 1
-            ticket: ["DM-37483", "DM-36763", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-36763", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -30,6 +30,15 @@ pandaErrorCode:
             function: characterizeImage
             known: 1
             ticket: ["DM-37483", "DM-33375", "DM-36763", "DM-36356"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_psfex:
+            diagMessage: "Only spatial variation (ndim == 2) is supported; saw 0"
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-37570"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -136,6 +145,25 @@ pandaErrorCode:
             rescue: 1
             panda: 1
             intensity: 0
+        p_fgcm_380:
+            diagMessage: "Exception KeyError: (380, 40)"
+            function: fgcmBuildStarsTable
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0
+        keyerror_0:
+            diagMessage: >
+                in run exposure = input_exposures[detector_id].get() KeyError: 0
+            function: updateVisitSummary
+            known: 1
+            ticket: ["DM-37786", "DM-37570"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0
         outside_image_bounds:
             diagMessage: >
                 Execution of task 'measure' on quantum {.*} failed. Exception
@@ -158,11 +186,29 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
+        p_all_pixels_masked:
+            diagMessage: "All pixels masked. Cannot estimate background"
+            function: detection
+            known: 1
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_too_many_indicies:
+            diagMessage: "IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed"
+            function: detection
+            known: 1
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0.001
         p_psf_matching_kernel_subtractImages:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -176,7 +222,7 @@ pandaErrorCode:
                 InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -187,7 +233,7 @@ pandaErrorCode:
                 RuntimeError: Cannot find any objects suitable for KernelCandidacy
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -198,7 +244,7 @@ pandaErrorCode:
                 algorithms:CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const"
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -207,7 +253,7 @@ pandaErrorCode:
             diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -230,6 +276,24 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
+        p_array_sample_empty:
+            diagMessage: "array of sample points is empty"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        p_fp_xp:
+            diagMessage: "fp and xp are not of the same length."
+            function: subtractImages
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
         u_psf:
             diagMessage: >
                 Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
@@ -241,6 +305,17 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
+        p_remote_io:
+            diagMessage: >
+                sqlalchemy.exc.InternalError: (psycopg2.errors.InternalError_) could not read block .* in file ".*":
+                Remote I/O error
+            function: mergeExecutionButler
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 1 # double check this
+            rescue: 0
+            panda: 1 # later: mark as "usdf"
+            intensity: 0
     pilot, 1305:
         aperture_correction:
             diagMessage: >
@@ -249,6 +324,17 @@ pandaErrorCode:
             function: characterizeImage
             known: 1
             ticket: ["DM-37483", "DM-37089"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        psfex:
+            diagMessage: >
+                File "src/PsfexPsf.cc", line 233, in virtual std:shared_ptr > lsst:meas:extensions:psfex:PsfexPsf:
+                _doComputeImage(const Point2D&, const lsst:afw:image:Color&, const Point2D&) const
+            function: characterizeImage
+            known: 1
+            ticket: ["DM-37570"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -289,6 +375,24 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
+        all_pixels_masked:
+            diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
+            function: detection
+            known: 1
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        too_many_indicies:
+            diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
+            function: detection
+            known: 1
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: 1
+            rescue: 0
+            panda: 0
+            intensity: 0.001
         vague_finalizeCharacterization:
             diagMessage: "Failed to execute payload"
             function: finalizeCharacterization
@@ -313,7 +417,7 @@ pandaErrorCode:
             diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
             function: subtractImages
             known: 1
-            ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -322,7 +426,25 @@ pandaErrorCode:
             diagMessage: "Failed to execute payload:Unable to calculate psf matching kernel"
             function: subtractImages
             known: 1
-            ticket: ["DM-37089"]
+            ticket: ["DM-37570", "DM-37089"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        array_sample_empty:
+            diagMessage: "Failed to execute payload:array of sample points is empty"
+            function: subtractImages
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0.001
+        fp_xp:
+            diagMessage: "Failed to execute payload:fp and xp are not of the same length."
+            function: subtractImages
+            known: 1
+            ticket: ["DM-37570"]
             resolved: 0
             rescue: 0
             panda: 0
@@ -338,12 +460,30 @@ pandaErrorCode:
             rescue: 0
             panda: 0
             intensity: 0.001
+        fgcm_380:
+            diagMessage: "Failed to execute payload:(380, 40)"
+            function: fgcmBuildStarsTable
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 0
+            rescue: 0
+            panda: 0
+            intensity: 0
+        remote_io:
+            diagMessage: "(psycopg2.errors.InternalError_) could not read block .* in file \".*\": Remote I/O error"
+            function: mergeExecutionButler
+            known: 1
+            ticket: ["DM-37570"]
+            resolved: 1 # double check this
+            rescue: 0
+            panda: 1 # later: mark as "usdf"
+            intensity: 0
     taskbuffer, 300:
         failed_while_starting_job:
-            diagMessage: "The worker was failed while the job was starting : 504812 gridjob roma shared 1 FAILED 0:53."
+            diagMessage: "The worker was failed while the job was starting : .* gridjob roma shared .* FAILED .*."
             function:
             known: 1
-            ticket: ["DM-37483", "DM-36845", "DM-36763"]
+            ticket: ["DM-37570", "DM-37483", "DM-36845", "DM-36763"]
             resolved: 0
             rescue: 1
             panda: 1
