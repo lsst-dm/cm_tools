@@ -149,19 +149,73 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
 
             error_dicts.append(error_dict)
 
-        # TODO: code to update the ErrorInstance db with this
-        # information
-
         return error_dicts
 
 
-def decide_panda_status(statuses: list, errors_agg: dict) -> str:
+def handle_it(dbi: DbInterface, errors_agg: dict) -> str:
+    """Given a dict of errors, decide what the
+    appropriate behavior is for the step.
+
+    Parameters
+    ----------
+    dbi: DbInterface
+        a connection to the database interface
+
+    errors_agg: dict
+        a dict of dict for each jtid with a recorded
+        error message
+
+    Returns
+    -------
+    panda_status: str
+        a panda status determined based on reported
+        errors
+    """
+    # bad untested psuedo code
+
+    for key in errors_agg.keys():
+        # error_item = errors_agg[key]
+
+        # rescue, panda, intensity = get_error_recs(error_item)
+        # placeholders
+        rescue = True
+        panda = False
+        intensity = 0.01
+
+        # is it allowed to proceed if there are errors?
+        if panda is True:
+            panda_status = "failed"
+            return panda_status
+
+        if rescue is False:
+            panda_status = "failed"
+            return panda_status
+
+        # if fine, how many errors are there allowed to be?
+        # this should be stored earlier
+        # bad_files, total_files = count_files(error_item)
+        # placeholders
+        bad_files = 0
+        total_files = 10
+        if bad_files / total_files >= intensity:
+            panda_status = "failed"
+            return panda_status
+
+    # if you survive our loop of disqualifying circumstances, continue
+    panda_status = "done"
+    return panda_status
+
+
+def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict) -> str:
     """Look at the list of statuses for each
     jeditaskid and return a choice for the entire
     reqid status
 
     Parameters
     ----------
+    dbi: DbInterface
+        a connection to the database interface
+
     statuses: list
         a list of statuses for each jeditaskid
         in the reqid
@@ -196,7 +250,7 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
         finishing="running",
         passed="running",
         exhausted="failed",
-        finished="failed",
+        finished="finished",
         done="done",
         toretry="running",
         failed="failed",
@@ -209,9 +263,17 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
         panda_status = "running"
     elif "failed" in status_mapped:
         panda_status = "failed"
+<<<<<<< HEAD
     # TODO: nuance case where finished can get
     # moved to done
     elif "done" in status_mapped:
+=======
+    elif "finished" in status_mapped:
+        # if the task returns as finished,
+        # take errors -> return status
+        panda_status = handle_it(dbi, errors_agg)
+    elif "complete" in status_mapped:
+>>>>>>> baafa47 (adding psuedocode)
         panda_status = "done"
     elif not status_mapped:
         panda_status = "running"
@@ -228,6 +290,8 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
     Parameters
     ----------
+    dbi: DbInterface
+        a connection to the database interface
     panda_reqid: int
         a reqid associated with the job
     panda_username: str
@@ -258,7 +322,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
         errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
 
     # now determine a final answer based on statuses for the entire reqid
-    panda_status = decide_panda_status(statuses, errors_aggregate)
+    panda_status = decide_panda_status(dbi, statuses, errors_aggregate)
 
     return panda_status, errors_aggregate
 
@@ -317,8 +381,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url))
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
-        # Uncomment these lines to actually update the DB
-        # Also remove the status = job.status line below
+
         dbi.commit_errors(job.id, errors_aggregate)
         status = self.panda_status_map[panda_status]
         if status != job.status:
