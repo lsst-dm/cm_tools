@@ -69,12 +69,15 @@ def insert(
 @options.dbi()
 @options.fullname()
 @options.config_block()
+@options.script_method()
 def insert_rescue(
     dbi: DbInterface,
     config_block: str,
+    script_method: ScriptMethod,
     **kwargs: Any,
 ) -> None:
     """Insert a rescue workflow"""
+    Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.insert_rescue(the_db_id, config_block, **kwargs)
 
