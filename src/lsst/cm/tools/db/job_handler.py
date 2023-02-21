@@ -103,7 +103,7 @@ class JobHandler(JobHandlerBase):
         workflow_config["campaign"] = f"{parent.p_.name}/{parent.c_.name}"
         workflow_config["LSST_VERSION"] = job.lsst_version
         workflow_config["lsst_custom_setup"] = job.lsst_custom_setup
-        workflow_config["pipelineYaml"] = job.pipepline_yaml
+        workflow_config["pipelineYaml"] = job.pipeline_yaml
         payload = dict(
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
             output=parent.coll_out,
