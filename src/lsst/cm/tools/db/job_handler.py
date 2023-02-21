@@ -5,8 +5,9 @@ import yaml
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import JobHandlerBase
+from lsst.cm.tools.core.panda_utils import PandaChecker
 from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
-from lsst.cm.tools.core.slurm_utils import SlurmChecker, submit_job
+from lsst.cm.tools.core.slurm_utils import submit_job
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.workflow import Workflow
@@ -37,7 +38,7 @@ class JobHandler(JobHandlerBase):
         ScriptMethod.no_run: None,
         ScriptMethod.no_script: None,
         ScriptMethod.bash: YamlChecker,
-        ScriptMethod.slurm: SlurmChecker,
+        ScriptMethod.slurm: PandaChecker,
     }
 
     rollback_class_name = FakeRollback().get_rollback_class_name()
@@ -65,6 +66,13 @@ class JobHandler(JobHandlerBase):
             rollback=self.rollback_class_name,
             coll_out=f"{parent.c_.root_coll}/{parent.fullname}_{idx:03}",
             status=StatusEnum.ready,
+            bps_yaml_template=self.get_config_var("bps_yaml_template", parent.bps_yaml_template, **kwcopy),
+            bps_script_template=self.get_config_var(
+                "bps_script_template", parent.bps_script_template, **kwcopy
+            ),
+            pipeline_yaml=self.get_config_var("pipeline_yaml", parent.pipeline_yaml, **kwcopy),
+            lsst_version=self.get_config_var("lsst_version", parent.lsst_version, **kwcopy),
+            lsst_custom_setup=self.get_config_var("lsst_custom_setup", parent.lsst_custom_setup, **kwcopy),
             script_method=self.script_method,
             level=parent.level,
         )
@@ -83,7 +91,7 @@ class JobHandler(JobHandlerBase):
 
     def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
         """Internal function to write the bps.yaml file for a given workflow"""
-        workflow_template_yaml = os.path.expandvars(self.config["bps_template_yaml"])
+        workflow_template_yaml = os.path.expandvars(job.bps_yaml_template)
         butler_repo = parent.butler_repo
 
         outpath = job.config_url
@@ -93,8 +101,9 @@ class JobHandler(JobHandlerBase):
 
         workflow_config["project"] = parent.p_.name
         workflow_config["campaign"] = f"{parent.p_.name}/{parent.c_.name}"
-        workflow_config["LSST_VERSION"] = parent.c_.lsst_version
-        workflow_config["pipelineYaml"] = self.config["pipeline_yaml"][parent.s_.name]
+        workflow_config["LSST_VERSION"] = job.lsst_version
+        workflow_config["lsst_custom_setup"] = job.lsst_custom_setup
+        workflow_config["pipelineYaml"] = job.pipepline_yaml
         payload = dict(
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
             output=parent.coll_out,
@@ -114,8 +123,7 @@ class JobHandler(JobHandlerBase):
             yaml.dump(workflow_config, fout)
 
         try:
-            bps_script_template = os.path.expandvars(self.config["bps_script_template"])
-
+            bps_script_template = os.path.expandvars(job.bps_script_template)
             with open(bps_script_template, "r") as fin:
                 prepend = fin.read().replace("{lsst_version}", parent.c_.lsst_version)
         except KeyError:

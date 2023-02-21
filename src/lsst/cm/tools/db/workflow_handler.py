@@ -45,6 +45,13 @@ class WorkflowHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             coll_in=parent.coll_in,
             coll_out=parent.coll_out,
+            bps_yaml_template=self.get_config_var("bps_yaml_template", parent.bps_yaml_template, **kwcopy),
+            bps_script_template=self.get_config_var(
+                "bps_script_template", parent.bps_script_template, **kwcopy
+            ),
+            pipeline_yaml=self.get_config_var("pipeline_yaml", parent.pipeline_yaml, **kwcopy),
+            lsst_version=self.get_config_var("lsst_version", parent.lsst_version, **kwcopy),
+            lsst_custom_setup=self.get_config_var("lsst_custom_setup", parent.lsst_custom_setup, **kwcopy),
             data_query=kwcopy.get("data_query", parent.data_query),
             status=StatusEnum.waiting,
         )

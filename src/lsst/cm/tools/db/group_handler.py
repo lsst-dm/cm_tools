@@ -37,6 +37,13 @@ class GroupHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             data_query=kwargs.get("data_query"),
             coll_source=parent.coll_in,
+            bps_yaml_template=self.get_config_var("bps_yaml_template", parent.bps_yaml_template, **kwargs),
+            bps_script_template=self.get_config_var(
+                "bps_script_template", parent.bps_script_template, **kwargs
+            ),
+            lsst_version=self.get_config_var("lsst_version", parent.lsst_version, **kwargs),
+            lsst_custom_setup=self.get_config_var("lsst_custom_setup", parent.lsst_custom_setup, **kwargs),
+            pipeline_yaml=self.get_config_var("pipeline_yaml", parent.pipeline_yaml, **kwargs),
             status=StatusEnum.waiting,
         )
         extra_fields = dict(
@@ -52,7 +59,8 @@ class GroupHandler(GenericEntryHandler):
         return Group.insert_values(dbi, **insert_fields)
 
     def make_children(self, dbi: DbInterface, entry: Any) -> StatusEnum:
-        workflow_handler = entry.get_sub_handler("workflow")
+        workflow_config_block = self.get_config_var("workflow_config", "workflow")
+        workflow_handler = entry.get_sub_handler(workflow_config_block)
         workflow_handler.insert(
             dbi,
             entry,
