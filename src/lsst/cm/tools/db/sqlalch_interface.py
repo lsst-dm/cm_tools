@@ -213,11 +213,22 @@ class SQLAlchemyInterface(DbInterface):
         **kwargs: Any,
     ) -> CMTableBase:
         parent = self.get_entry(db_id.level(), db_id)
-        last_workflow = parent.w_.back()  # replace with for loop if this
+        last_workflow = parent.w_[-1]
         config = parent.config_
         handler = config.get_sub_handler(config_block)
+        kwcopy = kwargs.copy()
+        fullname = kwcopy.pop("fullname")
+        production_name, campaign_name, step_name, group_name = fullname.split("/")[0:4]
+        kwcopy["production_name"] = production_name
+        kwcopy["campaign_name"] = campaign_name
+        kwcopy["step_name"] = step_name
+        kwcopy["group_name"] = group_name
         new_entry = handler.insert(
-            self, parent, config_id=config.id, data_query=last_workflow.data_query, **kwargs
+            self,
+            parent,
+            config_id=config.id,
+            data_query=last_workflow.data_query,
+            **kwcopy,
         )
         self.connection().commit()
         self.check(new_entry.level, new_entry.db_id)
@@ -523,7 +534,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def rematch_errors(self) -> Any:
         conn = self.connection()
-        unmatched_errors = conn.execute(select(ErrorInstance).where(ErrorInstance.id is None))
+        unmatched_errors = conn.execute(select(ErrorInstance))
         for unmatched_error_ in unmatched_errors:
             error_type = self.match_error_type(
                 unmatched_error_[0].panda_err_code,
