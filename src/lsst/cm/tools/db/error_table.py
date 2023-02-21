@@ -52,8 +52,8 @@ class ErrorType(common.Base):
         s += f"  JIRA: {self.jira_ticket}\n"
         s += "  Flags (known, resolved, rescuable): "
         s += f"{self.is_known}, {self.is_resolved}, {self.is_rescueable}\n"
-        if len(self.diagnostic_message) > 50:
-            diag_message = self.diagnostic_message[0:49]
+        if len(self.diagnostic_message) > 150:
+            diag_message = self.diagnostic_message[0:149]
         else:
             diag_message = self.diagnostic_message
         s += f"    {diag_message}"
@@ -94,11 +94,12 @@ class ErrorInstance(common.Base):
 
         s = f"Id={self.id} {self.job_id}\n"
         s += f"  Error_name: {self.error_name} {self.error_type_id} Function: {self.function}\n"
+        s += f"  {self.panda_err_code}\n"
         s += f"  Data_id: {self.data_id}\n"
         s += "  Flags (known, resolved, rescuable): "
         s += f"{is_known}, {is_resolved}, {is_rescueable}\n"
-        if len(self.diagnostic_message) > 50:
-            diag_message = self.diagnostic_message[0:49]
+        if len(self.diagnostic_message) > 150:
+            diag_message = self.diagnostic_message[0:150]
         else:
             diag_message = self.diagnostic_message
         s += f"    {diag_message}"
