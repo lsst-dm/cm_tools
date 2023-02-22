@@ -192,15 +192,6 @@ pandaErrorCode:
             function: detection
             known: 1
             ticket: ["DM-37570"]
-            resolved: 0
-            rescue: 0
-            panda: 0
-            intensity: 0.001
-        p_too_many_indicies:
-            diagMessage: "IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed"
-            function: healSparsePropertyMaps
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
             resolved: 1
             rescue: 0
             panda: 0
@@ -378,15 +369,6 @@ pandaErrorCode:
             intensity: 0.001
         all_pixels_masked:
             diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
-            function: detection
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
-            resolved: 1
-            rescue: 0
-            panda: 0
-            intensity: 0.001
-        too_many_indicies:
-            diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
             function: detection
             known: 1
             ticket: ["DM-37837", "DM-37570"]
