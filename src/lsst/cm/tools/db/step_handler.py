@@ -44,6 +44,13 @@ class StepHandler(GenericEntryHandler):
             data_query=kwargs.get("data_query"),
             coll_in=coll_source,
             coll_source=coll_source,
+            bps_yaml_template=self.get_config_var("bps_yaml_template", parent.bps_yaml_template, **kwargs),
+            bps_script_template=self.get_config_var(
+                "bps_script_template", parent.bps_script_template, **kwargs
+            ),
+            lsst_version=self.get_config_var("lsst_version", parent.lsst_version, **kwargs),
+            lsst_custom_setup=self.get_config_var("lsst_custom_setup", parent.lsst_custom_setup, **kwargs),
+            pipeline_yaml=self.get_config_var("pipeline_yaml", None, **kwargs),
             status=StatusEnum.waiting,
         )
         extra_fields = dict(
@@ -78,7 +85,8 @@ class StepHandler(GenericEntryHandler):
             The newly made Groups
         """
         out_dict = {}
-        group_handler = entry.get_sub_handler("group")
+        group_config_block = self.get_config_var("group_config", "group")
+        group_handler = entry.get_sub_handler(group_config_block)
         insert_fields = dict(
             production_name=entry.p_.name,
             campaign_name=entry.c_.name,

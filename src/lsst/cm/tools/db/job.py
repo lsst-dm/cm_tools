@@ -32,6 +32,11 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     frag_id = Column(Integer, ForeignKey(Fragment.id))
     name = Column(String)  # Name for this script
     idx = Column(Integer)  # ID from this script
+    bps_yaml_template = Column(String)  # Template file for bps yaml
+    bps_script_template = Column(String)  # Template file for bps script
+    pipeline_yaml = Column(String)  # Path to pipeline yaml file
+    lsst_version = Column(String)  # Version of LSST software stack
+    lsst_custom_setup = Column(String)  # Custom setup for LSST software
     script_url = Column(String)  # Url for script
     stamp_url = Column(String)  # Url for a status 'stamp' file
     panda_url = Column(String)  # Url for a panda file

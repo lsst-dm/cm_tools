@@ -37,7 +37,12 @@ class Workflow(common.Base, common.CMTable):
     idx = Column(Integer)  # Index from this work
     name = Column(String)  # Index for this workflow
     fullname = Column(String, unique=True)  # Unique name
+    bps_yaml_template = Column(String)  # Template file for bps yaml
+    bps_script_template = Column(String)  # Template file for bps script
+    pipeline_yaml = Column(String)  # Path to pipeline yaml file
     data_query = Column(String)  # Data query
+    lsst_version = Column(String)  # Version of LSST software stack
+    lsst_custom_setup = Column(String)  # Custom setup for LSST software
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
     coll_validate = Column(String)  # Validate data collection

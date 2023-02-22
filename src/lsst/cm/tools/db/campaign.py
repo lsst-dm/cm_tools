@@ -31,6 +31,8 @@ class Campaign(common.Base, common.CMTable):
     name = Column(String)  # Campaign Name
     fullname = Column(String, unique=True)  # Unique name
     data_query = Column(String)  # Data query
+    bps_yaml_template = Column(String)  # Template file for bps yaml
+    bps_script_template = Column(String)  # Template file for bps script
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
@@ -42,6 +44,7 @@ class Campaign(common.Base, common.CMTable):
     superseded = Column(Boolean, default=False)  # Has this been superseded
     butler_repo = Column(String)  # URL for butler repository
     lsst_version = Column(String)  # Version of LSST software stack
+    lsst_custom_setup = Column(String)  # Custom setup for LSST software
     root_coll = Column(String)  # root for collection names
     prod_base_url = Column(String)  # URL for root of the production area
     db_id: DbId = composite(DbId, p_id, id)

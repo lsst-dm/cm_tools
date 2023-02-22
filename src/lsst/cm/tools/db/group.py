@@ -31,7 +31,12 @@ class Group(common.Base, common.CMTable):
     frag_id = Column(Integer, ForeignKey(Fragment.id))
     name = Column(String)  # Group name
     fullname = Column(String, unique=True)  # Unique name
+    bps_yaml_template = Column(String)  # Template file for bps yaml
+    bps_script_template = Column(String)  # Template file for bps script
+    pipeline_yaml = Column(String)  # Path to pipeline yaml file
     data_query = Column(String)  # Data query
+    lsst_version = Column(String)  # Version of LSST software stack
+    lsst_custom_setup = Column(String)  # Custom setup for LSST software
     coll_source = Column(String)  # Source data collection
     coll_in = Column(String)  # Input data collection (post-query)
     coll_out = Column(String)  # Output data collection
