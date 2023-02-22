@@ -191,26 +191,10 @@ pandaErrorCode:
             diagMessage: "All pixels masked. Cannot estimate background"
             function: detection
             known: 1
-<<<<<<< HEAD
             ticket: ["DM-37570"]
-            resolved: 1
-            rescue: 0
-            flavor: 0
-=======
-            ticket: ["DM-37837", "DM-37570"]
             resolved: True
             rescue: False
             flavor: False
-            intensity: 0.001
-        p_too_many_indicies:
-            diagMessage: "IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed"
-            function: detection
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
-            resolved: True
-            rescue: False
-            flavor: False
->>>>>>> e7a1ca9 (Made boolean fields actual boolean values)
             intensity: 0.001
         p_psf_matching_kernel_subtractImages:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
@@ -320,15 +304,9 @@ pandaErrorCode:
             function: mergeExecutionButler
             known: 1
             ticket: ["DM-37570"]
-<<<<<<< HEAD
-            resolved: 1 # DM-38007 needs to include a way to mark that if we see this the merge job should be re-run
-            rescue: 0
-            flavor: 1 # later: mark as "usdf"
-=======
-            resolved: True # double check this
+            resolved: True # DM-38007 needs to include a way to mark that if we see this the merge job should be re-run
             rescue: False
             flavor: True # later: mark as "usdf"
->>>>>>> e7a1ca9 (Made boolean fields actual boolean values)
             intensity: 0
     pilot, 1305:
         aperture_correction:
@@ -398,18 +376,6 @@ pandaErrorCode:
             rescue: False
             flavor: False
             intensity: 0.001
-<<<<<<< HEAD
-=======
-        too_many_indicies:
-            diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
-            function: detection
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
-            resolved: True
-            rescue: False
-            flavor: False
-            intensity: 0.001
->>>>>>> e7a1ca9 (Made boolean fields actual boolean values)
         vague_finalizeCharacterization:
             diagMessage: "Failed to execute payload"
             function: finalizeCharacterization
@@ -571,15 +537,8 @@ pandaErrorCode:
             diagMessage: "Transform received signal SIGKILL"
             function:
             known: 1
-<<<<<<< HEAD
             ticket: ["DM-37570", "DM-37483", "DM-36356", "DM-36741"]
-            resolved: 1
-            rescue: 1
-            flavor: 1
-=======
-            ticket: ["DM-37483", "DM-36356", "DM-36741"]
             resolved: True
             rescue: True
             flavor: True
->>>>>>> e7a1ca9 (Made boolean fields actual boolean values)
             intensity: 0
