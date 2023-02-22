@@ -155,8 +155,9 @@ pandaErrorCode:
             panda: 0
             intensity: 0
         keyerror_0:
-            diagMessage: >
-                in run exposure = input_exposures[detector_id].get() KeyError: 0
+            diagMessage: |
+                exposure = input_exposures[detector_id].get()
+                KeyError: 0
             function: updateVisitSummary
             known: 1
             ticket: ["DM-37786", "DM-37570"]
@@ -190,16 +191,7 @@ pandaErrorCode:
             diagMessage: "All pixels masked. Cannot estimate background"
             function: detection
             known: 1
-            ticket: ["DM-37837", "DM-37570"]
-            resolved: 1
-            rescue: 0
-            panda: 0
-            intensity: 0.001
-        p_too_many_indicies:
-            diagMessage: "IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed"
-            function: detection
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
+            ticket: ["DM-37570"]
             resolved: 1
             rescue: 0
             panda: 0
@@ -312,7 +304,7 @@ pandaErrorCode:
             function: mergeExecutionButler
             known: 1
             ticket: ["DM-37570"]
-            resolved: 1 # double check this
+            resolved: 1 # DM-38007 needs to include a way to mark that if we see this the merge job should be re-run
             rescue: 0
             panda: 1 # later: mark as "usdf"
             intensity: 0
@@ -377,15 +369,6 @@ pandaErrorCode:
             intensity: 0.001
         all_pixels_masked:
             diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
-            function: detection
-            known: 1
-            ticket: ["DM-37837", "DM-37570"]
-            resolved: 1
-            rescue: 0
-            panda: 0
-            intensity: 0.001
-        too_many_indicies:
-            diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
             function: detection
             known: 1
             ticket: ["DM-37837", "DM-37570"]
@@ -554,7 +537,7 @@ pandaErrorCode:
             diagMessage: "Transform received signal SIGKILL"
             function:
             known: 1
-            ticket: ["DM-37483", "DM-36356", "DM-36741"]
+            ticket: ["DM-37570", "DM-37483", "DM-36356", "DM-36741"]
             resolved: 1
             rescue: 1
             panda: 1
