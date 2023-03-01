@@ -1,5 +1,23 @@
 description: Lookup table for error codes from PanDA and error logs from science pipelines on HSC-RC2.
-
+legend:
+    pandaErrorCode: >
+        The error code given by PanDA describing the issue. This is a string describing the type of PanDA
+        error followed by a number which gives the specific type of PanDA error.
+    diagMessage: This is the diagnostic message given by the PanDA and pipeline logs.
+    pipetask: This is the specific pipetask where the error occurred.
+    ticket: >
+        Any Jira tickets associated with this issue. This can be the processing run where the error
+        came up or a ticket associated with fixing a bug.
+    resolved: >
+        Do we think we have solved this issue? i.e., have we reported and fixed a bug associated with this error?
+        This is most useful in cases where the issue seems to have been addressed. If "resolved==True" and the error
+        still comes up, we know we missed something and have to stop to look at it.
+    rescue: Can the issue associated with this error be solved with a rescue?
+    flavor: Where did this error come from? The science pipelines? PanDA? USDF?
+    intensity: >
+        How many instances of this error may occur before we must stop production and investigate? This float value
+        is a percentage. i.e., if "intensity==0.001" then we can lose 0.1% of the data products due to this error.
+        If "intensity==0" we have to stop production and investigate with any single occurrence.
 pandaErrorCode:
     pilot, 1305:
         aperture_correction:
