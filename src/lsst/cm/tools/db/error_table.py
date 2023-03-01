@@ -13,7 +13,7 @@ class ErrorFlavor(enum.Enum):
 
     pipelines = 0
     panda = 1
-    usdf_is_on_fire = 2
+    usdf = 2
 
 
 class ErrorAction(enum.Enum):
