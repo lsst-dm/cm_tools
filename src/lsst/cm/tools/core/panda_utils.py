@@ -89,6 +89,8 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
             return []
             # TODO: properly address this break condition,
             # because something went wrong
+    else:
+        raise ValueError(f"Connection to Panda Failed with status {conn_status}")
 
     # now we need to parse all the error codes for failed PandaIDs
     error_dicts = []
@@ -209,9 +211,14 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
         panda_status = "failed"
     # TODO: nuance case where finished can get
     # moved to done
-    elif "complete" in status_mapped:
+    elif "done" in status_mapped:
         panda_status = "done"
-
+    elif not status_mapped:
+        panda_status = "running"
+    else:
+        raise ValueError(
+            f"decide_panda_status failed to make a decision based on this status vector: {str(status_mapped)}"
+        )
     return panda_status
 
 
@@ -241,6 +248,8 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     conn = panda_api.get_api()
     tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
     statuses = [task["status"] for task in tasks]
+
+    print(statuses)
 
     # then pull all the errors for the tasks
     errors_aggregate = dict()
