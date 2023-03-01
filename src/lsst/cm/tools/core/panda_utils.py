@@ -216,7 +216,9 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
     elif not status_mapped:
         panda_status = "running"
     else:
-        print(status_mapped)
+        raise ValueError(
+            f"decide_panda_status failed to make a decision based on this status vector: {str(status_mapped)}"
+        )
     return panda_status
 
 
