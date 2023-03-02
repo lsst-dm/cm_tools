@@ -504,10 +504,9 @@ class SQLAlchemyInterface(DbInterface):
                     diagnostic_message=error_type["diagMessage"],
                     jira_ticket=str(error_type["ticket"]),
                     function=error_type["function"],
-                    is_known=error_type["known"],
                     is_resolved=error_type["resolved"],
                     is_rescueable=error_type["rescue"],
-                    error_flavor=ErrorFlavor(error_type["panda"]),
+                    error_flavor=ErrorFlavor(error_type["flavor"]),
                     action=ErrorAction["email_orion"],
                     max_intensity=error_type["intensity"],
                 )

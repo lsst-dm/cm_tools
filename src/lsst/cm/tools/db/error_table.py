@@ -38,7 +38,6 @@ class ErrorType(common.Base):
     diagnostic_message = Column(String)
     jira_ticket = Column(String)
     function = Column(String)
-    is_known = Column(Boolean)
     is_resolved = Column(Boolean)
     is_rescueable = Column(Boolean)
     error_flavor = Column(Enum(ErrorFlavor))
@@ -51,7 +50,7 @@ class ErrorType(common.Base):
         s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Function: {self.function}\n"
         s += f"  JIRA: {self.jira_ticket}\n"
         s += "  Flags (known, resolved, rescuable): "
-        s += f"{self.is_known}, {self.is_resolved}, {self.is_rescueable}\n"
+        s += f"{self.is_resolved}, {self.is_rescueable}\n"
         if len(self.diagnostic_message) > 150:
             diag_message = self.diagnostic_message[0:149]
         else:
@@ -84,11 +83,9 @@ class ErrorInstance(common.Base):
     def __repr__(self):
         error_type = self.error_type_
         if error_type is not None:
-            is_known = error_type.is_known
             is_resolved = error_type.is_resolved
             is_rescueable = error_type.is_rescueable
         else:
-            is_known = False
             is_resolved = False
             is_rescueable = False
 
@@ -97,7 +94,7 @@ class ErrorInstance(common.Base):
         s += f"  {self.panda_err_code}\n"
         s += f"  Data_id: {self.data_id}\n"
         s += "  Flags (known, resolved, rescuable): "
-        s += f"{is_known}, {is_resolved}, {is_rescueable}\n"
+        s += f"{is_resolved}, {is_rescueable}\n"
         if len(self.diagnostic_message) > 150:
             diag_message = self.diagnostic_message[0:150]
         else:
