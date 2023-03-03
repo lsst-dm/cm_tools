@@ -30,6 +30,7 @@ class JobHandler(JobHandlerBase):
             log_url="{prod_base_url}/{fullname}/{name}_{idx:03}.log",
             config_url="{prod_base_url}/{fullname}/{name}_{idx:03}_bps.yaml",
             json_url="{prod_base_url}/{fullname}/{name}_{idx:03}.json",
+            coll_out="{root_coll}/{fullname}_{idx:03}",
         )
     )
 
@@ -78,6 +79,7 @@ class JobHandler(JobHandlerBase):
         )
         script_data = self.resolve_templated_strings(
             prod_base_url=parent.prod_base_url,
+            root_coll=parent.c_.root_coll,
             fullname=parent.fullname,
             idx=idx,
             name=name,
@@ -106,10 +108,9 @@ class JobHandler(JobHandlerBase):
         workflow_config["pipelineYaml"] = job.pipeline_yaml
         payload = dict(
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
-            output=parent.coll_out,
             outputRun=job.coll_out,
             butlerConfig=butler_repo,
-            inCollection=f"{parent.coll_in},{parent.c_.coll_ancil}",
+            inCollection=f"{parent.coll_in},{parent.c_.coll_in},{parent.c_.coll_ancil}",
         )
         if parent.data_query:
             payload["dataQuery"] = parent.data_query

@@ -172,6 +172,7 @@ class CollectScriptHandler(ScriptHandler):
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
         input_colls = [child.coll_out for child in parent.children() if not child.superseded]
+        input_colls.reverse()
         command = make_butler_chain_command(parent.butler_repo, parent.coll_out, input_colls)
         write_command_script(script, command, **kwargs)
 
@@ -186,7 +187,8 @@ class CollectStepScriptHandler(ScriptHandler):
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
         input_colls = [child.coll_out for child in parent.jobs_ if not child.superseded]
-        command = make_butler_associate_command(parent.butler_repo, parent.coll_out, input_colls, None)
+        input_colls.append(parent.coll_in)
+        command = make_butler_chain_command(parent.butler_repo, parent.coll_out, input_colls)
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
