@@ -11,6 +11,7 @@ from lsst.cm.tools.db.job import Job
 class ErrorFlavor(enum.Enum):
     """What sort of error are we talking about"""
 
+    critical = -1
     pipelines = 0
     panda = 1
     usdf = 2
@@ -19,11 +20,11 @@ class ErrorFlavor(enum.Enum):
 class ErrorAction(enum.Enum):
     """What should we do about it?"""
 
-    ignore = 0
-    rescue_job = 1
-    email_orion = 2
-    fail_job = 3
-    email_yusra = 4
+    accept = 0
+    failed_rescue = 1
+    failed_review = 2
+    failed_cleanup = 3
+    failed_pause = 4
 
 
 class ErrorType(common.Base):
