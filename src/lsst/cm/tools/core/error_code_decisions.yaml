@@ -79,15 +79,15 @@ pandaErrorCode:
             resolved: True
             rescue: False
             flavor: "pipelines"
-            intensity: 0.001
+            intensity: 0
         too_many_indicies:
             diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
-            pipetask: detection
+            pipetask: # it occurred in healSparsePropertyMaps, but is unrelated to the specific pipetask
             ticket: ["DM-37837", "DM-37570"]
             resolved: True
             rescue: False
             flavor: "pipelines"
-            intensity: 0.001
+            intensity: 0
         vague_finalizeCharacterization:
             diagMessage: "Failed to execute payload"
             pipetask: finalizeCharacterization
@@ -154,15 +154,15 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "critical"
             intensity: 0
         remote_io:
             diagMessage: "(psycopg2.errors.InternalError_) could not read block .* in file \".*\": Remote I/O error"
             pipetask: mergeExecutionButler
             ticket: ["DM-37570"]
-            resolved: True # double check this
+            resolved: True # if we see this, the merge job should be re-run
             rescue: False
-            flavor: "usdf" # later: mark as "usdf"
+            flavor: "critical" # this is a usdf failure, but it was enough to stop production
             intensity: 0
     trans, 1:
         p_aperture_correction:
@@ -300,7 +300,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "critical"
             intensity: 0
         keyerror_0:
             diagMessage: |
@@ -339,7 +339,7 @@ pandaErrorCode:
             resolved: True
             rescue: False
             flavor: "pipelines"
-            intensity: 0.001
+            intensity: 0
         p_psf_matching_kernel_subtractImages:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
             pipetask: subtractImages
@@ -437,9 +437,9 @@ pandaErrorCode:
                 Remote I/O error
             pipetask: mergeExecutionButler
             ticket: ["DM-37570"]
-            resolved: True # DM-38007 needs to include a way to mark that if we see this the merge job should be re-run
+            resolved: True # if we see this, the merge job should be re-run
             rescue: False
-            flavor: "usdf"
+            flavor: "critical" # this is a usdf failure, but it was enough to stop production
             intensity: 0
     taskbuffer, 300:
         failed_while_starting_job:
