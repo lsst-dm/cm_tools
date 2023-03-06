@@ -172,37 +172,56 @@ def handle_it(dbi: DbInterface, errors_agg: dict) -> str:
         errors
     """
     # bad untested psuedo code
-
+    decision_results = []
     for key in errors_agg.keys():
         # error_item = errors_agg[key]
 
+        # this section matches the error against things and gets
+        # information we need
         # rescue, panda, intensity = get_error_recs(error_item)
         # placeholders
-        rescue = True
-        panda = False
+        match = True
+        flavor = 'payload'
+        rescue = False
+        resolved = False
         intensity = 0.01
 
-        # is it allowed to proceed if there are errors?
-        if panda is True:
-            panda_status = "failed"
-            return panda_status
+        # if there is no match, mark it as reviewable
+        if match == False:
+            temp_status = 'failed_review'
+        # if this a known error critical enough that we need to pause
+        # then pause.
+        elif flavor == 'critical':
+            temp_status = 'failed_pause'
+        # if it is not a payload error nor critical, start a rescue
+        elif flavor != 'payload':
+            temp_status = 'failed_rescue'
+        # if the payload error is marked as rescueable, rescue
+        elif rescue == True:
+            temp_status = 'failed_rescue'
+        # is it supposed to be resolved?
+        elif resolved == True:
+            temp_status = 'failed_review'
+        else:
+            bad_files = 0
+            total_files = 10
+            if bad_files / total_files >= intensity:
+                temp_status = "failed_review"
+            else:
+                temp_status = "done"
+        decision_results.append(temp_status)
+    
+    # now based on the worst result in decison_results, set panda_status
+    # probably a better way to write this
+    if 'failed_pause' in decision_results:
+        panda_status = 'failed_pause'
+    elif 'failed_review' in decision_results:
+        panda_status = 'failed_review'
+    elif 'failed_rescue' in decision_results:
+        panda_status = 'failed_rescue'
+    else:
+        panda_status = 'done'
 
-        if rescue is False:
-            panda_status = "failed"
-            return panda_status
-
-        # if fine, how many errors are there allowed to be?
-        # this should be stored earlier
-        # bad_files, total_files = count_files(error_item)
-        # placeholders
-        bad_files = 0
-        total_files = 10
-        if bad_files / total_files >= intensity:
-            panda_status = "failed"
-            return panda_status
-
-    # if you survive our loop of disqualifying circumstances, continue
-    panda_status = "done"
     return panda_status
 
 
