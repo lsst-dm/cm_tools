@@ -181,27 +181,27 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
         # rescue, panda, intensity = get_error_recs(error_item)
         # placeholders
         match = True
-        flavor = 'payload'
+        flavor = "payload"
         rescue = False
         resolved = False
         intensity = 0.01
 
         # if there is no match, mark it as reviewable
-        if match == False:
-            temp_status = 'failed_review'
+        if match is False:
+            temp_status = "failed_review"
         # if this a known error critical enough that we need to pause
         # then pause.
-        elif flavor == 'critical':
-            temp_status = 'failed_pause'
+        elif flavor == "critical":
+            temp_status = "failed_pause"
         # if it is not a payload error nor critical, start a rescue
-        elif flavor != 'payload':
-            temp_status = 'failed_rescue'
+        elif flavor != "payload":
+            temp_status = "failed_rescue"
         # if the payload error is marked as rescueable, rescue
-        elif rescue == True:
-            temp_status = 'failed_rescue'
+        elif rescue is True:
+            temp_status = "failed_rescue"
         # is it supposed to be resolved?
-        elif resolved == True:
-            temp_status = 'failed_review'
+        elif resolved is True:
+            temp_status = "failed_review"
         else:
             bad_files = 0
             total_files = 10
@@ -210,17 +210,17 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
             else:
                 temp_status = "done"
         decision_results.append(temp_status)
-    
+
     # now based on the worst result in decison_results, set panda_status
     # probably a better way to write this
-    if 'failed_pause' in decision_results:
-        panda_status = 'failed_pause'
-    elif 'failed_review' in decision_results:
-        panda_status = 'failed_review'
-    elif 'failed_rescue' in decision_results:
-        panda_status = 'failed_rescue'
+    if "failed_pause" in decision_results:
+        panda_status = "failed_pause"
+    elif "failed_review" in decision_results:
+        panda_status = "failed_review"
+    elif "failed_rescue" in decision_results:
+        panda_status = "failed_rescue"
     else:
-        panda_status = 'done'
+        panda_status = "done"
 
     return panda_status
 
