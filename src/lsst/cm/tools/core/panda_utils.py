@@ -152,7 +152,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
         return error_dicts
 
 
-def handle_it(dbi: DbInterface, errors_agg: dict) -> str:
+def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
     """Given a dict of errors, decide what the
     appropriate behavior is for the step.
 
@@ -282,17 +282,11 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict) -> s
         panda_status = "running"
     elif "failed" in status_mapped:
         panda_status = "failed"
-<<<<<<< HEAD
-    # TODO: nuance case where finished can get
-    # moved to done
-    elif "done" in status_mapped:
-=======
     elif "finished" in status_mapped:
         # if the task returns as finished,
         # take errors -> return status
-        panda_status = handle_it(dbi, errors_agg)
+        panda_status = determine_error_handling(dbi, errors_agg)
     elif "complete" in status_mapped:
->>>>>>> baafa47 (adding psuedocode)
         panda_status = "done"
     elif not status_mapped:
         panda_status = "running"
