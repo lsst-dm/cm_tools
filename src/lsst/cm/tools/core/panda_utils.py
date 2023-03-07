@@ -174,38 +174,40 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
     # bad untested psuedo code
     decision_results = []
     for key in errors_agg.keys():
-        # error_item = errors_agg[key]
-
+        # for a given error, try to make a match
+        error_item = errors_agg[key]
+        try:
+            error_match = dbi.match_error_type(error_item["panda_err_code"], error_item["diagnostic_message"])
+        except NameError:
+            error_match = False
         # this section matches the error against things and gets
         # information we need
         # rescue, panda, intensity = get_error_recs(error_item)
         # placeholders
-        match = True
-        flavor = "payload"
-        rescue = False
-        resolved = False
-        intensity = 0.01
 
         # if there is no match, mark it as reviewable
-        if match is False:
+        if error_match is False:
             temp_status = "failed_review"
         # if this a known error critical enough that we need to pause
         # then pause.
-        elif flavor == "critical":
+        elif error_match["error_flavor"] == "critical":
             temp_status = "failed_pause"
         # if it is not a payload error nor critical, start a rescue
-        elif flavor != "payload":
+        elif error_match["error_flavor"] != "payload":
             temp_status = "failed_rescue"
         # if the payload error is marked as rescueable, rescue
-        elif rescue is True:
+        elif error_match["is_rescueable"] is True:
             temp_status = "failed_rescue"
         # is it supposed to be resolved?
-        elif resolved is True:
+        elif error_match["is_resolved"] is True:
             temp_status = "failed_review"
         else:
-            bad_files = 0
-            total_files = 10
-            if bad_files / total_files >= intensity:
+            # rework to count over the entire step and
+            # sum over the errors
+            max_intensity = error_match["max_intensity"]
+            bad_files = error_item["bad_files"]
+            total_files = error_item["total_files"]
+            if bad_files / total_files >= max_intensity:
                 temp_status = "failed_review"
             else:
                 temp_status = "done"
