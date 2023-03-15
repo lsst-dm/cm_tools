@@ -503,7 +503,7 @@ class SQLAlchemyInterface(DbInterface):
                     panda_err_code=key,
                     diagnostic_message=error_type["diagMessage"],
                     jira_ticket=str(error_type["ticket"]),
-                    function=error_type["function"],
+                    pipetask=error_type["pipetask"],
                     is_resolved=error_type["resolved"],
                     is_rescueable=error_type["rescue"],
                     error_flavor=ErrorFlavor(error_type["flavor"]),

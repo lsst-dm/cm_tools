@@ -38,7 +38,7 @@ class ErrorType(common.Base):
     error_name = Column(String, unique=True)  # unique=True prevents loading the same error twice
     diagnostic_message = Column(String)
     jira_ticket = Column(String)
-    function = Column(String)
+    pipetask = Column(String)
     is_resolved = Column(Boolean)
     is_rescueable = Column(Boolean)
     error_flavor = Column(Enum(ErrorFlavor))
@@ -48,7 +48,7 @@ class ErrorType(common.Base):
 
     def __repr__(self):
         s = f"Id={self.id}\n"
-        s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Function: {self.function}\n"
+        s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Pipetask: {self.pipetask}\n"
         s += f"  JIRA: {self.jira_ticket}\n"
         s += "  Flags (known, resolved, rescuable): "
         s += f"{self.is_resolved}, {self.is_rescueable}\n"
@@ -73,7 +73,7 @@ class ErrorInstance(common.Base):
 
     panda_err_code = Column(String)
     diagnostic_message = Column(String)
-    function = Column(String)
+    pipetask = Column(String)
     log_file_url = Column(String)  # some_file.log:3145
     data_id = Column(String)  # detector=32, visit=1341323412 or tract=1312, filter=really_blue
     error_flavor = Column(Enum(ErrorFlavor))
@@ -91,7 +91,7 @@ class ErrorInstance(common.Base):
             is_rescueable = False
 
         s = f"Id={self.id} {self.job_id}\n"
-        s += f"  Error_name: {self.error_name} {self.error_type_id} Function: {self.function}\n"
+        s += f"  Error_name: {self.error_name} {self.error_type_id} Pipetask: {self.pipetask}\n"
         s += f"  {self.panda_err_code}\n"
         s += f"  Data_id: {self.data_id}\n"
         s += "  Flags (known, resolved, rescuable): "
