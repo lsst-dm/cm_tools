@@ -152,7 +152,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
         return error_dicts
 
 
-def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
+def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed: dict) -> str:
     """Given a dict of errors, decide what the
     appropriate behavior is for the step.
 
@@ -165,6 +165,10 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
         a dict of dict for each jtid with a recorded
         error message
 
+    max_pct_failed: dict
+        a dict for each jtid with the percent of
+        failed files
+
     Returns
     -------
     panda_status: str
@@ -176,6 +180,7 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
     for key in errors_agg.keys():
         # for a given error, try to make a match
         error_item = errors_agg[key]
+        pct_failed = max_pct_failed[key]
         try:
             error_match = dbi.match_error_type(error_item["panda_err_code"], error_item["diagnostic_message"])
         except NameError:
@@ -205,9 +210,7 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
             # rework to count over the entire step and
             # sum over the errors
             max_intensity = error_match["max_intensity"]
-            bad_files = error_item["bad_files"]
-            total_files = error_item["total_files"]
-            if bad_files / total_files >= max_intensity:
+            if pct_failed >= max_intensity:
                 temp_status = "failed_review"
             else:
                 temp_status = "done"
@@ -227,7 +230,7 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict) -> str:
     return panda_status
 
 
-def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict) -> str:
+def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_pct_failed: dict) -> str:
     """Look at the list of statuses for each
     jeditaskid and return a choice for the entire
     reqid status
@@ -244,6 +247,10 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict) -> s
     errors_agg: dict
         a dict of dicts for each jtid with recorded
         error messages
+
+    max_pct_failed: dict
+        a dict for each jtid with the percent
+        of failed files
 
     Returns
     -------
@@ -287,7 +294,7 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict) -> s
     elif "finished" in status_mapped:
         # if the task returns as finished,
         # take errors -> return status
-        panda_status = determine_error_handling(dbi, errors_agg)
+        panda_status = determine_error_handling(dbi, errors_agg, max_pct_failed)
     elif "complete" in status_mapped:
         panda_status = "done"
     elif not status_mapped:
@@ -328,16 +335,20 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
     statuses = [task["status"] for task in tasks]
 
-    print(statuses)
-
     # then pull all the errors for the tasks
     errors_aggregate = dict()
+    max_pct_failed = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    pct_files_failed = [task["nfilesfailed"] / task["nfiles"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
         errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
+    # need to make a matcching dict form
+    # might be a prettier way to do this
+    for jtid, pctfailed in zip(jtids, pct_files_failed):
+        max_pct_failed[str(jtid)] = pctfailed
 
     # now determine a final answer based on statuses for the entire reqid
-    panda_status = decide_panda_status(dbi, statuses, errors_aggregate)
+    panda_status = decide_panda_status(dbi, statuses, errors_aggregate, max_pct_failed)
 
     return panda_status, errors_aggregate
 
