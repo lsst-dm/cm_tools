@@ -179,42 +179,45 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed:
     decision_results = []
     for key in errors_agg.keys():
         # for a given error, try to make a match
-        error_item = errors_agg[key]
+        error_items = errors_agg[key]
         pct_failed = max_pct_failed[key]
-        try:
-            error_match = dbi.match_error_type(error_item["panda_err_code"], error_item["diagnostic_message"])
-        except NameError:
-            error_match = False
-        # this section matches the error against things and gets
-        # information we need
-        # rescue, panda, intensity = get_error_recs(error_item)
-        # placeholders
+        for error_item in error_items:
+            try:
+                error_match = dbi.match_error_type(
+                    error_item["panda_err_code"], error_item["diagnostic_message"]
+                )
+            except NameError:
+                error_match = False
+            # this section matches the error against things and gets
+            # information we need
+            # rescue, panda, intensity = get_error_recs(error_item)
+            # placeholders
 
-        # if there is no match, mark it as reviewable
-        if error_match is False:
-            temp_status = "failed_review"
-        # if this a known error critical enough that we need to pause
-        # then pause.
-        elif error_match["error_flavor"] == "critical":
-            temp_status = "failed_pause"
-        # if it is not a payload error nor critical, start a rescue
-        elif error_match["error_flavor"] != "payload":
-            temp_status = "failed_rescue"
-        # if the payload error is marked as rescueable, rescue
-        elif error_match["is_rescueable"] is True:
-            temp_status = "failed_rescue"
-        # is it supposed to be resolved?
-        elif error_match["is_resolved"] is True:
-            temp_status = "failed_review"
-        else:
-            # rework to count over the entire step and
-            # sum over the errors
-            max_intensity = error_match["max_intensity"]
-            if pct_failed >= max_intensity:
+            # if there is no match, mark it as reviewable
+            if error_match in [False, None]:
+                temp_status = "failed_review"
+                # if this a known error critical enough that we need to pause
+                # then pause.
+            elif error_match.error_flavor is not None and error_match.error_flavor.name == "critical":
+                temp_status = "failed_pause"
+                # if it is not a payload error nor critical, start a rescue
+            elif error_match.error_flavor is not None and error_match.error_flavor.name != "payload":
+                temp_status = "failed_rescue"
+                # if the payload error is marked as rescueable, rescue
+            elif error_match.is_rescueable is True:
+                temp_status = "failed_rescue"
+                # is it supposed to be resolved?
+            elif error_match.is_resolved is True:
                 temp_status = "failed_review"
             else:
-                temp_status = "done"
-        decision_results.append(temp_status)
+                # rework to count over the entire step and
+                # sum over the errors
+                max_intensity = error_match.max_intensity
+                if pct_failed >= max_intensity:
+                    temp_status = "failed_review"
+                else:
+                    temp_status = "done"
+            decision_results.append(temp_status)
 
     # now based on the worst result in decison_results, set panda_status
     # probably a better way to write this
@@ -332,7 +335,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
     # first pull down all the tasks
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=30)
     statuses = [task["status"] for task in tasks]
 
     # then pull all the errors for the tasks
@@ -380,7 +383,11 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
     panda_status_map = dict(
         done=StatusEnum.completed,
         running=StatusEnum.running,
-        failed=StatusEnum.failed,
+        accept=StatusEnum.completed,
+        failed_rescue=StatusEnum.reviewable,
+        failed_review=StatusEnum.reviewable,
+        failed_cleanup=StatusEnum.reviewable,
+        failed_pause=StatusEnum.reviewable,
     )
 
     def check_url(self, dbi: DbInterface, job: JobBase) -> dict[str, Any]:
