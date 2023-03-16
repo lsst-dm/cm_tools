@@ -137,7 +137,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
                 error_dict["diagnostic_message"] = "check the logging"
             else:
                 raise RuntimeError("Not sure what kinda error we got")
-            error_dict["function"] = job.jobName.split("_")[-3]
+            error_dict["pipetask"] = job.jobName.split("_")[-3]
             error_dict["log_file_url"] = job.pilotID.split("|")[0]
             # TODO: currently not found in PanDA job object
             # providing nearest substitute, the
