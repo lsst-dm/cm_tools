@@ -188,10 +188,6 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed:
                 )
             except NameError:
                 error_match = False
-            # this section matches the error against things and gets
-            # information we need
-            # rescue, panda, intensity = get_error_recs(error_item)
-            # placeholders
 
             # if there is no match, mark it as reviewable
             if error_match in [False, None]:
@@ -220,7 +216,6 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed:
             decision_results.append(temp_status)
 
     # now based on the worst result in decison_results, set panda_status
-    # probably a better way to write this
     if "failed_pause" in decision_results:
         panda_status = "failed_pause"
     elif "failed_review" in decision_results:
@@ -231,6 +226,35 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed:
         panda_status = "done"
 
     return panda_status
+
+
+# map to take the many statuses and map them to end results
+jtid_status_map = dict(
+    topreprocess="running",
+    registered="running",
+    tobroken="failed",
+    broken="failed",
+    preprocessing="running",
+    defined="running",
+    pending="running",
+    ready="running",
+    assigning="running",
+    paused="running",
+    aborting="failed",
+    aborted="failed",
+    running="running",
+    throttled="running",
+    scouting="running",
+    scouted="running",
+    finishing="running",
+    passed="running",
+    exhausted="failed",
+    finished="finished",
+    done="done",
+    toretry="running",
+    failed="failed",
+    toincexec="running",
+)
 
 
 def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_pct_failed: dict) -> str:
@@ -260,33 +284,7 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_
     panda_status: str
         the panda job status
     """
-    # map to take the many statuses and map them to end results
-    jtid_status_map = dict(
-        topreprocess="running",
-        registered="running",
-        tobroken="failed",
-        broken="failed",
-        preprocessing="running",
-        defined="running",
-        pending="running",
-        ready="running",
-        assigning="running",
-        paused="running",
-        aborting="failed",
-        aborted="failed",
-        running="running",
-        throttled="running",
-        scouting="running",
-        scouted="running",
-        finishing="running",
-        passed="running",
-        exhausted="failed",
-        finished="finished",
-        done="done",
-        toretry="running",
-        failed="failed",
-        toincexec="running",
-    )
+
     # take our statuses and convert them
     status_mapped = [jtid_status_map[status] for status in statuses]
 
@@ -345,8 +343,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     pct_files_failed = [task["nfilesfailed"] / task["nfiles"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
         errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
-    # need to make a matcching dict form
-    # might be a prettier way to do this
+    # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
         max_pct_failed[str(jtid)] = pctfailed
 
