@@ -333,7 +333,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
     # first pull down all the tasks
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=30)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     statuses = [task["status"] for task in tasks]
 
     # then pull all the errors for the tasks
