@@ -149,19 +149,124 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
 
             error_dicts.append(error_dict)
 
-        # TODO: code to update the ErrorInstance db with this
-        # information
-
         return error_dicts
 
 
-def decide_panda_status(statuses: list, errors_agg: dict) -> str:
+def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed: dict) -> str:
+    """Given a dict of errors, decide what the
+    appropriate behavior is for the step.
+
+    Parameters
+    ----------
+    dbi: DbInterface
+        a connection to the database interface
+
+    errors_agg: dict
+        a dict of dict for each jtid with a recorded
+        error message
+
+    max_pct_failed: dict
+        a dict for each jtid with the percent of
+        failed files
+
+    Returns
+    -------
+    panda_status: str
+        a panda status determined based on reported
+        errors
+    """
+    # bad untested psuedo code
+    decision_results = []
+    for key in errors_agg.keys():
+        # for a given error, try to make a match
+        error_items = errors_agg[key]
+        pct_failed = max_pct_failed[key]
+        for error_item in error_items:
+            try:
+                error_match = dbi.match_error_type(
+                    error_item["panda_err_code"], error_item["diagnostic_message"]
+                )
+            except NameError:
+                error_match = False
+
+            # if there is no match, mark it as reviewable
+            if error_match in [False, None]:
+                temp_status = "failed_review"
+                # if this a known error critical enough that we need to pause
+                # then pause.
+            elif error_match.error_flavor is not None and error_match.error_flavor.name == "critical":
+                temp_status = "failed_pause"
+                # if it is not a payload error nor critical, start a rescue
+            elif error_match.error_flavor is not None and error_match.error_flavor.name != "payload":
+                temp_status = "failed_rescue"
+                # if the payload error is marked as rescueable, rescue
+            elif error_match.is_rescueable is True:
+                temp_status = "failed_rescue"
+                # is it supposed to be resolved?
+            elif error_match.is_resolved is True:
+                temp_status = "failed_review"
+            else:
+                # rework to count over the entire step and
+                # sum over the errors
+                max_intensity = error_match.max_intensity
+                if pct_failed >= max_intensity:
+                    temp_status = "failed_review"
+                else:
+                    temp_status = "done"
+            decision_results.append(temp_status)
+
+    # now based on the worst result in decison_results, set panda_status
+    if "failed_pause" in decision_results:
+        panda_status = "failed_pause"
+    elif "failed_review" in decision_results:
+        panda_status = "failed_review"
+    elif "failed_rescue" in decision_results:
+        panda_status = "failed_rescue"
+    else:
+        panda_status = "done"
+
+    return panda_status
+
+
+# map to take the many statuses and map them to end results
+jtid_status_map = dict(
+    topreprocess="running",
+    registered="running",
+    tobroken="failed",
+    broken="failed",
+    preprocessing="running",
+    defined="running",
+    pending="running",
+    ready="running",
+    assigning="running",
+    paused="running",
+    aborting="failed",
+    aborted="failed",
+    running="running",
+    throttled="running",
+    scouting="running",
+    scouted="running",
+    finishing="running",
+    passed="running",
+    exhausted="failed",
+    finished="finished",
+    done="done",
+    toretry="running",
+    failed="failed",
+    toincexec="running",
+)
+
+
+def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_pct_failed: dict) -> str:
     """Look at the list of statuses for each
     jeditaskid and return a choice for the entire
     reqid status
 
     Parameters
     ----------
+    dbi: DbInterface
+        a connection to the database interface
+
     statuses: list
         a list of statuses for each jeditaskid
         in the reqid
@@ -170,38 +275,16 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
         a dict of dicts for each jtid with recorded
         error messages
 
+    max_pct_failed: dict
+        a dict for each jtid with the percent
+        of failed files
+
     Returns
     -------
     panda_status: str
         the panda job status
     """
-    # map to take the many statuses and map them to end results
-    jtid_status_map = dict(
-        topreprocess="running",
-        registered="running",
-        tobroken="failed",
-        broken="failed",
-        preprocessing="running",
-        defined="running",
-        pending="running",
-        ready="running",
-        assigning="running",
-        paused="running",
-        aborting="failed",
-        aborted="failed",
-        running="running",
-        throttled="running",
-        scouting="running",
-        scouted="running",
-        finishing="running",
-        passed="running",
-        exhausted="failed",
-        finished="failed",
-        done="done",
-        toretry="running",
-        failed="failed",
-        toincexec="running",
-    )
+
     # take our statuses and convert them
     status_mapped = [jtid_status_map[status] for status in statuses]
 
@@ -209,9 +292,11 @@ def decide_panda_status(statuses: list, errors_agg: dict) -> str:
         panda_status = "running"
     elif "failed" in status_mapped:
         panda_status = "failed"
-    # TODO: nuance case where finished can get
-    # moved to done
-    elif "done" in status_mapped:
+    elif "finished" in status_mapped:
+        # if the task returns as finished,
+        # take errors -> return status
+        panda_status = determine_error_handling(dbi, errors_agg, max_pct_failed)
+    elif "complete" in status_mapped:
         panda_status = "done"
     elif not status_mapped:
         panda_status = "running"
@@ -228,6 +313,8 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
     Parameters
     ----------
+    dbi: DbInterface
+        a connection to the database interface
     panda_reqid: int
         a reqid associated with the job
     panda_username: str
@@ -246,19 +333,22 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
     # first pull down all the tasks
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     statuses = [task["status"] for task in tasks]
-
-    print(statuses)
 
     # then pull all the errors for the tasks
     errors_aggregate = dict()
+    max_pct_failed = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    pct_files_failed = [task["nfilesfailed"] / task["nfiles"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
         errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
+    # need to make a matching dict form
+    for jtid, pctfailed in zip(jtids, pct_files_failed):
+        max_pct_failed[str(jtid)] = pctfailed
 
     # now determine a final answer based on statuses for the entire reqid
-    panda_status = decide_panda_status(statuses, errors_aggregate)
+    panda_status = decide_panda_status(dbi, statuses, errors_aggregate, max_pct_failed)
 
     return panda_status, errors_aggregate
 
@@ -290,7 +380,11 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
     panda_status_map = dict(
         done=StatusEnum.completed,
         running=StatusEnum.running,
-        failed=StatusEnum.failed,
+        accept=StatusEnum.completed,
+        failed_rescue=StatusEnum.reviewable,
+        failed_review=StatusEnum.reviewable,
+        failed_cleanup=StatusEnum.reviewable,
+        failed_pause=StatusEnum.reviewable,
     )
 
     def check_url(self, dbi: DbInterface, job: JobBase) -> dict[str, Any]:
@@ -317,8 +411,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url))
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
-        # Uncomment these lines to actually update the DB
-        # Also remove the status = job.status line below
+
         dbi.commit_errors(job.id, errors_aggregate)
         status = self.panda_status_map[panda_status]
         if status != job.status:

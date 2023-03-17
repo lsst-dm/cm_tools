@@ -78,6 +78,10 @@ def extract_job_status(itr: Iterable) -> StatusEnum:
     """Check the status of a set of jobs"""
     job_status = np.array([x.status.value for x in itr if not x.superseded])
     assert job_status.size
+    if (job_status >= StatusEnum.accepted.value).all():
+        return StatusEnum.accepted
+    if (job_status >= StatusEnum.reviewable.value).all():
+        return StatusEnum.reviewable
     if (job_status >= StatusEnum.completed.value).all():
         return StatusEnum.completed
     if (job_status < 0).any():
