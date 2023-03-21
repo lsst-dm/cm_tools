@@ -104,13 +104,18 @@ class JobHandler(JobHandlerBase):
         workflow_config["project"] = parent.p_.name
         workflow_config["campaign"] = f"{parent.p_.name}/{parent.c_.name}"
         workflow_config["LSST_VERSION"] = job.lsst_version
-        workflow_config["custom_lsst_setup"] = job.lsst_custom_setup
+        if job.lsst_custom_setup is not None:
+            workflow_config["custom_lsst_setup"] = job.lsst_custom_setup
         workflow_config["pipelineYaml"] = job.pipeline_yaml
+        if parent.coll_in != parent.c_.coll_in:
+            inCollection = f"{parent.coll_in},{parent.c_.coll_in},{parent.c_.coll_ancil}"
+        else:
+            inCollection = f"{parent.c_.coll_in},{parent.c_.coll_ancil}"
         payload = dict(
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
             outputRun=job.coll_out,
             butlerConfig=butler_repo,
-            inCollection=f"{parent.coll_in},{parent.c_.coll_in},{parent.c_.coll_ancil}",
+            inCollection=inCollection,
         )
         if parent.data_query:
             payload["dataQuery"] = parent.data_query
