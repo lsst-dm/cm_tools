@@ -123,7 +123,15 @@ class JobHandler(JobHandlerBase):
         workflow_config["payload"] = payload
 
         if parent.get_handler().config.get("rescue", False):
-            workflow_config["extraQgraphOptions"] = f"--clobber-outputs --skip-existing-in {parent.coll_out}"
+            skip_cols = ""
+            for elder_sib_job in parent.g_.jobs_:
+                if elder_sib_job.w_.superseded:
+                    continue
+                if elder_sib_job.id >= job.id:
+                    continue
+                skip_cols += f"{elder_sib_job.coll_out},"
+            skip_cols = skip_cols[:-1]
+            workflow_config["extraQgraphOptions"] = f"--clobber-outputs --skip-existing-in {skip_cols}"
 
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
