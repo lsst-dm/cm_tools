@@ -506,8 +506,8 @@ class SQLAlchemyInterface(DbInterface):
                     pipetask=error_type["pipetask"],
                     is_resolved=error_type["resolved"],
                     is_rescueable=error_type["rescue"],
-                    error_flavor=ErrorFlavor(error_type["flavor"]),
-                    action=ErrorAction["email_orion"],
+                    error_flavor=ErrorFlavor[error_type["flavor"]],
+                    action=ErrorAction["failed_review"],
                     max_intensity=error_type["intensity"],
                 )
                 try:
