@@ -296,7 +296,7 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_
         # if the task returns as finished,
         # take errors -> return status
         panda_status = determine_error_handling(dbi, errors_agg, max_pct_failed)
-    elif "complete" in status_mapped:
+    elif "done" in status_mapped:
         panda_status = "done"
     elif not status_mapped:
         panda_status = "running"
