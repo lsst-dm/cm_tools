@@ -1,0 +1,516 @@
+description: Lookup table for error codes from PanDA and error logs from science pipelines on HSC-RC2.
+legend:
+    pandaErrorCode: >
+        The error code given by PanDA describing the issue. This is a string describing the type of PanDA
+        error followed by a number which gives the specific type of PanDA error.
+    diagMessage: This is the diagnostic message given by the PanDA and pipeline logs.
+    pipetask: This is the specific pipetask where the error occurred.
+    ticket: >
+        Any Jira tickets associated with this issue. This can be the processing run where the error
+        came up or a ticket associated with fixing a bug.
+    resolved: >
+        Do we think we have solved this issue? i.e., have we reported and fixed a bug associated with this error?
+        This is most useful in cases where the issue seems to have been addressed. If "resolved==True" and the error
+        still comes up, we know we missed something and have to stop to look at it.
+    rescue: Can the issue associated with this error be solved with a rescue?
+    flavor: Where did this error come from? The science pipelines? PanDA? USDF?
+    intensity: >
+        How many instances of this error may occur before we must stop production and investigate? This float value
+        is a percentage. i.e., if "intensity==0.001" then we can lose 0.1% of the data products due to this error.
+        If "intensity==0" we have to stop production and investigate with any single occurrence.
+pandaErrorCode:
+    pilot, 1305:
+        aperture_correction:
+            diagMessage: >
+                Unable to measure aperture correction for required algorithm 'modelfit_CModel': only .* sources, but
+                require at least 2
+            pipetask: characterizeImage
+            ticket: ["DM-37483", "DM-37089"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        psfex:
+            diagMessage: >
+                File "src/PsfexPsf.cc", line 233, in virtual std:shared_ptr > lsst:meas:extensions:psfex:PsfexPsf:
+                _doComputeImage(const Point2D&, const lsst:afw:image:Color&, const Point2D&) const
+            pipetask: characterizeImage
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        FWHM_value_of_nan:
+            diagMessage: "Failed to execute payload:PSF at (.*) has an invalid FWHM value of nan"
+            pipetask: calibrate
+            ticket: ["DM-37089"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        NaN_to_int_calibrate:
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            pipetask: calibrate
+            ticket: ["DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        no_use_for_photocal:
+            diagMessage: "Failed to execute payload:No matches to use for photocal"
+            pipetask: calibrate
+            ticket: ["DM-37483", "DM-37089", "DM-32291", "DM-36763"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        NaN_to_int_detection:
+            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            pipetask: detection
+            ticket: ["DM-36763", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        all_pixels_masked:
+            diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
+            pipetask: detection
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: True
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0
+        too_many_indicies:
+            diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
+            pipetask: # it occurred in healSparsePropertyMaps, but is unrelated to the specific pipetask
+            ticket: ["DM-37837", "DM-37570"]
+            resolved: True
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0
+        vague_finalizeCharacterization:
+            diagMessage: "Failed to execute payload"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        do_compute_kernel_image:
+            diagMessage: >
+                Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
+                CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
+            pipetask: subtractImages
+            ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        kernel_candidacy:
+            diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        psf_matching_kernel_subtractImages:
+            diagMessage: "Failed to execute payload:Unable to calculate psf matching kernel"
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37089"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        array_sample_empty:
+            diagMessage: "Failed to execute payload:array of sample points is empty"
+            pipetask: subtractImages
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        fp_xp:
+            diagMessage: "Failed to execute payload:fp and xp are not of the same length."
+            pipetask: subtractImages
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        parquet_formatter:
+            diagMessage: >
+                Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
+                .*
+            pipetask: catalogMatchTract
+            ticket: ["DM-36306", "DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        fgcm_380:
+            diagMessage: "Failed to execute payload:(380, 40)"
+            pipetask: fgcmBuildStarsTable
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "critical"
+            intensity: 0
+        remote_io:
+            diagMessage: "(psycopg2.errors.InternalError_) could not read block .* in file \".*\": Remote I/O error"
+            pipetask: mergeExecutionButler
+            ticket: ["DM-37570"]
+            resolved: True # if we see this, the merge job should be re-run
+            rescue: False
+            flavor: "critical" # this is a usdf failure, but it was enough to stop production
+            intensity: 0
+    trans, 1:
+        p_aperture_correction:
+            diagMessage: >
+                Execution of task 'characterizeImage' on quantum {.*} failed. Exception
+                RuntimeError: Unable to measure aperture correction for required algorithm 'modelfit_CModel': only 0 sources, but
+                require at least 2.
+            pipetask: characterizeImage
+            ticket: ["DM-37483", "DM-37089", "DM-36763", "DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_psf_matching_kernel:
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            pipetask: characterizeImage
+            ticket: ["DM-37570", "DM-37483", "DM-36763", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        psf_in_GAaP:
+            diagMessage: >
+                Failed to solve for PSF matching kernel in GAaP for (.*): Problematic scaling factors = .* Errors: Exception
+                ('Unable to determine kernel sum; 0 candidates')
+            pipetask: characterizeImage
+            ticket: ["DM-37483", "DM-33375", "DM-36763", "DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_psfex:
+            diagMessage: "Only spatial variation (ndim == 2) is supported; saw 0"
+            pipetask: characterizeImage
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_no_use_for_photocal:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                RuntimeError: No matches to use for photocal
+            pipetask: calibrate
+            ticket: ["DM-37483", "DM-37089", "DM-32291", "DM-36763"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_NaN_to_int_calibrate:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            pipetask: calibrate
+            ticket: ["DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_FWHM_value_of_nan:
+            diagMessage: >
+                Execution of task 'calibrate' on quantum {.*} failed. Exception
+                ValueError: PSF at (.*) has an invalid FWHM value of nan
+            pipetask: calibrate
+            ticket: ["DM-37089", "DM-36763"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        finalizeCharacterization_failed:
+            diagMessage: >
+                Task <TaskDef(lsst.pipe.tasks.finalizeCharacterization.FinalizeCharacterizationTask, label=
+                finalizeCharacterization) dataId={.*}> failed; processing will continue for remaining
+                tasks.
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        cant_start_new_thread:
+            diagMessage: "RuntimeError: can't start new thread"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        rchar:
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic rchar from .* to .*"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        read_bytes:
+            diagMessage: "Error: attempt to reduce the monitored value of monotonic read_bytes from .* to .*"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        terminate_after_sys_err:
+            diagMessage: >
+                terminate called after throwing an instance of 'std::system_error' what(): Resource temporarily unavailable
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        pthread_create:
+            diagMessage: "ERROR; return code from pthread_create() is 11 Error detail: Resource temporarily unavailable"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        url_timeout:
+            diagMessage: >
+                url=/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json, error: TimeoutException: Timeout reached,
+                timeout=20 seconds .. trying to use data from cache=/tmp/atlas_4WNdEEY5/agis_schedconf.cvmfs.json
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+        p_fgcm_380:
+            diagMessage: "Exception KeyError: (380, 40)"
+            pipetask: fgcmBuildStarsTable
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "critical"
+            intensity: 0
+        keyerror_0:
+            diagMessage: |
+                exposure = input_exposures[detector_id].get()
+                KeyError: 0
+            pipetask: updateVisitSummary
+            ticket: ["DM-37786", "DM-37570"]
+            resolved: True
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0
+        outside_image_bounds:
+            diagMessage: >
+                Execution of task 'measure' on quantum {.*} failed. Exception
+                IndexError: Index (.*) outside image bounds (.*) to (.*).
+            pipetask: measure
+            ticket: ["DM-35722", "DM-36066"]
+            resolved: True
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_NaN_to_int_detection:
+            diagMessage: >
+                Execution of task 'detection' on quantum {.*} failed. Exception
+                ValueError: cannot convert float NaN to integer
+            pipetask: detection
+            ticket: ["DM-36763", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_all_pixels_masked:
+            diagMessage: "All pixels masked. Cannot estimate background"
+            pipetask: detection
+            ticket: ["DM-37570"]
+            resolved: True
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0
+        p_psf_matching_kernel_subtractImages:
+            diagMessage: "ERROR: Unable to calculate psf matching kernel"
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        cannot_compute_coaddpsf:
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
+                InvalidParameterError:\nFile \"\"src/CoaddPsf.cc\", line .*, in virtual std::shared_ptr<lsst::afw::image::
+                Image<double> > lsst::meas::algorithms::CoaddPsf::doComputeKernelImage(const Point2D&, const lsst::afw::image::
+                Color&) const\nCannot compute CoaddPsf at point (.*); no input images at that point. {0} lsst::pex::exceptions::
+                InvalidParameterError: 'Cannot compute CoaddPsf at point (.*); no input images at that point.'
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_kernel_candidacy:
+            diagMessage: >
+                Execution of task 'subtractImages' on quantum {.*} failed. Exception
+                RuntimeError: Cannot find any objects suitable for KernelCandidacy
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_do_compute_kernel_image:
+            diagMessage: >
+                File "src/CoaddPsf.cc", line 254, in virtual std:shared_ptr > lsst:meas:
+                algorithms:CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const"
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        kernel_does_not_exist:
+            diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
+            pipetask: subtractImages
+            ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        kernel_sum:
+            diagMessage: "Unable to determine kernel sum; 0 candidates"
+            pipetask: subtractImages
+            ticket: ["DM-37483", "DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_NaN_to_int_subtractImages:
+            diagMessage: "Exception ValueError: cannot convert float NaN to integer"
+            pipetask: subtractImages
+            ticket: ["DM-36265", "DM-36356", "DM-36066"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_array_sample_empty:
+            diagMessage: "array of sample points is empty"
+            pipetask: subtractImages
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_fp_xp:
+            diagMessage: "fp and xp are not of the same length."
+            pipetask: subtractImages
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        u_psf:
+            diagMessage: >
+                Exception ValueError: Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for
+                dataset .*: Unrecognized column name 'u_psfFlux_flag'.
+            pipetask: catalogMatchTract
+            ticket: ["DM-36305", "DM-36356"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        p_remote_io:
+            diagMessage: >
+                sqlalchemy.exc.InternalError: (psycopg2.errors.InternalError_) could not read block .* in file ".*":
+                Remote I/O error
+            pipetask: mergeExecutionButler
+            ticket: ["DM-37570"]
+            resolved: True # if we see this, the merge job should be re-run
+            rescue: False
+            flavor: "critical" # this is a usdf failure, but it was enough to stop production
+            intensity: 0
+    taskbuffer, 300:
+        failed_while_starting_job:
+            diagMessage: "The worker was failed while the job was starting : .* gridjob roma shared .* FAILED .*."
+            pipetask:
+            ticket: ["DM-37570", "DM-37483", "DM-36845", "DM-36763"]
+            resolved: False
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    taskbuffer, 102:
+        expired_in_pending:
+            diagMessage: "expired in pending. status unchanged"
+            pipetask:
+            ticket: ["DM-37089"]
+            resolved: False
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    pilot, 1344:
+        resource_temporarily_unavailable:
+            diagMessage: "Exception caught: [Errno 11] Resource temporarily unavailable"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    trans, 134:
+        sigabrt:
+            diagMessage: >
+                New trf: Transform received signal SIGABRT; Old trf: Athena core dump or timeout, or conddb DB connect exception
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    jobdispatcher, 102:
+        no_reply:
+            diagMessage: "Sent job didn't receive reply from pilot within 30 min"
+            pipetask: finalizeCharacterization
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    jobdispatcher, 100:
+        lost_heartbeat:
+            diagMessage: "lost heartbeat"
+            pipetask:
+            ticket: ["DM-36356"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    pilot, 1098:
+        no_space_on_disk:
+            diagMessage: "too little space left on local disk to run job: .* B (need > .* B)"
+            pipetask: forcedPhotCcd
+            ticket: ["DM-36066"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0
+    trans, 137:
+        sigkill:
+            diagMessage: "Transform received signal SIGKILL"
+            pipetask:
+            ticket: ["DM-37570", "DM-37483", "DM-36356", "DM-36741"]
+            resolved: True
+            rescue: True
+            flavor: "panda"
+            intensity: 0

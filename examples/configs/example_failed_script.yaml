@@ -27,12 +27,6 @@ validate_accepted:
     fake: true
 job:
     class_name: handler.ExampleJobHandler
-    bps_template_yaml: "${CM_CONFIGS}/example_template.yaml"
-    sw_image: "lsstsqre/centos:7-stack-lsst_distrib-v23_0_0_rc5"
-    pipeline_yaml:
-        step1: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
-        step2: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step2"
-        step3: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step3"
 workflow:
     class_name: lsst.cm.tools.db.workflow_handler.WorkflowHandler
     input_type: source
@@ -68,14 +62,17 @@ step:
 step1:
     class_name: handler.ExampleStep1Handler
     prerequisites: []
+    pipeline_yaml: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
     includes: ["step"]
 step2:
     class_name: handler.ExampleStep2Handler
     prerequisites: ['step1']
+    pipeline_yaml: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
     includes: ["step"]
 step3:
     class_name: handler.ExampleStep3Handler
     prerequisites: ['step2']
+    pipeline_yaml: "${OBS_LSST_DIR}/pipelines/imsim/DRP.yaml#step1"
     includes: ["step"]
 campaign:
     class_name: lsst.cm.tools.db.campaign_handler.CampaignHandler
@@ -83,6 +80,8 @@ campaign:
     data_query: "instrument = 'HSC' and exposure < 500"
     input_type: tagged
     output_type: chained
+    bps_yaml_template: "${CM_CONFIGS}/example_template.yaml"
+    bps_script_template: "${CM_CONFIGS}/example_bps_template.sh"
     templates:
         coll_source: /prod/raw/all
         coll_in: "{root_coll}/{fullname}_input"

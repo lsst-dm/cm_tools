@@ -25,6 +25,7 @@ def run_production(
         config,
         production_name="example",
         campaign_name=campaign_name,
+        lsst_version="dummy",
         butler_repo="repo",
         prod_base_url="archive_test",
     )
@@ -221,6 +222,7 @@ def test_failed_workflows() -> None:
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
+        lsst_version="dummy",
         prod_base_url="archive_test",
     )
 
@@ -238,6 +240,7 @@ def test_failed_workflows() -> None:
             db_p_id,
             "campaign",
             config,
+            lsst_version="dummy",
             production_name="example",
             campaign_name="fail_2",
             butler_repo="repo",
@@ -247,6 +250,7 @@ def test_failed_workflows() -> None:
             db_p_id,
             "missing",
             config,
+            lsst_version="dummy",
             production_name="example",
             campaign_name="fail_2",
             butler_repo="repo",
@@ -323,6 +327,7 @@ def test_recover_failed() -> None:
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
+        lsst_version="dummy",
         prod_base_url="archive_test",
     )
 
@@ -396,6 +401,7 @@ def test_failed_scripts() -> None:
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
+        lsst_version="dummy",
         prod_base_url="archive_test",
     )
 
@@ -455,6 +461,7 @@ def test_script_interface() -> None:
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
+        lsst_version="dummy",
         prod_base_url="archive_test",
     )
 
@@ -477,6 +484,14 @@ def test_script_interface() -> None:
         iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.failed)
         iface.supersede_script(LevelEnum.step, db_s_id, "validate")
         iface.add_script(db_s_id, "validate")
+        iface.set_script_status(LevelEnum.step, db_s_id, "validate", StatusEnum.running)
+        check_step = iface.get_entry(LevelEnum.step, db_s_id)
+        for script_ in check_step.scripts_:
+            if script_.name != "validate":
+                continue
+            if script_.superseded:
+                continue
+            assert script_.status == StatusEnum.running
 
     with open(os.devnull, "wt") as fout:
         iface.print_table(fout, TableEnum.production)
@@ -522,6 +537,7 @@ def test_insert() -> None:
         production_name="example",
         campaign_name="test",
         butler_repo="repo",
+        lsst_version="dummy",
         prod_base_url="archive_test",
     )
     assert campaign
