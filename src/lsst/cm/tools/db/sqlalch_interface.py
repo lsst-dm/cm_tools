@@ -565,11 +565,17 @@ class SQLAlchemyInterface(DbInterface):
         stream.write("~Here are the errors!~\n")
         for error_name, error_list in error_dict.items():
             stream.write(f"Error: {error_name}\n")
+            truncate_limit = 10
+            if error_name == "None":
+                truncate_limit = 1000
             for i, err in enumerate(error_list):
-                if i > 10:
+                if i > truncate_limit:
                     stream.write("\tTruncating list at 10\n")
                     break
-                stream.write(f"\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\tData ID: {err.data_id}\n")
+                stream.write(
+                    f"""\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\t
+                    Diag Message: {err.diagnostic_message}\n"""
+                )
 
     def commit_errors(self, job_id: int, errors_aggregate: Any) -> None:
         conn = self.connection()
