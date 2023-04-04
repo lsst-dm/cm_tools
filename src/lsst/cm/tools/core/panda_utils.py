@@ -381,7 +381,6 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
         done=StatusEnum.completed,
         running=StatusEnum.running,
         accept=StatusEnum.completed,
-        # SV: Here we just change failed_rescuable to the rescuable state.
         failed_rescue=StatusEnum.rescuable,
         failed_review=StatusEnum.reviewable,
         # TODO: add handling for cleanup state and an associated Enum

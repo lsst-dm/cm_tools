@@ -9,14 +9,17 @@ from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.script import Script
 
+# These functions map one level of StatusEnum
+# to another: e.g. prepare_script_status_map
+# reading as accepted or completed means that
+# the part of the code that prepares the scripts is
+# done and the job can be marked as prepared
 prepare_script_status_map = {
     StatusEnum.failed: StatusEnum.failed,
     StatusEnum.ready: StatusEnum.preparing,
     StatusEnum.running: StatusEnum.preparing,
     StatusEnum.completed: StatusEnum.prepared,
     StatusEnum.accepted: StatusEnum.prepared,
-    # SV: not sure which direction this map runs
-    # StatusEnum.rescuable: StatusEnum.???,
 }
 
 collect_script_status_map = {
@@ -25,8 +28,6 @@ collect_script_status_map = {
     StatusEnum.running: StatusEnum.collecting,
     StatusEnum.completed: StatusEnum.completed,
     StatusEnum.accepted: StatusEnum.completed,
-    # SV: not sure which direction this map runs
-    StatusEnum.rescuable: StatusEnum.rescuable,
 }
 
 
@@ -37,19 +38,6 @@ validate_script_status_map = {
     StatusEnum.running: StatusEnum.validating,
     StatusEnum.completed: StatusEnum.reviewable,
     StatusEnum.accepted: StatusEnum.accepted,
-    # SV: not sure which direction this map runs
-    StatusEnum.rescuable: StatusEnum.rescuable,
-}
-
-
-workflow_status_map = {
-    StatusEnum.failed: StatusEnum.failed,
-    StatusEnum.ready: StatusEnum.running,
-    StatusEnum.prepared: StatusEnum.running,
-    StatusEnum.running: StatusEnum.running,
-    StatusEnum.completed: StatusEnum.collectable,
-    # SV: not sure which direction this map runs
-    StatusEnum.rescuable: StatusEnum.rescuable,
 }
 
 
@@ -64,6 +52,19 @@ def extract_child_status(itr: Iterable, min_status: StatusEnum, max_status: Stat
     return StatusEnum(status_val)
 
 
+def extract_completion_status(itr: Iterable, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
+    """Return the status of all children in an array,
+    specific to running jobs to collectable"""
+    child_status = np.array([x.status.value for x in itr if not x.superseded])
+    if not child_status.size:  # pragma: no cover
+        return min_status
+    if (child_status >= StatusEnum.accepted.value).all() and (
+        child_status == StatusEnum.accepted.value
+    ).any():
+        return max_status
+    return min_status
+
+
 def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> StatusEnum:
     """Check the status all the scripts of a given type"""
     scripts_status = np.array(
@@ -71,9 +72,6 @@ def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> StatusEnum
     )
     # should never be called on entries with no scripts
     assert scripts_status.size
-    # SV: I think this should keep things where they should be
-    if (scripts_status >= StatusEnum.rescuable.value).all():
-        return StatusEnum.rescuable
     if (scripts_status >= StatusEnum.accepted.value).all():
         return StatusEnum.accepted
     if (scripts_status >= StatusEnum.completed.value).all():
@@ -89,7 +87,7 @@ def extract_job_status(itr: Iterable) -> StatusEnum:
     """Check the status of a set of jobs"""
     job_status = np.array([x.status.value for x in itr if not x.superseded])
     assert job_status.size
-    # SV: Ditto
+
     if (job_status >= StatusEnum.rescuable.value).all():
         return StatusEnum.rescuable
     if (job_status >= StatusEnum.accepted.value).all():
@@ -175,7 +173,7 @@ def check_running_entry(dbi: DbInterface, entry: Any) -> bool:
     if entry.level == LevelEnum.workflow:
         new_status = extract_job_status(entry.jobs_)
     else:
-        new_status = extract_child_status(entry.children(), StatusEnum.running, StatusEnum.collectable)
+        new_status = extract_completion_status(entry.children(), StatusEnum.running, StatusEnum.collectable)
     if current_status != new_status:
         entry.update_values(dbi, entry.id, status=new_status)
         return True
@@ -359,7 +357,6 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
     if status_val <= to_status.value:
         return db_id_list
     while status_val >= to_status.value:
-        # SV: I don't think I need to do a rollback for rescuable?
         if status_val == StatusEnum.completed.value:
             rollback_scripts(dbi, entry, ScriptType.validate)
         elif status_val == StatusEnum.collectable.value:
@@ -371,8 +368,9 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
             supersede_children(dbi, entry.children())
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)
-        db_id_list.append(entry.db_id)
         status_val -= 1
+    db_id_list.append(entry.db_id)
+
     entry.update_values(dbi, entry.id, status=to_status)
     return db_id_list
 
