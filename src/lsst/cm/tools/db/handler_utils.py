@@ -15,6 +15,8 @@ prepare_script_status_map = {
     StatusEnum.running: StatusEnum.preparing,
     StatusEnum.completed: StatusEnum.prepared,
     StatusEnum.accepted: StatusEnum.prepared,
+    # SV: not sure which direction this map runs
+    # StatusEnum.rescuable: StatusEnum.???,
 }
 
 collect_script_status_map = {
@@ -23,6 +25,8 @@ collect_script_status_map = {
     StatusEnum.running: StatusEnum.collecting,
     StatusEnum.completed: StatusEnum.completed,
     StatusEnum.accepted: StatusEnum.completed,
+    # SV: not sure which direction this map runs
+    StatusEnum.rescuable: StatusEnum.rescuable,
 }
 
 
@@ -33,6 +37,8 @@ validate_script_status_map = {
     StatusEnum.running: StatusEnum.validating,
     StatusEnum.completed: StatusEnum.reviewable,
     StatusEnum.accepted: StatusEnum.accepted,
+    # SV: not sure which direction this map runs
+    StatusEnum.rescuable: StatusEnum.rescuable,
 }
 
 
@@ -42,6 +48,8 @@ workflow_status_map = {
     StatusEnum.prepared: StatusEnum.running,
     StatusEnum.running: StatusEnum.running,
     StatusEnum.completed: StatusEnum.collectable,
+    # SV: not sure which direction this map runs
+    StatusEnum.rescuable: StatusEnum.rescuable,
 }
 
 
@@ -63,6 +71,9 @@ def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> StatusEnum
     )
     # should never be called on entries with no scripts
     assert scripts_status.size
+    # SV: I think this should keep things where they should be
+    if (scripts_status >= StatusEnum.rescuable.value).all():
+        return StatusEnum.rescuable
     if (scripts_status >= StatusEnum.accepted.value).all():
         return StatusEnum.accepted
     if (scripts_status >= StatusEnum.completed.value).all():
@@ -78,6 +89,9 @@ def extract_job_status(itr: Iterable) -> StatusEnum:
     """Check the status of a set of jobs"""
     job_status = np.array([x.status.value for x in itr if not x.superseded])
     assert job_status.size
+    # SV: Ditto
+    if (job_status >= StatusEnum.rescuable.value).all():
+        return StatusEnum.rescuable
     if (job_status >= StatusEnum.accepted.value).all():
         return StatusEnum.accepted
     if (job_status >= StatusEnum.reviewable.value).all():
@@ -345,6 +359,7 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
     if status_val <= to_status.value:
         return db_id_list
     while status_val >= to_status.value:
+        # SV: I don't think I need to do a rollback for rescuable?
         if status_val == StatusEnum.completed.value:
             rollback_scripts(dbi, entry, ScriptType.validate)
         elif status_val == StatusEnum.collectable.value:

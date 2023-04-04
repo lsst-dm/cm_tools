@@ -45,6 +45,8 @@ class SQLTableMixin:
         """Check the prerequisites of an entry"""
         for dep_ in self.depend_:
             entry = dbi.get_entry(dep_.db_id.level(), dep_.db_id)
+            # SV: we need to make sure the value of rescuable is
+            # higher than the value of accepted.
             if entry.status.value < StatusEnum.accepted.value:
                 return False
         return True
