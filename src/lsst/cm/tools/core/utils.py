@@ -76,7 +76,7 @@ class StatusEnum(enum.Enum):
 
     accepted = 11  # Completed, reviewed and accepted
         Processing is done, can be used down the road
-        
+
     rescuable = 12  # Failed, but in a way where a rescue
         workflow can be run.
     """
