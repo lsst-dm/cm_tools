@@ -53,6 +53,8 @@ class EntryHandler(EntryHandlerBase):
             return StatusEnum.collecting
         return StatusEnum.completed
 
+    # revisit this wrt rescuable status if we run validate on
+    # workflows rather than groups
     def validate(self, dbi: DbInterface, entry: CMTable) -> StatusEnum:
         assert entry.status == StatusEnum.completed
         validate_scripts = self.validate_script_hook(dbi, entry)

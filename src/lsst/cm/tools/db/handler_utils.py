@@ -9,6 +9,11 @@ from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.script import Script
 
+# These functions map one level of StatusEnum
+# to another: e.g. prepare_script_status_map
+# reading as accepted or completed means that
+# the part of the code that prepares the scripts is
+# done and the job can be marked as prepared
 prepare_script_status_map = {
     StatusEnum.failed: StatusEnum.failed,
     StatusEnum.ready: StatusEnum.preparing,
@@ -36,15 +41,6 @@ validate_script_status_map = {
 }
 
 
-workflow_status_map = {
-    StatusEnum.failed: StatusEnum.failed,
-    StatusEnum.ready: StatusEnum.running,
-    StatusEnum.prepared: StatusEnum.running,
-    StatusEnum.running: StatusEnum.running,
-    StatusEnum.completed: StatusEnum.collectable,
-}
-
-
 def extract_child_status(itr: Iterable, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
     """Return the status of all children in an array"""
     child_status = np.array([x.status.value for x in itr if not x.superseded])
@@ -54,6 +50,19 @@ def extract_child_status(itr: Iterable, min_status: StatusEnum, max_status: Stat
         return max_status
     status_val = min(max_status.value, max(min_status.value, child_status.min()))
     return StatusEnum(status_val)
+
+
+def extract_completion_status(itr: Iterable, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
+    """Return the status of all children in an array,
+    specific to running jobs to collectable"""
+    child_status = np.array([x.status.value for x in itr if not x.superseded])
+    if not child_status.size:  # pragma: no cover
+        return min_status
+    if (child_status >= StatusEnum.accepted.value).all() and (
+        child_status == StatusEnum.accepted.value
+    ).any():
+        return max_status
+    return min_status
 
 
 def extract_scripts_status(itr: Iterable, script_type: ScriptType) -> StatusEnum:
@@ -78,6 +87,9 @@ def extract_job_status(itr: Iterable) -> StatusEnum:
     """Check the status of a set of jobs"""
     job_status = np.array([x.status.value for x in itr if not x.superseded])
     assert job_status.size
+
+    if (job_status >= StatusEnum.rescuable.value).all():
+        return StatusEnum.rescuable
     if (job_status >= StatusEnum.accepted.value).all():
         return StatusEnum.accepted
     if (job_status >= StatusEnum.reviewable.value).all():
@@ -161,7 +173,7 @@ def check_running_entry(dbi: DbInterface, entry: Any) -> bool:
     if entry.level == LevelEnum.workflow:
         new_status = extract_job_status(entry.jobs_)
     else:
-        new_status = extract_child_status(entry.children(), StatusEnum.running, StatusEnum.collectable)
+        new_status = extract_completion_status(entry.children(), StatusEnum.running, StatusEnum.collectable)
     if current_status != new_status:
         entry.update_values(dbi, entry.id, status=new_status)
         return True
@@ -356,8 +368,9 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
             supersede_children(dbi, entry.children())
         elif status_val == StatusEnum.ready.value:
             rollback_scripts(dbi, entry, ScriptType.prepare)
-        db_id_list.append(entry.db_id)
         status_val -= 1
+    db_id_list.append(entry.db_id)
+
     entry.update_values(dbi, entry.id, status=to_status)
     return db_id_list
 

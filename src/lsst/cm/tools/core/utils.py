@@ -92,6 +92,7 @@ class StatusEnum(enum.Enum):
     validating = 9
     reviewable = 10
     accepted = 11
+    rescuable = 12
 
     def bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""
