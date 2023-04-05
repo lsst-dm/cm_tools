@@ -76,8 +76,14 @@ class StatusEnum(enum.Enum):
 
     accepted = 11  # Completed, reviewed and accepted
         Processing is done, can be used down the road
+
+    rescuable = 12  # Failed, but in a way where a rescue
+        workflow can be run.
     """
 
+    # note that ordering of these Enums matters within the
+    # code matters and should be considered a rough downward
+    # flow.
     failed = -2
     rejected = -1
     waiting = 0
@@ -91,6 +97,8 @@ class StatusEnum(enum.Enum):
     completed = 8
     validating = 9
     reviewable = 10
+    # states with value greater than accepted should be
+    # considered a terminal state
     accepted = 11
     rescuable = 12
 
