@@ -284,6 +284,8 @@ def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     `StatusEnum.reviewable` to `StatusEnum.accepted`
     """
     db_id_list: list[DbId] = []
+    if entry.status == StatusEnum.running:
+        check_entry_loop_iteration(dbi, entry)
     if entry.status != StatusEnum.reviewable:
         return db_id_list
     handler.accept_hook(dbi, entry)
