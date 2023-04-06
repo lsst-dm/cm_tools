@@ -522,7 +522,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def accept(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def accept(self, dbi: DbInterface, entry: Any, rescuable: bool = False) -> list[DbId]:
         """Accept this entry and any children
 
         Parameters
@@ -532,6 +532,9 @@ class EntryHandlerBase(Handler):
 
         entry: Any
             Entry in question
+
+        rescuable: bool
+            Mark the entries as rescuable instead of accepted
 
         Returns
         -------

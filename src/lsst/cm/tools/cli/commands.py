@@ -300,11 +300,12 @@ def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
 @options.group()
 @options.workflow()
 @options.script_method()
-def accept(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
+@options.rescuable()
+def accept(dbi: DbInterface, script_method: ScriptMethod, rescuable=False, **kwargs: Any) -> None:
     """Accept all the completed matching entries"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.accept(the_db_id.level(), the_db_id)
+    dbi.accept(the_db_id.level(), the_db_id, rescuable)
 
 
 @cli.command()

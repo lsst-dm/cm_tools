@@ -62,11 +62,11 @@ class EntryHandler(EntryHandlerBase):
             return StatusEnum.validating
         return StatusEnum.accepted
 
-    def accept(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
+    def accept(self, dbi: DbInterface, entry: CMTable, rescuable: bool = False) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
-            db_id_list += accept_children(dbi, itr)
-        db_id_list += accept_entry(dbi, self, entry)
+            db_id_list += accept_children(dbi, itr, rescuable)
+        db_id_list += accept_entry(dbi, self, entry, rescuable)
         return db_id_list
 
     def reject(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
