@@ -586,6 +586,7 @@ class SQLAlchemyInterface(DbInterface):
                 copy_dict["job_id"] = job_id
                 if error_type is not None:
                     copy_dict["error_type_id"] = error_type.id
+                    copy_dict["error_name"] = error_type.error_name
                     copy_dict["error_flavor"] = error_type.error_flavor
                 error_instance = ErrorInstance(**copy_dict)
                 conn.add(error_instance)
