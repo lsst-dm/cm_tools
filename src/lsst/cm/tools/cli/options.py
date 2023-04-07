@@ -30,6 +30,7 @@ __all__ = [
     "panda_username",
     "prod_base",
     "production",
+    "rescuable",
     "root_coll",
     "script",
     "script_method",
@@ -235,6 +236,13 @@ panda_code = PartialOption(
 root_coll = PartialOption(
     "--root-coll",
     help="Root for output collection names.",
+)
+
+rescuable = PartialOption(
+    "--rescuable",
+    default=False,
+    help="mark as rescuable, instead of accepted",
+    is_flag=True,
 )
 
 diag_message = PartialOption(

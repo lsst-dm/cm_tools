@@ -639,7 +639,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def accept(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def accept(self, level: LevelEnum, db_id: DbId, rescuable: bool = False) -> list[DbId]:
         """Accept completed entries at a particular level
 
         Parameters
@@ -649,6 +649,9 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are accepting
+
+        rescuable: bool
+            Mark the entries as rescuable instead of accepted
 
         Returns
         -------

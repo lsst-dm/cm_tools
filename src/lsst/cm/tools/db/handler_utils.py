@@ -269,6 +269,19 @@ def check_entry_loop(dbi: DbInterface, entry: Any) -> bool:
     return entry.status
 
 
+def accept_jobs(dbi: DbInterface, jobs: Iterable, rescuable: bool = False) -> None:
+    """Make all the scripts associated with an entry as accepted"""
+    for job in jobs:
+        if job.superseded:
+            continue
+        if job.status != StatusEnum.reviewable:
+            continue
+        if rescuable:
+            job.update_values(dbi, job.id, status=StatusEnum.rescuable)
+        else:
+            job.update_values(dbi, job.id, status=StatusEnum.accepted)
+
+
 def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
     """Make all the scripts associated with an entry as accepted"""
     for script in scripts:
@@ -277,7 +290,7 @@ def accept_scripts(dbi: DbInterface, scripts: Iterable) -> None:
         script.update_values(dbi, script.id, status=StatusEnum.accepted)
 
 
-def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+def accept_entry(dbi: DbInterface, handler: Handler, entry: Any, rescuable: bool = False) -> list[DbId]:
     """Accept an entry that needed reviewing
 
     This will take an entry from
@@ -291,16 +304,21 @@ def accept_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     handler.accept_hook(dbi, entry)
     accept_scripts(dbi, entry.scripts_)
     db_id_list += [entry.db_id]
-    entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
+    if entry.level == LevelEnum.workflow:
+        accept_jobs(dbi, entry.jobs_, rescuable)
+    if rescuable:
+        entry.update_values(dbi, entry.id, status=StatusEnum.rescuable)
+    else:
+        entry.update_values(dbi, entry.id, status=StatusEnum.accepted)
     return db_id_list
 
 
-def accept_children(dbi: DbInterface, children: Iterable) -> list[DbId]:
+def accept_children(dbi: DbInterface, children: Iterable, rescuable: bool = False) -> list[DbId]:
     """Call accept_entry on all the children of given entry"""
     db_id_list = []
     for child in children:
         handler = child.get_handler()
-        db_id_list += accept_entry(dbi, handler, child)
+        db_id_list += accept_entry(dbi, handler, child, rescuable)
     return db_id_list
 
 
