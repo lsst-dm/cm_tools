@@ -129,6 +129,8 @@ class JobHandler(JobHandlerBase):
                     continue
                 if elder_sib_job.id >= job.id:
                     continue
+                if elder_sib_job.status != StatusEnum.rescuable:
+                    continue
                 skip_cols += f"{elder_sib_job.coll_out},"
             skip_cols = skip_cols[:-1]
             workflow_config["extraQgraphOptions"] = f"--clobber-outputs --skip-existing-in {skip_cols}"
