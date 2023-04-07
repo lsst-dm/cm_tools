@@ -240,6 +240,7 @@ root_coll = PartialOption(
 
 rescuable = PartialOption(
     "--rescuable",
+    default=False,
     help="mark as rescuable, instead of accepted",
     is_flag=True,
 )
