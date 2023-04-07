@@ -21,7 +21,7 @@ cm create
 cm parse --config-name test_config --config-yaml ${config}
 
 cm insert --production-name ${p_name}
-cm insert --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign
+cm insert --production-name ${p_name} --campaign-name ${c_name} --config-name test_config --config-block campaign --lsst-version dummy
 
 cm queue --fullname ${p_name}/${c_name}
 cm launch --fullname ${p_name}/${c_name}
