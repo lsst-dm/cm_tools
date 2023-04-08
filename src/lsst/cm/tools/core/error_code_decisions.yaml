@@ -41,7 +41,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         FWHM_value_of_nan:
-            diagMessage: "Failed to execute payload:PSF at (.*) has an invalid FWHM value of nan"
+            diagMessage: "PSF at (.*) has an invalid FWHM value of nan"
             pipetask: calibrate
             ticket: ["DM-37089"]
             resolved: False
@@ -49,7 +49,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         NaN_to_int_calibrate:
-            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            diagMessage: "cannot convert float NaN to integer"
             pipetask: calibrate
             ticket: ["DM-36356"]
             resolved: False
@@ -57,7 +57,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         no_use_for_photocal:
-            diagMessage: "Failed to execute payload:No matches to use for photocal"
+            diagMessage: "No matches to use for photocal"
             pipetask: calibrate
             ticket: ["DM-37483", "DM-37089", "DM-32291", "DM-36763"]
             resolved: False
@@ -65,7 +65,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         NaN_to_int_detection:
-            diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
+            diagMessage: "cannot convert float NaN to integer"
             pipetask: detection
             ticket: ["DM-36763", "DM-36356", "DM-36066"]
             resolved: False
@@ -73,7 +73,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         all_pixels_masked:
-            diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
+            diagMessage: "All pixels masked. Cannot estimate background"
             pipetask: detection
             ticket: ["DM-37837", "DM-37570"]
             resolved: True
@@ -98,7 +98,7 @@ pandaErrorCode:
             intensity: 0
         do_compute_kernel_image:
             diagMessage: >
-                Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
+                File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
                 CoaddPsf:doComputeKernelImage(const Point2D&, const lsst:afw:image:Color&) const
             pipetask: subtractImages
             ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
@@ -107,7 +107,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         kernel_candidacy:
-            diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
+            diagMessage: "Cannot find any objects suitable for KernelCandidacy"
             pipetask: subtractImages
             ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
@@ -115,7 +115,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         psf_matching_kernel_subtractImages:
-            diagMessage: "Failed to execute payload:Unable to calculate psf matching kernel"
+            diagMessage: "Unable to calculate psf matching kernel"
             pipetask: subtractImages
             ticket: ["DM-37570", "DM-37089"]
             resolved: False
@@ -123,7 +123,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         array_sample_empty:
-            diagMessage: "Failed to execute payload:array of sample points is empty"
+            diagMessage: "array of sample points is empty"
             pipetask: subtractImages
             ticket: ["DM-37570"]
             resolved: False
@@ -131,7 +131,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         fp_xp:
-            diagMessage: "Failed to execute payload:fp and xp are not of the same length."
+            diagMessage: "fp and xp are not of the same length."
             pipetask: subtractImages
             ticket: ["DM-37570"]
             resolved: False
@@ -140,7 +140,7 @@ pandaErrorCode:
             intensity: 0.001
         parquet_formatter:
             diagMessage: >
-                Failed to execute payload:Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
+                Failure from formatter 'lsst.daf.butler.formatters.parquet.ParquetFormatter' for dataset
                 .*
             pipetask: catalogMatchTract
             ticket: ["DM-36306", "DM-36356"]
@@ -149,7 +149,7 @@ pandaErrorCode:
             flavor: "pipelines"
             intensity: 0.001
         fgcm_380:
-            diagMessage: "Failed to execute payload:(380, 40)"
+            diagMessage: "(380, 40)"
             pipetask: fgcmBuildStarsTable
             ticket: ["DM-37570"]
             resolved: False
