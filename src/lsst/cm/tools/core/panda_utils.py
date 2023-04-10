@@ -14,8 +14,7 @@ def print_errors_aggregate(stream: TextIO, errors_aggregate: dict[int, dict[str,
         if not isinstance(val, list):
             copy_dict[key] = val
             continue
-        else:
-            copy_list = []
+        copy_list = []
         for vv in val:
             copy_list.append(vv)
             if not isinstance(vv, dict):
