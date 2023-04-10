@@ -1,10 +1,31 @@
-from typing import Any
+from typing import Any, TextIO
 
+import yaml
 from pandaclient import Client, panda_api
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.slurm_utils import SlurmChecker
 from lsst.cm.tools.core.utils import StatusEnum
+
+
+def print_errors_aggregate(stream: TextIO, errors_aggregate: dict[int, dict[str, Any]]) -> None:
+    copy_dict = {}
+    for key, val in errors_aggregate.items():
+        if not isinstance(val, list):
+            copy_dict[key] = val
+            continue
+        copy_list = []
+        for vv in val:
+            copy_list.append(vv)
+            if not isinstance(vv, dict):
+                continue
+            if "error_type" not in vv:
+                continue
+            if vv["error_type"] is None:
+                continue
+            copy_list[-1]["error_type"] = vv["error_type"].id
+        copy_dict[key] = copy_list
+    yaml.dump(copy_dict, stream)
 
 
 def parse_bps_stdout(url: str) -> dict[str, str]:
@@ -330,22 +351,17 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
         A list of dictionaries containing everything
         we want to update the error instance db with
     """
-
     # first pull down all the tasks
-    conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
+    errors_aggregate, tasks = get_panda_errors(dbi, int(panda_reqid), panda_username)
     statuses = [task["status"] for task in tasks]
 
     # then pull all the errors for the tasks
-    errors_aggregate = dict()
     max_pct_failed = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     pct_files_failed = [task["nfilesfailed"] / task["nfiles"] for task in tasks if task["status"] != "done"]
-    for jtid in jtids:
-        errors_aggregate[str(jtid)] = get_errors_from_jeditaskid(dbi, jtid)
     # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
-        max_pct_failed[str(jtid)] = pctfailed
+        max_pct_failed[jtid] = pctfailed
 
     # now determine a final answer based on statuses for the entire reqid
     panda_status = decide_panda_status(dbi, statuses, errors_aggregate, max_pct_failed)
@@ -353,15 +369,15 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     return panda_status, errors_aggregate
 
 
-def get_panda_errors(dbi: DbInterface, panda_reqid: int, panda_username=None) -> dict[int, dict[str, Any]]:
+def get_panda_errors(dbi: DbInterface, panda_reqid: int, panda_username=None) -> tuple[Any]:
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     errors_aggregate = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
         errors_dict = get_errors_from_jeditaskid(dbi, jtid)
         errors_aggregate[jtid] = errors_dict
-    return errors_aggregate
+    return errors_aggregate, tasks
 
 
 class PandaChecker(SlurmChecker):  # pragma: no cover

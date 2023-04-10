@@ -7,7 +7,7 @@ from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
-from ..core.panda_utils import PandaChecker
+from ..core.panda_utils import PandaChecker, print_errors_aggregate
 from ..core.utils import ScriptMethod, StatusEnum, TableEnum
 
 
@@ -525,8 +525,9 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
-    status, _ = pc.check_panda_status(dbi, panda_url, panda_username)
-    sys.stdout.write(f"{str(status)}\n")
+    status, errors_aggregate = pc.check_panda_status(dbi, panda_url, panda_username)
+    errors_aggregate["panda_status"] = status
+    print_errors_aggregate(sys.stdout, errors_aggregate)
 
 
 @cli.command()
@@ -536,9 +537,8 @@ def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> li
 def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
-    errors_aggregate = pc.get_panda_errors(dbi, panda_url, panda_username)
-    for key, val in errors_aggregate.items():
-        sys.stdout.write(f"Key = {key}: Val = {val}")
+    errors_aggregate, _ = pc.get_panda_errors(dbi, panda_url, panda_username)
+    print_errors_aggregate(sys.stdout, errors_aggregate)
 
 
 @cli.command()
