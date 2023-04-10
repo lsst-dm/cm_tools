@@ -75,8 +75,9 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
             supersede_string = "SUPERSEDED"
         else:
             supersede_string = ""
-        string_out = f"BatchJob {self.id}: {self.db_id} {self.name} {self.frag_}"
-        string_out += f" {self.status.name} {self.checker} {self.stamp_url} {self.panda_url}"
-        string_out += f" {self.panda_status} {self.w_.id}"
+        string_out = f"BatchJob {self.id}: {self.w_.fullname}/{self.name}_{self.idx:03}"
+        string_out += f" {self.status.name}"
+        string_out += f" Slurm_id: {self.stamp_url} Panda_id: {self.panda_url}"
+        string_out += f" Panda_status: {self.panda_status}"
         string_out += f" {supersede_string}"
         return string_out
