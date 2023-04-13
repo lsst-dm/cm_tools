@@ -106,7 +106,7 @@ def butler_associate_kludge(
     butler_repo: str,
     output_coll: str,
     input_colls: list[list[str]],
-) -> None:
+) -> None:  # pragma: no cover
     assert input_colls
 
     butler = Butler(butler_repo, writeable=True)
