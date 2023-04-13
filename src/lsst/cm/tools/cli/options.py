@@ -26,6 +26,7 @@ __all__ = [
     "level",
     "lsst_version",
     "max_running",
+    "n_iter",
     "panda_url",
     "panda_username",
     "prod_base",
@@ -34,10 +35,12 @@ __all__ = [
     "root_coll",
     "script",
     "script_method",
+    "sleep_time",
     "status",
     "step",
     "table",
     "update_item",
+    "verbose",
     "workflow",
 ]
 
@@ -112,6 +115,18 @@ max_running = PartialOption(
     "--max-running",
     default=50,
     help="Maximum number of running workflows.",
+)
+
+sleep_time = PartialOption(
+    "--sleep-time",
+    default=60,
+    help="sleep time between iterations, in seconds",
+)
+
+n_iter = PartialOption(
+    "--n-iter",
+    default=-1,
+    help="number of interations to run daemon",
 )
 
 butler = PartialOption(
@@ -242,6 +257,13 @@ rescuable = PartialOption(
     "--rescuable",
     default=False,
     help="mark as rescuable, instead of accepted",
+    is_flag=True,
+)
+
+verbose = PartialOption(
+    "--verbose",
+    default=False,
+    help="verbose flag",
     is_flag=True,
 )
 
