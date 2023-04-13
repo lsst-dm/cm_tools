@@ -705,7 +705,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def _check_terminal_state(self, level: LevelEnum, db_id: DbId) -> bool:
         entry = self.get_entry(level, db_id)
-        terminal_states = list[
+        terminal_states = [
             StatusEnum.failed,
             StatusEnum.rejected,
             StatusEnum.reviewable,
