@@ -709,7 +709,7 @@ class SQLAlchemyInterface(DbInterface):
             StatusEnum.failed,
             StatusEnum.rejected,
             StatusEnum.reviewable,
-            StatusEnum.rescueable,
+            StatusEnum.rescuable,
         ]
         for script_ in entry.scripts_:
             if script_.status in terminal_states:
