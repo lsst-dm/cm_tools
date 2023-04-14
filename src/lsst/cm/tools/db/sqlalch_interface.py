@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from contextlib import nullcontext
 from time import sleep
 from typing import Any, Iterable, Optional, TextIO
 
@@ -480,6 +481,7 @@ class SQLAlchemyInterface(DbInterface):
         sleep_time: int = 60,
         n_iter: int = -1,
         verbose: bool = False,
+        log_file: Optional[str] = None,
     ) -> None:
         i_iter = n_iter
         while i_iter != 0:
@@ -489,15 +491,17 @@ class SQLAlchemyInterface(DbInterface):
             self.launch_jobs(LevelEnum.campaign, db_id, max_running)
             self.check(LevelEnum.campaign, db_id)
             if verbose:
-                self.print_table(sys.stdout, TableEnum.step)
-                self.print_table(sys.stdout, TableEnum.group)
-                self.print_table(sys.stdout, TableEnum.workflow)
+                with open(log_file, "a") if log_file else nullcontext(sys.stdout) as log_stream:
+                    self.print_table(log_stream, TableEnum.step)
+                    self.print_table(log_stream, TableEnum.group)
+                    self.print_table(log_stream, TableEnum.workflow)
             i_iter -= 1
             if self._check_terminal_state(LevelEnum.campaign, db_id):
-                self.print_table(sys.stdout, TableEnum.step)
-                self.print_table(sys.stdout, TableEnum.group)
-                self.print_table(sys.stdout, TableEnum.workflow)
-                self.print_table(sys.stdout, TableEnum.job)
+                with open(log_file, "a") if log_file else nullcontext(sys.stdout) as log_stream:
+                    self.print_table(log_stream, TableEnum.step)
+                    self.print_table(log_stream, TableEnum.group)
+                    self.print_table(log_stream, TableEnum.workflow)
+                    self.print_table(log_stream, TableEnum.job)
                 break
             sleep(sleep_time)
 

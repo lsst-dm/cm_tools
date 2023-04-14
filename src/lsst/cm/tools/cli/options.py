@@ -24,6 +24,7 @@ __all__ = [
     "fullname",
     "group",
     "level",
+    "log_file",
     "lsst_version",
     "max_running",
     "n_iter",
@@ -251,6 +252,12 @@ panda_code = PartialOption(
 root_coll = PartialOption(
     "--root-coll",
     help="Root for output collection names.",
+)
+
+log_file = PartialOption(
+    "--log-file",
+    help="Log file",
+    default=None,
 )
 
 rescuable = PartialOption(
