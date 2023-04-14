@@ -484,13 +484,14 @@ def test_script_interface() -> None:
         iface.fake_script(LevelEnum.step, db_s_id, "validate", StatusEnum.failed)
         iface.supersede_script(LevelEnum.step, db_s_id, "validate")
         iface.add_script(db_s_id, "validate")
-        iface.set_script_status(LevelEnum.step, db_s_id, "validate", StatusEnum.running)
+        iface.set_script_status(LevelEnum.step, db_s_id, "validate", idx=1, status=StatusEnum.running)
         check_step = iface.get_entry(LevelEnum.step, db_s_id)
         for script_ in check_step.scripts_:
             if script_.name != "validate":
                 continue
             if script_.superseded:
                 continue
+            print(script_, script_.idx, script_.status)
             assert script_.status == StatusEnum.running
 
     with open(os.devnull, "wt") as fout:

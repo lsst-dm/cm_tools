@@ -23,6 +23,7 @@ __all__ = [
     "fmt",
     "fullname",
     "group",
+    "idx",
     "level",
     "log_file",
     "lsst_version",
@@ -210,6 +211,13 @@ workflow = PartialOption(
 script = PartialOption(
     "--script-name",
     help="Script name.",
+)
+
+idx = PartialOption(
+    "--idx",
+    type=int,
+    default=0,
+    help="Job or script index",
 )
 
 plugin_dir = PartialOption(
