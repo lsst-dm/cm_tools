@@ -840,6 +840,7 @@ class DbInterface:
         sleep_time: int = 60,
         n_iter: int = -1,
         verbose: bool = False,
+        log_file: Any = None,
     ) -> None:
         """Run a loop
 
@@ -859,6 +860,9 @@ class DbInterface:
 
         verbose : bool
             Print tables on each iteration
+
+        log_file : Any
+            File we write to, None for sys.stdout.
         """
         raise NotImplementedError()
 
