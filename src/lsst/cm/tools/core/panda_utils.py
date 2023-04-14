@@ -358,7 +358,9 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     # then pull all the errors for the tasks
     max_pct_failed = dict()
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
-    pct_files_failed = [task["nfilesfailed"] / task["nfiles"] for task in tasks if task["status"] != "done"]
+    pct_files_failed = [
+        task["nfilesfailed"] / max(task["nfiles"], 1) for task in tasks if task["status"] != "done"
+    ]
     # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
         max_pct_failed[jtid] = pctfailed
