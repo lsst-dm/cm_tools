@@ -833,7 +833,14 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
+    def daemon(
+        self,
+        db_id: DbId,
+        max_running: int = 100,
+        sleep_time: int = 60,
+        n_iter: int = -1,
+        verbose: bool = False,
+    ) -> None:
         """Run a loop
 
         Parameters
@@ -849,6 +856,9 @@ class DbInterface:
 
         n_iter : int
             Number of interations to run, -1 for no limit
+
+        verbose : bool
+            Print tables on each iteration
         """
         raise NotImplementedError()
 

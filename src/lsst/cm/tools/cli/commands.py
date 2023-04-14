@@ -450,11 +450,22 @@ def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **
 @options.campaign()
 @options.script_method()
 @options.max_running()
-def daemon(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kwargs: Any) -> None:
+@options.sleep_time()
+@options.n_iter()
+@options.verbose()
+def daemon(
+    dbi: DbInterface,
+    script_method: ScriptMethod,
+    max_running: int,
+    sleep_time: int,
+    n_iter: int,
+    verbose: bool,
+    **kwargs: Any,
+) -> None:
     """Run a processing loop"""
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.daemon(the_db_id, max_running)
+    dbi.daemon(the_db_id, max_running, sleep_time, n_iter, verbose)
 
 
 @cli.command()

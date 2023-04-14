@@ -473,18 +473,32 @@ class SQLAlchemyInterface(DbInterface):
         self.connection().commit()
         return db_id_list
 
-    def daemon(self, db_id: DbId, max_running: int = 100, sleep_time: int = 60, n_iter: int = -1) -> None:
+    def daemon(
+        self,
+        db_id: DbId,
+        max_running: int = 100,
+        sleep_time: int = 60,
+        n_iter: int = -1,
+        verbose: bool = False,
+    ) -> None:
         i_iter = n_iter
         while i_iter != 0:
             if os.path.exists("daemon.stop"):  # pragma: no cover
                 break
             self.queue_jobs(LevelEnum.campaign, db_id)
             self.launch_jobs(LevelEnum.campaign, db_id, max_running)
-            self.accept(LevelEnum.campaign, db_id)
-            self.print_table(sys.stdout, TableEnum.step)
-            self.print_table(sys.stdout, TableEnum.group)
-            self.print_table(sys.stdout, TableEnum.workflow)
+            self.check(LevelEnum.campaign, db_id)
+            if verbose:
+                self.print_table(sys.stdout, TableEnum.step)
+                self.print_table(sys.stdout, TableEnum.group)
+                self.print_table(sys.stdout, TableEnum.workflow)
             i_iter -= 1
+            if self._check_terminal_state(LevelEnum.campaign, db_id):
+                self.print_table(sys.stdout, TableEnum.step)
+                self.print_table(sys.stdout, TableEnum.group)
+                self.print_table(sys.stdout, TableEnum.workflow)
+                self.print_table(sys.stdout, TableEnum.job)
+                break
             sleep(sleep_time)
 
     def parse_config(self, config_name: str, config_yaml: str) -> Config:
@@ -688,3 +702,24 @@ class SQLAlchemyInterface(DbInterface):
     def _verify_entry(self, entry: int | None, level: LevelEnum, db_id: DbId) -> None:
         if entry is None:  # pragma: no cover
             raise ValueError(f"Failed to get entry for {db_id} at {level.name}")
+
+    def _check_terminal_state(self, level: LevelEnum, db_id: DbId) -> bool:
+        entry = self.get_entry(level, db_id)
+        terminal_states = [
+            StatusEnum.failed,
+            StatusEnum.rejected,
+            StatusEnum.reviewable,
+            StatusEnum.rescuable,
+        ]
+        for script_ in entry.scripts_:
+            if script_.superseded:
+                continue
+            if script_.status in terminal_states:
+                return True
+
+        for job_ in entry.jobs_:
+            if job_.superseded:
+                continue
+            if job_.status in terminal_states:
+                return True
+        return False
