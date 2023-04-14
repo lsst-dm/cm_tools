@@ -712,10 +712,14 @@ class SQLAlchemyInterface(DbInterface):
             StatusEnum.rescuable,
         ]
         for script_ in entry.scripts_:
+            if script_.superseded:
+                continue
             if script_.status in terminal_states:
                 return True
 
         for job_ in entry.jobs_:
+            if job_.superseded:
+                continue
             if job_.status in terminal_states:
                 return True
         return False
