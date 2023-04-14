@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TextIO
+from typing import Any, Optional, TextIO
 
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
@@ -840,7 +840,7 @@ class DbInterface:
         sleep_time: int = 60,
         n_iter: int = -1,
         verbose: bool = False,
-        log_file: Any = None,
+        log_file: Optional[str] = None,
     ) -> None:
         """Run a loop
 
