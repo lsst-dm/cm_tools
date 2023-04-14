@@ -491,7 +491,6 @@ def test_script_interface() -> None:
                 continue
             if script_.superseded:
                 continue
-            print(script_, script_.idx, script_.status)
             assert script_.status == StatusEnum.running
 
     with open(os.devnull, "wt") as fout:
