@@ -13,7 +13,7 @@ from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_datas
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, StatusEnum, TableEnum
+from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
 from lsst.cm.tools.db.error_table import ErrorAction, ErrorFlavor, ErrorInstance, ErrorType
@@ -329,6 +329,7 @@ class SQLAlchemyInterface(DbInterface):
             Job.update_values(self, job_.id, superseded=True)
             handler = workflow.get_handler()
             handler.requeue_job(self, workflow)
+            workflow.update_values(self, workflow.id, status=StatusEnum.populating)
             db_id_list.append(workflow.db_id)
         self.connection().commit()
         self.check(level, db_id)
@@ -342,8 +343,15 @@ class SQLAlchemyInterface(DbInterface):
     ) -> list[DbId]:
         db_id_list: list[DbId] = []
         entry = self.get_entry(level, db_id)
+        parent_status_map = {
+            ScriptType.prepare: StatusEnum.preparing,
+            ScriptType.collect: StatusEnum.collecting,
+            ScriptType.validate: StatusEnum.validating,
+        }
         for script_ in entry.all_scripts_:
             status = script_.status
+            if script_.superseded:
+                continue
             if not status.bad():
                 continue
             if script_.name != script_name:
@@ -352,6 +360,7 @@ class SQLAlchemyInterface(DbInterface):
             parent = script_.parent()
             handler = parent.get_handler()
             handler.rerun_script(self, parent, script_name, script_.script_type)
+            parent.update_values(self, parent.id, status=parent_status_map[script_.script_type])
             db_id_list.append(parent.db_id)
         self.connection().commit()
         self.check(level, db_id)
