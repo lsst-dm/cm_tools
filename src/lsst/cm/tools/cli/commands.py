@@ -420,10 +420,11 @@ def set_status(dbi: DbInterface, status: StatusEnum, **kwargs: Any) -> None:
 @options.script()
 @options.status()
 @options.script_method()
-def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+@options.idx()
+def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, idx: int, **kwargs: Any) -> None:
     """Explicitly set the status of a particular job"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.set_job_status(the_db_id.level(), the_db_id, script_name, status)
+    dbi.set_job_status(the_db_id.level(), the_db_id, script_name, idx, status)
 
 
 @cli.command()
@@ -437,10 +438,13 @@ def set_job_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwa
 @options.script()
 @options.status()
 @options.script_method()
-def set_script_status(dbi: DbInterface, status: StatusEnum, script_name: str, **kwargs: Any) -> None:
+@options.idx()
+def set_script_status(
+    dbi: DbInterface, status: StatusEnum, script_name: str, idx: int, **kwargs: Any
+) -> None:
     """Explicitly set the status of a particular script"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.set_script_status(the_db_id.level(), the_db_id, script_name, status)
+    dbi.set_script_status(the_db_id.level(), the_db_id, script_name, idx, status)
 
 
 @cli.command()

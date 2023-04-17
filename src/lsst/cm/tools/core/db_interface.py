@@ -782,7 +782,12 @@ class DbInterface:
         raise NotImplementedError()
 
     def set_job_status(
-        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+        idx: int = 0,
+        status: StatusEnum = StatusEnum.completed,
     ) -> None:
         """Set the status of jobs
 
@@ -797,6 +802,9 @@ class DbInterface:
         script_name : str
             Specifies which types of scripts to set the status for
 
+        idx: int
+            Specifies which job to set the status for
+
         status: StatusEnum
             Status value to set
 
@@ -808,7 +816,12 @@ class DbInterface:
         raise NotImplementedError()
 
     def set_script_status(
-        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+        idx: int = 0,
+        status: StatusEnum = StatusEnum.completed,
     ) -> list[int]:
         """Set the status of scripts
 
@@ -822,6 +835,9 @@ class DbInterface:
 
         script_name : str
             Specifies which types of scripts to set the status for
+
+        idx: int
+            Specifies which script to set the status for
 
         status: StatusEnum
             Status value to set

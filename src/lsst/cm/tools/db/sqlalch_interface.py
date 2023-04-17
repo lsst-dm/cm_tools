@@ -395,6 +395,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             script_.rollback_script(self, entry, script_)
             db_id_list.append(script_.id)
+        self.connection().commit()
         return db_id_list
 
     def supersede_job(self, level: LevelEnum, db_id: DbId, job_name: str) -> list[int]:
@@ -405,6 +406,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             job_.rollback_script(self, entry, job_)
             db_id_list.append(job_.id)
+        self.connection().commit()
         return db_id_list
 
     def fake_run(self, level: LevelEnum, db_id: DbId, status: StatusEnum = StatusEnum.completed) -> list[int]:
@@ -449,12 +451,19 @@ class SQLAlchemyInterface(DbInterface):
         self.connection().commit()
 
     def set_job_status(
-        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+        idx: int = 0,
+        status: StatusEnum = StatusEnum.completed,
     ) -> list[int]:
         entry = self.get_entry(level, db_id)
         db_id_list: list[int] = []
         for job_ in entry.jobs_:
             if job_.name != script_name:
+                continue
+            if job_.idx != idx:
                 continue
             Job.update_values(self, job_.id, status=status)
             db_id_list.append(job_.id)
@@ -462,12 +471,19 @@ class SQLAlchemyInterface(DbInterface):
         return db_id_list
 
     def set_script_status(
-        self, level: LevelEnum, db_id: DbId, script_name: str, status: StatusEnum = StatusEnum.completed
+        self,
+        level: LevelEnum,
+        db_id: DbId,
+        script_name: str,
+        idx: int = 0,
+        status: StatusEnum = StatusEnum.completed,
     ) -> list[int]:
         entry = self.get_entry(level, db_id)
         db_id_list: list[int] = []
         for script_ in entry.scripts_:
             if script_.name != script_name:
+                continue
+            if script_.idx != idx:
                 continue
             Script.update_values(self, script_.id, status=status)
             db_id_list.append(script_.id)

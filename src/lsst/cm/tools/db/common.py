@@ -98,7 +98,7 @@ class SQLScriptMixin(SQLTableMixin):
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
         rollback_handler.rollback_script(entry, script)
-        cls.update_values(dbi, entry.id, superseded=True)
+        cls.update_values(dbi, script.id, superseded=True)
 
 
 class CMTable(SQLTableMixin, CMTableBase):
