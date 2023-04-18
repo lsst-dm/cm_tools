@@ -1,4 +1,4 @@
-import os
+import subprocess
 from typing import Any
 
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
@@ -122,7 +122,7 @@ class ScriptHandler(ScriptHandlerBase):
             return StatusEnum.running
         self.write_script_hook(dbi, parent, script, **kwargs)
         if script.script_method == ScriptMethod.bash:
-            os.system(f"source {script.script_url}")
+            subprocess.run(["/bin/bash", script.script_url])
         elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
             job_id = submit_job(script.script_url, script.log_url)
             Script.update_values(dbi, script.id, stamp_url=job_id)

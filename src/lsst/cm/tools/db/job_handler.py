@@ -1,4 +1,5 @@
 import os
+import subprocess
 from typing import Any
 
 import yaml
@@ -162,7 +163,7 @@ class JobHandler(JobHandlerBase):
         elif job.script_method == ScriptMethod.no_script:  # pragma: no cover
             status = StatusEnum.running
         elif job.script_method == ScriptMethod.bash:
-            os.system(f"source {job.script_url}")
+            subprocess.run(["/bin/bash", job.script_url])
             status = StatusEnum.running
         elif job.script_method == ScriptMethod.slurm:  # pragma: no coveres
             job_id = submit_job(job.script_url, job.log_url)
