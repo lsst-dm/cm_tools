@@ -112,16 +112,6 @@ class JobHandler(JobHandlerBase):
             inCollection = f"{parent.coll_in},{parent.c_.coll_in},{parent.c_.coll_ancil}"
         else:
             inCollection = f"{parent.c_.coll_in},{parent.c_.coll_ancil}"
-        payload = dict(
-            payloadName=f"{parent.p_.name}/{parent.c_.name}",
-            outputRun=job.coll_out,
-            butlerConfig=butler_repo,
-            inCollection=inCollection,
-        )
-        if parent.data_query:
-            payload["dataQuery"] = parent.data_query
-
-        workflow_config["payload"] = payload
 
         if parent.get_handler().config.get("rescue", False):
             skip_cols = ""
@@ -135,6 +125,18 @@ class JobHandler(JobHandlerBase):
                 skip_cols += f"{elder_sib_job.coll_out},"
             skip_cols = skip_cols[:-1]
             workflow_config["extraQgraphOptions"] = f"--clobber-outputs --skip-existing-in {skip_cols}"
+            inCollection = f"{skip_cols},{inCollection}"
+
+        payload = dict(
+            payloadName=f"{parent.p_.name}/{parent.c_.name}",
+            outputRun=job.coll_out,
+            butlerConfig=butler_repo,
+            inCollection=inCollection,
+        )
+        if parent.data_query:
+            payload["dataQuery"] = parent.data_query
+
+        workflow_config["payload"] = payload
 
         with open(outpath, "wt", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
