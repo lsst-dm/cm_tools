@@ -218,7 +218,9 @@ class SQLAlchemyInterface(DbInterface):
         config = parent.config_
         handler = config.get_sub_handler(config_block)
         kwcopy = kwargs.copy()
-        fullname = kwcopy.pop("fullname")
+        fullname = kwcopy.pop("fullname", None)
+        if fullname is None:
+            fullname = last_workflow.fullname
         production_name, campaign_name, step_name, group_name = fullname.split("/")[0:4]
         kwcopy["production_name"] = production_name
         kwcopy["campaign_name"] = campaign_name
