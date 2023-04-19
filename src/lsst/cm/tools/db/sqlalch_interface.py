@@ -213,7 +213,8 @@ class SQLAlchemyInterface(DbInterface):
         config_block: str,
         **kwargs: Any,
     ) -> CMTableBase:
-        parent = self.get_entry(db_id.level(), db_id)
+        parent = self.get_entry(LevelEnum.group, db_id)
+        assert parent.level == LevelEnum.group
         last_workflow = parent.w_[-1]
         config = parent.config_
         handler = config.get_sub_handler(config_block)

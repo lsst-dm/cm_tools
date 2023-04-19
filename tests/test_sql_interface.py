@@ -630,7 +630,7 @@ def test_rescue() -> None:
             campaign_name="test",
             step_name=step_name,
             group_name="group_4",
-            workflow_idx=0.0,
+            workflow_idx=0,
         )
         iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.reviewable)
         iface.fake_run(LevelEnum.step, db_s_id)
@@ -641,6 +641,71 @@ def test_rescue() -> None:
 
     os.system("\\rm -rf archive_resuce")
     os.unlink("rescue.db")
+
+
+def test_requeue() -> None:
+    try:
+        os.unlink("requeue.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_requeue")
+
+    iface = SQLAlchemyInterface("sqlite:///requeue.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
+
+    config_name = "test_failed"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+
+    db_p_id = iface.get_db_id(production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
+    iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        lsst_version="dummy",
+        prod_base_url="archive_requeue",
+    )
+
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
+        iface.queue_jobs(LevelEnum.campaign, db_c_id)
+        iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
+        db_g_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+        )
+        db_w_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+            workflow_idx=0,
+        )
+        iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.reviewable)
+        iface.fake_run(LevelEnum.step, db_s_id)
+        iface.set_job_status(LevelEnum.step, db_w_id, "job", 0, StatusEnum.failed)
+        iface.requeue_jobs(LevelEnum.workflow, db_w_id)
+        iface.queue_jobs(LevelEnum.workflow, db_w_id)
+        iface.launch_jobs(LevelEnum.campaign, db_w_id, 100)
+
+        iface.print_table(sys.stdout, TableEnum.workflow)
+        iface.print_table(sys.stdout, TableEnum.job)
+
+    os.system("\\rm -rf archive_requeue")
+    os.unlink("requeue.db")
 
 
 def test_bad_db() -> None:
