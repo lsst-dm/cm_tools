@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 import pytest
@@ -68,7 +69,7 @@ def test_full_example() -> None:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
@@ -103,6 +104,11 @@ def test_full_example() -> None:
     )
 
     iface.daemon(db_c_id, sleep_time=1, n_iter=3)
+    iface.set_script_status(LevelEnum.campaign, db_c_id, "ancil", 0, StatusEnum.reviewable)
+    iface.daemon(db_c_id, sleep_time=1, n_iter=3, verbose=True, log_file="daemon_mutterings.txt")
+
+    assert os.path.exists("daemon_mutterings.txt")
+    os.unlink("daemon_mutterings.txt")
 
     check_top_id = iface.get_db_id()
     assert check_top_id.to_tuple() == (None, None, None, None, None)
@@ -190,7 +196,7 @@ def test_full_example() -> None:
         iface.print_(fout, LevelEnum.step, db_c_id)
         iface.print_(fout, LevelEnum.group, db_c_id)
 
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test")
     os.unlink("test.db")
 
 
@@ -199,7 +205,7 @@ def test_failed_workflows() -> None:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
@@ -295,7 +301,7 @@ def test_failed_workflows() -> None:
 
     iface2 = SQLAlchemyInterface("sqlite:///fail.db", echo=False)
     assert iface2
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test")
     os.unlink("fail.db")
 
 
@@ -304,7 +310,7 @@ def test_recover_failed() -> None:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
@@ -368,7 +374,7 @@ def test_recover_failed() -> None:
             group_name="extra_group",
         )
 
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test")
     os.unlink("fail.db")
 
 
@@ -377,7 +383,7 @@ def test_failed_scripts() -> None:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
@@ -424,7 +430,7 @@ def test_failed_scripts() -> None:
         iface.print_table(fout, TableEnum.job)
         iface.print_table(fout, TableEnum.dependency)
 
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
     os.unlink("fail.db")
 
 
@@ -433,7 +439,7 @@ def test_script_interface() -> None:
         os.unlink("fail.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///fail.db", echo=False, create=True)
     Handler.plugin_dir = "examples/handlers/"
@@ -492,6 +498,8 @@ def test_script_interface() -> None:
             if script_.superseded:
                 continue
             assert script_.status == StatusEnum.running
+        iface.set_script_status(LevelEnum.step, db_s_id, "validate", idx=1, status=StatusEnum.failed)
+        iface.rerun_scripts(LevelEnum.step, db_s_id, "validate")
 
     with open(os.devnull, "wt") as fout:
         iface.print_table(fout, TableEnum.production)
@@ -503,7 +511,7 @@ def test_script_interface() -> None:
         iface.print_table(fout, TableEnum.job)
         iface.print_table(fout, TableEnum.dependency)
 
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test")
     os.unlink("fail.db")
 
 
@@ -512,7 +520,7 @@ def test_insert() -> None:
         os.unlink("test.db")
     except OSError:  # pragma: no cover
         pass
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test", ignore_errors=True)
 
     iface = SQLAlchemyInterface("sqlite:///test.db", echo=False, create=True)
 
@@ -577,8 +585,135 @@ def test_insert() -> None:
     )
     assert new_step
 
-    os.system("\\rm -rf archive_test")
+    shutil.rmtree("archive_test")
     os.unlink("test.db")
+
+
+def test_rescue() -> None:
+    try:
+        os.unlink("rescue.db")
+    except OSError:  # pragma: no cover
+        pass
+    shutil.rmtree("archive_rescue", ignore_errors=True)
+
+    iface = SQLAlchemyInterface("sqlite:///rescue.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
+
+    config_name = "test_failed"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+
+    db_p_id = iface.get_db_id(production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
+    iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        lsst_version="dummy",
+        prod_base_url="archive_rescue",
+    )
+
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
+        iface.queue_jobs(LevelEnum.campaign, db_c_id)
+        iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
+        db_g_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+        )
+        db_w_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+            workflow_idx=0,
+        )
+        iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.reviewable)
+        iface.fake_run(LevelEnum.step, db_s_id)
+        iface.set_job_status(LevelEnum.step, db_w_id, "job", 0, StatusEnum.rescuable)
+        iface.insert_rescue(db_w_id, "workflow_rescue")
+        iface.print_table(sys.stdout, TableEnum.workflow)
+        iface.print_table(sys.stdout, TableEnum.job)
+
+    shutil.rmtree("archive_rescue")
+    os.unlink("rescue.db")
+
+
+def test_requeue() -> None:
+    try:
+        os.unlink("requeue.db")
+    except OSError:  # pragma: no cover
+        pass
+    shutil.rmtree("archive_requeue", ignore_errors=True)
+
+    iface = SQLAlchemyInterface("sqlite:///requeue.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
+
+    config_name = "test_failed"
+    config_yaml = "example_config.yaml"
+
+    top_db_id = None
+    iface.insert(top_db_id, None, None, production_name="example")
+
+    db_p_id = iface.get_db_id(production_name="example")
+    config = iface.parse_config(config_name, config_yaml)
+
+    iface.insert(
+        db_p_id,
+        "campaign",
+        config,
+        production_name="example",
+        campaign_name="test",
+        butler_repo="repo",
+        lsst_version="dummy",
+        prod_base_url="archive_requeue",
+    )
+
+    db_c_id = iface.get_db_id(production_name="example", campaign_name="test")
+
+    for step_name in ["step1"]:
+        db_s_id = iface.get_db_id(production_name="example", campaign_name="test", step_name=step_name)
+        iface.queue_jobs(LevelEnum.campaign, db_c_id)
+        iface.launch_jobs(LevelEnum.campaign, db_c_id, 100)
+        db_g_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+        )
+        db_w_id = iface.get_db_id(
+            production_name="example",
+            campaign_name="test",
+            step_name=step_name,
+            group_name="group_4",
+            workflow_idx=0,
+        )
+        iface.fake_run(LevelEnum.group, db_g_id, StatusEnum.reviewable)
+        iface.fake_run(LevelEnum.step, db_s_id)
+        iface.set_job_status(LevelEnum.step, db_w_id, "job", 0, StatusEnum.failed)
+        iface.requeue_jobs(LevelEnum.workflow, db_w_id)
+        iface.queue_jobs(LevelEnum.workflow, db_w_id)
+        iface.launch_jobs(LevelEnum.campaign, db_w_id, 100)
+
+        iface.print_table(sys.stdout, TableEnum.workflow)
+        iface.print_table(sys.stdout, TableEnum.job)
+
+    shutil.rmtree("archive_requeue")
+    os.unlink("requeue.db")
 
 
 def test_bad_db() -> None:

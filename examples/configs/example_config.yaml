@@ -29,6 +29,9 @@ workflow:
     job_config: job
     scripts:
         - validate
+workflow_rescue:
+    includes: ["workflow"]
+    rescue: True
 group:
     class_name: lsst.cm.tools.db.group_handler.GroupHandler
     input_type: tagged
