@@ -644,6 +644,10 @@ class SQLAlchemyInterface(DbInterface):
     def report_error_trend(self, stream: TextIO, error_name: str) -> None:
         conn = self.connection()
         error_type = conn.execute(select(ErrorType).where(ErrorType.error_name == error_name)).scalar()
+        if error_type is None:
+            raise ValueError(
+                f"Unknown error: {error_name}.   Do cm print-table --table error_type to see known errors"
+            )
         for instance_ in error_type.instances_:
             stream.write(f"{instance_.job_.w_}\n")
 

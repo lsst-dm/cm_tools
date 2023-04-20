@@ -88,11 +88,13 @@ def test_error_matching() -> None:
 
     with open("examples/errors.yaml", "r") as error_file:
         errors_aggregate = yaml.safe_load(error_file)
-        iface.commit_errors(4, errors_aggregate)
+        iface.commit_errors(5, errors_aggregate)
 
+    iface.load_error_types("examples/configs/error_code_decisions.yaml")
     iface.rematch_errors()
-    iface.report_errors(sys.stdout, LevelEnum.group, db_g_id)
+    iface.report_errors(sys.stdout, LevelEnum.step, db_s_id)
+    iface.report_error_trend(sys.stdout, "kron_kron")
 
 
 if __name__ == "__main__":
-    test_error_handling()
+    test_error_matching()

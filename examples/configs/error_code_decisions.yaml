@@ -88,14 +88,6 @@ pandaErrorCode:
             rescue: False
             flavor: "pipelines"
             intensity: 0
-        vague_finalizeCharacterization:
-            diagMessage: "Failed to execute payload"
-            pipetask: finalizeCharacterization
-            ticket: ["DM-36066"]
-            resolved: True
-            rescue: True
-            flavor: "panda"
-            intensity: 0
         do_compute_kernel_image:
             diagMessage: >
                 Failed to execute payload:File \"src/CoaddPsf.cc\", line 254, in virtual std:shared_ptr > lsst:meas:algorithms:
@@ -124,6 +116,17 @@ pandaErrorCode:
             intensity: 0.001
         array_sample_empty:
             diagMessage: "Failed to execute payload:array of sample points is empty"
+            pipetask: subtractImages
+            ticket: ["DM-37570"]
+            resolved: False
+            rescue: False
+            flavor: "pipelines"
+            intensity: 0.001
+        kron_kron:
+            diagMessage: >
+                 Failed to execute payload:Unable to measure aperture correction
+                 for required algorithm 'ext_photometryKron_KronFlux': only 0 sources remain,
+                 but require at least 2.
             pipetask: subtractImages
             ticket: ["DM-37570"]
             resolved: False

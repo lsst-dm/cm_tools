@@ -1,8 +1,9 @@
 152029:
 - data_id: 008058:861192d5-2e1d-45db-b656-5e658b10a344_characterizeImage_1180_102+qgraphNodeId:861192d5-2e1d-45db-b656-5e658b10a344+qgraphId:1681435625.6841137-428946
-  diagnostic_message: 'Failed to execute payload:Unable to measure aperture correction
-    for required algorithm ''ext_photometryKron_KronFlux'': only 0 sources remain,
-    but require at least 2.'
+  diagnostic_message: >
+    Failed to execute payload:Unable to measure aperture correction
+    for required algorithm 'ext_photometryKron_KronFlux': only 0 sources remain,
+    but require at least 2.
   error_type: null
   log_file_url: https://storage.googleapis.com/drp-us-central1-logging/logs/SLAC_Rubin/PandaJob_43600396/pilotlog.txt
   panda_err_code: pilot, 1305
