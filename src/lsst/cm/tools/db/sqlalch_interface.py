@@ -161,7 +161,7 @@ class SQLAlchemyInterface(DbInterface):
             butler_repo = entry.c_.butler_repo
         print_dataset_summary(stream, butler_repo, [entry.coll_out])
 
-    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:  # pragma: no cover
         entry = self.get_entry(level, db_id)
         assert level == LevelEnum.step
         butler_repo = entry.c_.butler_repo

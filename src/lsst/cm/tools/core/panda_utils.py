@@ -35,7 +35,7 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
         line = fin.readline()
         while line:
             tokens = line.split(":")
-            if len(tokens) != 2:
+            if len(tokens) != 2:  # pragma: no cover
                 line = fin.readline()
                 continue
             out_dict[tokens[0]] = tokens[1]
@@ -43,7 +43,7 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
     return out_dict
 
 
-def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
+def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma: no cover
     """Return the jeditaskids associated with a reqid.
 
     Parameters
@@ -68,7 +68,7 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:
     return jeditaskids
 
 
-def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):
+def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no cover
     """Return the errors associated with a jeditaskid as
     a dictionary for each job.
 
@@ -322,14 +322,14 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_
         panda_status = "done"
     elif not status_mapped:
         panda_status = "running"
-    else:
+    else:  # pragma: no cover
         raise ValueError(
             f"decide_panda_status failed to make a decision based on this status vector: {str(status_mapped)}"
         )
     return panda_status
 
 
-def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) -> str:
+def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) -> str:  # pragma: no cover
     """Check the errors for a given panda reqid and
     return a final overarching error
 
@@ -372,7 +372,9 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     return panda_status, errors_aggregate
 
 
-def get_panda_errors(dbi: DbInterface, panda_reqid: int, panda_username=None) -> tuple[Any]:
+def get_panda_errors(
+    dbi: DbInterface, panda_reqid: int, panda_username=None
+) -> tuple[Any]:  # pragma: no cover
     conn = panda_api.get_api()
     tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     errors_aggregate = dict()

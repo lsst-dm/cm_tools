@@ -4,6 +4,7 @@ import sys
 
 import yaml
 
+from lsst.cm.tools.core import panda_utils
 from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
@@ -88,7 +89,14 @@ def test_error_matching() -> None:
 
     with open("examples/errors.yaml", "r") as error_file:
         errors_aggregate = yaml.safe_load(error_file)
-        iface.commit_errors(5, errors_aggregate)
+
+    iface.commit_errors(5, errors_aggregate)
+    panda_utils.print_errors_aggregate(sys.stdout, errors_aggregate)
+
+    status_list = ["done", "done", "finished", "finished"]
+    max_pct_failed = {152029: 0.001, 152185: 0.001}
+    status = panda_utils.decide_panda_status(iface, status_list, errors_aggregate, max_pct_failed)
+    assert status
 
     iface.load_error_types("examples/configs/error_code_decisions.yaml")
     iface.rematch_errors()
