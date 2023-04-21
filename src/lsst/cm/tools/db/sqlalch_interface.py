@@ -76,7 +76,9 @@ class SQLAlchemyInterface(DbInterface):
         if n_tokens >= 4:
             names["group_name"] = tokens[3]
         if n_tokens >= 5:
-            names["workflow_idx"] = tokens[4]
+            # this strip helps with internal database
+            # calls
+            names["workflow_idx"] = tokens[4].strip("w")
         return names
 
     def _get_db_id_from_fullname(self, fullname: str) -> DbId:
