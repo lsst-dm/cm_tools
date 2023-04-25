@@ -622,6 +622,7 @@ class SQLAlchemyInterface(DbInterface):
                     break
                 stream.write(
                     f"""\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\t
+                    Pipetask: {err.pipetask}\n
                     Diag Message: {err.diagnostic_message}\n"""
                 )
 
