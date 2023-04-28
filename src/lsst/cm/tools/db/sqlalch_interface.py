@@ -374,7 +374,7 @@ class SQLAlchemyInterface(DbInterface):
     def accept(self, level: LevelEnum, db_id: DbId, rescuable: bool = False) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        db_id_list = handler.accept(self, entry)
+        db_id_list = handler.accept(self, entry, rescuable)
         self.connection().commit()
         self.check(level, db_id)
         return db_id_list
