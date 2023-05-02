@@ -614,7 +614,7 @@ class SQLAlchemyInterface(DbInterface):
         for error_name, error_list in error_dict.items():
             stream.write(f"Error: {error_name}\n")
             truncate_limit = 10
-            if error_name == "None":
+            if error_name is None:
                 truncate_limit = 1000
             for i, err in enumerate(error_list):
                 if i > truncate_limit:
