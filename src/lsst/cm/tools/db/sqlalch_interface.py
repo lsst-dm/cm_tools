@@ -16,6 +16,7 @@ from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
+from lsst.cm.tools.db.dependency import Dependency
 from lsst.cm.tools.db.error_table import ErrorAction, ErrorFlavor, ErrorInstance, ErrorType
 from lsst.cm.tools.db.job import Job
 from lsst.cm.tools.db.production import Production
@@ -208,6 +209,43 @@ class SQLAlchemyInterface(DbInterface):
         self.connection().commit()
         self.check(new_entry.level, new_entry.db_id)
         return new_entry
+
+    def insert_step(
+        self,
+        parent_db_id: DbId,
+        config_block: str,
+        **kwargs: Any,
+    ) -> CMTableBase:
+        parent_level = parent_db_id.level()
+        campaign = self.get_entry(parent_level, parent_db_id)
+        config = campaign.config_
+        step_handler = config.get_sub_handler(config_block)
+        step_prereqs = step_handler.config.get("prerequisites")
+        prereq_ids = []
+        if not step_prereqs:
+            coll_source = campaign.coll_in
+        else:
+            coll_source = ""
+            for prereq_step in step_prereqs:
+                prereq = self.get_entry_from_parent(campaign.db_id, prereq_step)
+                prereq_ids.append(prereq.db_id)
+                coll_source += prereq.coll_out
+                coll_source += ","
+            coll_source.strip(",")
+
+        new_step = step_handler.insert(
+            self,
+            campaign,
+            production_name=campaign.p_.name,
+            campaign_name=campaign.name,
+            step_name=config_block,
+            coll_source=coll_source,
+        )
+        for prereq_id in prereq_ids:
+            Dependency.add_prerequisite(self, new_step.db_id, prereq_id)
+        self.connection().commit()
+        self.check(new_step.level, new_step.db_id)
+        return new_step
 
     def insert_rescue(
         self,

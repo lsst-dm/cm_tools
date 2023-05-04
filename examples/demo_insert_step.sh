@@ -31,7 +31,7 @@ cm launch --fullname ${full_name}
 cm fake-run --fullname ${full_name}
 
 cm extend --config-name test_config --config-yaml example_extra_step.yaml
-cm insert --production-name ${p_name} --campaign-name ${c_name} --step-name extra_step --config-name test_config --config-block extra_step
+cm insert-step --production-name ${p_name} --campaign-name ${c_name} --config-block extra_step
 cm accept --fullname ${full_name}
 
 cm print-table --table campaign
