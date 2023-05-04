@@ -498,6 +498,8 @@ def test_script_interface() -> None:
             if script_.superseded:
                 continue
             assert script_.status == StatusEnum.running
+        check_step.print_full()
+        check_step.print_formatted(sys.stdout, "{status}")
         iface.set_script_status(LevelEnum.step, db_s_id, "validate", idx=1, status=StatusEnum.failed)
         iface.rerun_scripts(LevelEnum.step, db_s_id, "validate")
 

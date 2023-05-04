@@ -161,7 +161,7 @@ class SQLAlchemyInterface(DbInterface):
             butler_repo = entry.c_.butler_repo
         print_dataset_summary(stream, butler_repo, [entry.coll_out])
 
-    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:
+    def associate_kludge(self, level: LevelEnum, db_id: DbId) -> None:  # pragma: no cover
         entry = self.get_entry(level, db_id)
         assert level == LevelEnum.step
         butler_repo = entry.c_.butler_repo
@@ -644,6 +644,10 @@ class SQLAlchemyInterface(DbInterface):
     def report_error_trend(self, stream: TextIO, error_name: str) -> None:
         conn = self.connection()
         error_type = conn.execute(select(ErrorType).where(ErrorType.error_name == error_name)).scalar()
+        if error_type is None:
+            raise ValueError(
+                f"Unknown error: {error_name}.   Do cm print-table --table error_type to see known errors"
+            )
         for instance_ in error_type.instances_:
             stream.write(f"{instance_.job_.w_}\n")
 
