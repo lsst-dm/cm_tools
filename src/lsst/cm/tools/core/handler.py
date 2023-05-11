@@ -543,7 +543,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def reject(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def reject(self, dbi: DbInterface, entry: Any, purge: bool = False) -> list[DbId]:
         """Reject this entry and any children
 
         Parameters
@@ -553,6 +553,9 @@ class EntryHandlerBase(Handler):
 
         entry: Any
             Entry in question
+
+        purge: bool
+            Remove the assocatied collections
 
         Returns
         -------
@@ -683,7 +686,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+    def reject_hook(self, dbi: DbInterface, entry: Any, purge: bool = False) -> None:
         """Called when a particular entry is rejected
 
         Allows users to do any extra operations associated
@@ -696,10 +699,14 @@ class EntryHandlerBase(Handler):
 
         entry : Any
             Entry in question
+
+        purge: bool
+            Remove the assocatied collections
+
         """
         raise NotImplementedError()
 
-    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+    def supersede_hook(self, dbi: DbInterface, entry: Any, purge: bool = False) -> None:
         """Called when a particular entry is superseded
 
         Allows users to do any extra operations associated
@@ -712,10 +719,15 @@ class EntryHandlerBase(Handler):
 
         entry : Any
             Entry in question
+
+        purge: bool
+            Remove the assocatied collections
         """
         raise NotImplementedError()
 
-    def rollback(self, dbi: DbInterface, entry: Any, to_status: StatusEnum) -> list[DbId]:
+    def rollback(
+        self, dbi: DbInterface, entry: Any, to_status: StatusEnum, purge: bool = False
+    ) -> list[DbId]:
         """Called to 'roll-back' a partiuclar entry
 
         Calling this function can result in scripts and child entries
@@ -736,6 +748,9 @@ class EntryHandlerBase(Handler):
         to_status : StatusEnum
             Status we want to roll back to
 
+        purge: bool
+            Remove the assocatied collections
+
         Returns
         -------
         db_ids : list[DbId]
@@ -743,7 +758,7 @@ class EntryHandlerBase(Handler):
         """
         raise NotImplementedError()
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def supersede(self, dbi: DbInterface, entry: Any, purge: bool = False) -> list[DbId]:
         """Called to mark an entry as superseded
 
         Superseded entries are ignored in futher processing, and
@@ -756,6 +771,9 @@ class EntryHandlerBase(Handler):
 
         entry : Any
             Entry in question
+
+        purge: bool
+            Remove the assocatied collections
 
         Returns
         -------

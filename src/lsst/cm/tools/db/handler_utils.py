@@ -322,7 +322,7 @@ def accept_children(dbi: DbInterface, children: Iterable, rescuable: bool = Fals
     return db_id_list
 
 
-def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+def reject_entry(dbi: DbInterface, handler: Handler, entry: Any, purge: bool = False) -> list[DbId]:
     """Reject an entry
 
     Notes
@@ -340,35 +340,39 @@ def reject_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
     if entry.status == StatusEnum.accepted:
         raise ValueError("Rejecting an already accepted entry {entry.db_id}")
     entry.update_values(dbi, entry.id, status=StatusEnum.rejected)
-    handler.reject_hook(dbi, entry)
+    handler.reject_hook(dbi, entry, purge)
     return [entry.db_id]
 
 
-def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType) -> None:
+def rollback_scripts(dbi: DbInterface, entry: Any, script_type: ScriptType, purge: bool = False) -> None:
     """Rollback scripts associated with an entry"""
     for script in entry.scripts_:
         if script.script_type == script_type:
-            Script.rollback_script(dbi, entry, script)
+            Script.rollback_script(dbi, entry, script, purge)
 
 
-def rollback_jobs(dbi: DbInterface, entry: Any) -> None:
+def rollback_jobs(dbi: DbInterface, entry: Any, purge: bool = False) -> None:
     """Rollback jobs associated with an entry"""
     for job in entry.jobs_:
-        Job.rollback_script(dbi, entry, job)
+        Job.rollback_script(dbi, entry, job, purge)
 
 
-def rollback_children(dbi: DbInterface, itr: Iterable, to_status: StatusEnum) -> list[DbId]:
+def rollback_children(
+    dbi: DbInterface, itr: Iterable, to_status: StatusEnum, purge: bool = False
+) -> list[DbId]:
     """Rollback all members of an entry collection"""
     db_id_list: list[DbId] = []
     for entry in itr:
         if entry.status.value <= to_status.value:
             continue
         handler = entry.get_handler()
-        db_id_list += handler.rollback(dbi, entry, to_status)
+        db_id_list += handler.rollback(dbi, entry, to_status, purge)
     return db_id_list
 
 
-def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: StatusEnum) -> list[DbId]:
+def rollback_entry(
+    dbi: DbInterface, handler: Handler, entry: Any, to_status: StatusEnum, purge: bool = False
+) -> list[DbId]:
     """Roll-back an entry to a lower status"""
     status_val = entry.status.value
     if status_val < 0:
@@ -378,16 +382,16 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
         return db_id_list
     while status_val >= to_status.value:
         if status_val == StatusEnum.completed.value:
-            rollback_scripts(dbi, entry, ScriptType.validate)
+            rollback_scripts(dbi, entry, ScriptType.validate, purge)
         elif status_val == StatusEnum.collectable.value:
-            rollback_scripts(dbi, entry, ScriptType.collect)
+            rollback_scripts(dbi, entry, ScriptType.collect, purge)
         elif status_val == StatusEnum.populating.value:
-            rollback_jobs(dbi, entry)
-            db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared)
+            rollback_jobs(dbi, entry, purge)
+            db_id_list += handler.rollback_subs(dbi, entry, StatusEnum.prepared, purge)
         elif status_val == StatusEnum.prepared.value:
-            supersede_children(dbi, entry.children())
+            supersede_children(dbi, entry.children(), purge)
         elif status_val == StatusEnum.ready.value:
-            rollback_scripts(dbi, entry, ScriptType.prepare)
+            rollback_scripts(dbi, entry, ScriptType.prepare, purge)
         status_val -= 1
     db_id_list.append(entry.db_id)
 
@@ -395,17 +399,17 @@ def rollback_entry(dbi: DbInterface, handler: Handler, entry: Any, to_status: St
     return db_id_list
 
 
-def supersede_children(dbi: DbInterface, itr: Iterable) -> list[DbId]:
+def supersede_children(dbi: DbInterface, itr: Iterable, purge: bool = False) -> list[DbId]:
     """Supersede all members of and entry collection"""
     db_id_list: list[DbId] = []
     for entry in itr:
         handler = entry.get_handler()
-        db_id_list += handler.supersede(dbi, entry)
+        db_id_list += handler.supersede(dbi, entry, purge)
     return db_id_list
 
 
-def supersede_entry(dbi: DbInterface, handler: Handler, entry: Any) -> list[DbId]:
+def supersede_entry(dbi: DbInterface, handler: Handler, entry: Any, purge: bool = False) -> list[DbId]:
     """Supersede an entry"""
     entry.update_values(dbi, entry.id, superseded=True)
-    handler.supersede_hook(dbi, entry)
+    handler.supersede_hook(dbi, entry, purge)
     return [entry.db_id]

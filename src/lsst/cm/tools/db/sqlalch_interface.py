@@ -432,10 +432,10 @@ class SQLAlchemyInterface(DbInterface):
         self.connection().commit()
         return db_id_list
 
-    def supersede(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def supersede(self, level: LevelEnum, db_id: DbId, purge: bool = False) -> list[DbId]:
         entry = self.get_entry(level, db_id)
         handler = entry.get_handler()
-        db_id_list = handler.supersede(self, entry)
+        db_id_list = handler.supersede(self, entry, purge)
         self.connection().commit()
         return db_id_list
 

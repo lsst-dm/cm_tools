@@ -4,7 +4,7 @@ from typing import Any
 from lsst.cm.tools.core.db_interface import DbInterface, ScriptBase
 from lsst.cm.tools.core.handler import ScriptHandlerBase
 from lsst.cm.tools.core.script_utils import (
-    FakeRollback,
+    RollbackNonRun,
     YamlChecker,
     make_butler_associate_command,
     make_butler_chain_command,
@@ -46,7 +46,7 @@ class ScriptHandler(ScriptHandlerBase):
         ScriptMethod.bash: YamlChecker,
         ScriptMethod.slurm: SlurmChecker,
     }
-    rollback_class_name = FakeRollback().get_rollback_class_name()
+    rollback_class_name = RollbackNonRun().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> ScriptBase:
         kwcopy = kwargs.copy()

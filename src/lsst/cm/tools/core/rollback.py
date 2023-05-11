@@ -50,7 +50,7 @@ class Rollback:
         """Return this class's full name"""
         return get_full_type_name(self)
 
-    def rollback_script(self, entry: CMTableBase, script: TableBase) -> None:
+    def rollback_script(self, entry: CMTableBase, script: TableBase, purge: bool = False) -> None:
         """Rollback the script in question
 
         Parameters

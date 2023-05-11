@@ -361,13 +361,14 @@ def reject(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None
 @options.group()
 @options.workflow()
 @options.script_method()
+@options.purge()
 def supersede(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Mark entries as superseded so that they will be ignored in subsequent
     processing
     """
     Handler.script_method = script_method
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.supersede(the_db_id.level(), the_db_id)
+    dbi.supersede(the_db_id.level(), the_db_id, kwargs.get("purge", False))
 
 
 @cli.command()

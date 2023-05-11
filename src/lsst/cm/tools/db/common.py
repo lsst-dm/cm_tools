@@ -94,10 +94,12 @@ class SQLScriptMixin(SQLTableMixin):
         return script.status
 
     @classmethod
-    def rollback_script(cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase) -> None:
+    def rollback_script(
+        cls, dbi: DbInterface, entry: CMTableBase, script: ScriptBase, purge: bool = False
+    ) -> None:
         """Rollback a script"""
         rollback_handler = Rollback.get_rollback(script.rollback)
-        rollback_handler.rollback_script(entry, script)
+        rollback_handler.rollback_script(entry, script, purge)
         cls.update_values(dbi, script.id, superseded=True)
 
 
