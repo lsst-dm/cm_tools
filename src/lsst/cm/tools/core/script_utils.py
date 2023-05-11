@@ -252,6 +252,7 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
             fout.write(f'echo "status: {stamp}" > {os.path.abspath(script.stamp_url)}\n')
         if callback:  # pragma: no cover
             raise NotImplementedError()
+    return script_url
 
 
 def run_script(script: ScriptBase, url: str, log_url: str):
