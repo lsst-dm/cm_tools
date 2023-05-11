@@ -78,7 +78,7 @@ def insert_step(
     script_method: ScriptMethod,
     **kwargs: Any,
 ) -> None:
-    """Insert a new database entry at a particular level"""
+    """Insert a new step into an existing campaign"""
     Handler.script_method = script_method
     fullname = kwargs.pop("fullname")
     if fullname is not None:
