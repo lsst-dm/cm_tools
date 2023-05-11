@@ -466,6 +466,32 @@ class DbInterface:
         """
         raise NotImplementedError()
 
+    def insert_step(
+        self,
+        parent_db_id: DbId,
+        config_block: str,
+        **kwargs: Any,
+    ) -> CMTableBase:
+        """Insert a new step into a campaign
+
+        Parameters
+        ----------
+        parent_db_id : DbId
+            Specifies the parent entry to the entry we are inserting
+
+        config_block: str
+            Specifics which part of the configuration to use for this entry
+
+        kwargs : Any
+            These can be used to override configuration values
+
+        Returns
+        -------
+        new_entry : CMTableBase
+            Newly inserted entry
+        """
+        raise NotImplementedError()
+
     def insert_rescue(
         self,
         db_id: DbId,

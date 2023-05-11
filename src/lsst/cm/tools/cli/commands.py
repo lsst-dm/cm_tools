@@ -8,7 +8,7 @@ from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.handler import Handler
 from ..core.panda_utils import PandaChecker, print_errors_aggregate
-from ..core.utils import ScriptMethod, StatusEnum, TableEnum
+from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
 
 
 @click.group()
@@ -63,6 +63,34 @@ def insert(
     else:
         the_config = None
     dbi.insert(the_db_id, config_block, the_config, **kwargs)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
+@options.production()
+@options.campaign()
+@options.config_block()
+@options.script_method()
+def insert_step(
+    dbi: DbInterface,
+    config_block: str,
+    script_method: ScriptMethod,
+    **kwargs: Any,
+) -> None:
+    """Insert a new step into an existing campaign"""
+    Handler.script_method = script_method
+    fullname = kwargs.pop("fullname")
+    if fullname is not None:
+        names = dbi.parse_fullname(fullname)
+        kwargs.update(**names)
+        the_db_id = dbi.get_db_id(**names)
+    else:
+        the_db_id = dbi.get_db_id(**kwargs)
+
+    assert the_db_id.level() == LevelEnum.campaign
+    assert config_block is not None
+    dbi.insert_step(the_db_id, config_block, **kwargs)
 
 
 @cli.command()

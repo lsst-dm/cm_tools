@@ -575,15 +575,13 @@ def test_insert() -> None:
     assert new_group
 
     new_step_config = iface.extend_config(config_name, "example_extra_step.yaml")
+    assert new_step_config
 
-    new_step = iface.insert(
+    new_step = iface.insert_step(
         db_c_id,
         "extra_step",
-        new_step_config,
         production_name="example",
         campaign_name="test",
-        step_name="extra_step",
-        coll_source="{root_coll}/{fullname}_input",
     )
     assert new_step
 
