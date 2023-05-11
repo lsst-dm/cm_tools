@@ -693,7 +693,7 @@ class SQLAlchemyInterface(DbInterface):
         conn = self.connection()
         config = conn.execute(select(Config).where(Config.name == config_name)).scalar()
         assert config is not None
-        fragment_names = self._build_fragments(config_name, config_yaml)
+        fragment_names = self._build_fragments(config_name, config_yaml, config)
         frag_list = [
             conn.execute(select(Fragment.id).where(Fragment.fullname == frag_name)).scalar()
             for frag_name in fragment_names
@@ -707,7 +707,7 @@ class SQLAlchemyInterface(DbInterface):
         conn.commit()
         return config
 
-    def _build_fragments(self, config_name: str, config_yaml: str) -> list[str]:
+    def _build_fragments(self, config_name: str, config_yaml: str, config: Config | None = None) -> list[str]:
         if Handler.config_dir is not None:
             config_yaml = os.path.join(Handler.config_dir, config_yaml)
         with open(config_yaml, "rt", encoding="utf-8") as config_file:
@@ -726,7 +726,10 @@ class SQLAlchemyInterface(DbInterface):
             includes = val.pop("includes", [])
             data = val.copy()
             for include_ in includes:
-                data.update(config_data[include_])
+                if include_ in config_data:
+                    data.update(config_data[include_])
+                else:
+                    data.update(config.get_fragment(include_).data)
             handler = data.pop("class_name", None)
             if handler is None:
                 continue
