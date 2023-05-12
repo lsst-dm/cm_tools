@@ -583,7 +583,7 @@ def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> li
 def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
-    errors_aggregate, _ = pc.get_panda_errors(dbi, panda_url, panda_username)
+    errors_aggregate, _, _ = pc.get_panda_errors(dbi, panda_url, panda_username)
     print_errors_aggregate(sys.stdout, errors_aggregate)
 
 

@@ -353,7 +353,10 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
         we want to update the error instance db with
     """
     # first pull down all the tasks
-    errors_aggregate, tasks = get_panda_errors(dbi, int(panda_reqid), panda_username)
+    errors_aggregate, tasks, merging = get_panda_errors(dbi, int(panda_reqid), panda_username)
+    if not merging:
+        return "running", {}
+
     statuses = [task["status"] for task in tasks]
 
     # then pull all the errors for the tasks
@@ -378,11 +381,18 @@ def get_panda_errors(
     conn = panda_api.get_api()
     tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     errors_aggregate = dict()
+    has_merging = False
+    for task in tasks:
+        if task["taskname"].find("mergeExecutionButler") >= 0:
+            has_merging = True
+    if not has_merging:
+        return {}, tasks, False
+
     jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
     for jtid in jtids:
         errors_dict = get_errors_from_jeditaskid(dbi, jtid)
         errors_aggregate[jtid] = errors_dict
-    return errors_aggregate, tasks
+    return errors_aggregate, tasks, True
 
 
 class PandaChecker(SlurmChecker):  # pragma: no cover
