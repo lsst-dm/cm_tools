@@ -72,10 +72,12 @@ def build_data_queries(
 
     while idx < n_matched:
         idx += step_size
-        max_idx = min(idx, n_matched - 1)
         min_val = sorted_field_values[previous_idx]
-        max_val = sorted_field_values[max_idx]
-        ret_list.append(f"({min_val} <= {field}) and ({field} < {max_val})")
+        if idx >= n_matched:
+            ret_list.append(f"({min_val} <= {field})")
+        else:
+            max_val = max(sorted_field_values[idx], min_val + 1)
+            ret_list.append(f"({min_val} <= {field}) and ({field} < {max_val})")
         previous_idx = idx
 
     return ret_list
