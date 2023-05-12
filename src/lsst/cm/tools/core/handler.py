@@ -122,7 +122,10 @@ class Handler:
             2. Return the value from the config if it is present there
             3. Return the provided default value
         """
-        return kwargs.get(varname, self.config.get(varname, default))
+        val = kwargs.get(varname, None)
+        if val is None:
+            val = self.config.get(varname, default)
+        return val
 
     @staticmethod
     def get_kwarg_value(key: str, **kwargs: Any) -> Any:
