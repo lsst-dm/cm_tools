@@ -790,7 +790,6 @@ class SQLAlchemyInterface(DbInterface):
             StatusEnum.failed,
             StatusEnum.rejected,
             StatusEnum.reviewable,
-            StatusEnum.rescuable,
         ]
         for script_ in entry.scripts_:
             if script_.superseded:
@@ -803,4 +802,7 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             if job_.status in terminal_states:
                 return True
+            if job_.status == StatusEnum.rescuable:
+                if job_.w_.status in terminal_states:
+                    return True
         return False
