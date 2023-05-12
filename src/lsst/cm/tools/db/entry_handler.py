@@ -69,32 +69,36 @@ class EntryHandler(EntryHandlerBase):
         db_id_list += accept_entry(dbi, self, entry, rescuable)
         return db_id_list
 
-    def reject(self, dbi: DbInterface, entry: CMTable) -> list[DbId]:
-        return reject_entry(dbi, self, entry)
+    def reject(self, dbi: DbInterface, entry: CMTable, purge: bool = False) -> list[DbId]:
+        return reject_entry(dbi, self, entry, purge)
 
-    def rollback(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> StatusEnum:
-        return rollback_entry(dbi, self, entry, to_status)
+    def rollback(
+        self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum, purge: bool = False
+    ) -> StatusEnum:
+        return rollback_entry(dbi, self, entry, to_status, purge)
 
-    def supersede(self, dbi: DbInterface, entry: Any) -> list[DbId]:
+    def supersede(self, dbi: DbInterface, entry: Any, purge: bool = False) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
-            db_id_list += supersede_children(dbi, itr)
-        db_id_list += supersede_entry(dbi, self, entry)
+            db_id_list += supersede_children(dbi, itr, purge)
+        db_id_list += supersede_entry(dbi, self, entry, purge)
         return db_id_list
 
-    def rollback_subs(self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum) -> list[DbId]:
+    def rollback_subs(
+        self, dbi: DbInterface, entry: CMTable, to_status: StatusEnum, purge: bool = False
+    ) -> list[DbId]:
         db_id_list: list[DbId] = []
         for itr in entry.sub_iterators():
-            db_id_list = rollback_children(dbi, itr, to_status)
+            db_id_list = rollback_children(dbi, itr, to_status, purge)
         return db_id_list
 
     def accept_hook(self, dbi: DbInterface, entry: Any) -> None:
         pass
 
-    def reject_hook(self, dbi: DbInterface, entry: Any) -> None:
+    def reject_hook(self, dbi: DbInterface, entry: Any, purge: bool = False) -> None:
         pass
 
-    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
+    def supersede_hook(self, dbi: DbInterface, entry: Any, purge: bool = False) -> None:
         pass
 
     def _make_jobs(self, dbi: DbInterface, entry: Any) -> None:

@@ -1,4 +1,5 @@
 import os
+import subprocess
 from typing import Any, Optional
 
 import yaml
@@ -6,7 +7,8 @@ import yaml
 from lsst.cm.tools.core.checker import Checker
 from lsst.cm.tools.core.db_interface import CMTableBase, DbInterface, ScriptBase, TableBase
 from lsst.cm.tools.core.rollback import Rollback
-from lsst.cm.tools.core.utils import StatusEnum, safe_makedirs
+from lsst.cm.tools.core.slurm_utils import submit_job
+from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum, safe_makedirs
 
 
 def write_status_to_yaml(stamp_url: str, status: StatusEnum) -> None:
@@ -126,6 +128,26 @@ def make_butler_remove_collection_command(butler_repo: str, coll_out: str) -> st
     return command
 
 
+def make_butler_remove_run_command(butler_repo: str, coll_out: str) -> str:
+    """Build and return a butler remove-collection command
+
+    Parameters
+    ----------
+    butler_repo : str
+        Butler repo being used
+
+    coll_out : str
+        This collection will be removed
+
+    Returns
+    -------
+    command : str
+        Requested butler command
+    """
+    command = f"butler remove-runs --purge {butler_repo} {coll_out}"
+    return command
+
+
 def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -> str:
     """Build and return command to run validation
 
@@ -212,9 +234,12 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
     stamp = kwargs.get("stamp")
     callback = kwargs.get("callback")
     fake = kwargs.get("fake")
+    rollback_prefix = kwargs.get("rollback", "")
 
-    safe_makedirs(os.path.dirname(script.script_url))
-    with open(script.script_url, "wt", encoding="utf-8") as fout:
+    script_url = f"{rollback_prefix}{script.script_url}"
+
+    safe_makedirs(os.path.dirname(script_url))
+    with open(script_url, "wt", encoding="utf-8") as fout:
         if prepend:
             fout.write(f"{prepend}\n")
         if fake:
@@ -227,6 +252,14 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
             fout.write(f'echo "status: {stamp}" > {os.path.abspath(script.stamp_url)}\n')
         if callback:  # pragma: no cover
             raise NotImplementedError()
+    return script_url
+
+
+def run_script(script: ScriptBase, url: str, log_url: str):
+    if script.script_method == ScriptMethod.bash:
+        subprocess.run(["/bin/bash", url])
+    elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
+        submit_job(url, log_url)
 
 
 class YamlChecker(Checker):
@@ -242,6 +275,25 @@ class YamlChecker(Checker):
 class FakeRollback(Rollback):
     """Fakes a command that would remove collections associated to a script"""
 
-    def rollback_script(self, entry: CMTableBase, script: TableBase) -> None:
+    def rollback_script(self, entry: CMTableBase, script: TableBase, purge: bool = False) -> None:
+        command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out, purge)
+        url = write_command_script(script, command, rollback="rollback_", fake=True)
+        run_script(script, url, url.replace(".sh", ".log"))
+
+
+class RollbackRun(Rollback):
+    """Remove a run collection"""
+
+    def rollback_script(self, entry: CMTableBase, script: TableBase, purge: bool = False) -> None:
         command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out)
-        print(f"Rolling back {script.db_id}.{script.name} with {command}")
+        url = write_command_script(script, command, rollback="rollback_", fake=not purge)
+        run_script(script, url, url.replace(".sh", ".log"))
+
+
+class RollbackNonRun(Rollback):
+    """Remove a run collection"""
+
+    def rollback_script(self, entry: CMTableBase, script: TableBase, purge: bool = False) -> None:
+        command = make_butler_remove_collection_command(entry.butler_repo, script.coll_out)
+        url = write_command_script(script, command, rollback="rollback_", fake=not purge)
+        run_script(script, url, url.replace(".sh", ".log"))

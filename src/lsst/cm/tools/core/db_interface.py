@@ -725,7 +725,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def supersede(self, level: LevelEnum, db_id: DbId) -> list[DbId]:
+    def supersede(self, level: LevelEnum, db_id: DbId, purge: bool = False) -> list[DbId]:
         """Mark entries as superseded so that they will be ignored
         in subsequent processing
 
@@ -736,6 +736,9 @@ class DbInterface:
 
         db_id : DbId
             Specifies the entries we are superseding
+
+        purgse: bool
+            Remove superseded collections from butler
 
         Returns
         -------

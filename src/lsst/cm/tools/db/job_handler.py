@@ -7,7 +7,7 @@ import yaml
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.handler import JobHandlerBase
 from lsst.cm.tools.core.panda_utils import PandaChecker
-from lsst.cm.tools.core.script_utils import FakeRollback, YamlChecker, make_bps_command, write_command_script
+from lsst.cm.tools.core.script_utils import RollbackRun, YamlChecker, make_bps_command, write_command_script
 from lsst.cm.tools.core.slurm_utils import submit_job
 from lsst.cm.tools.core.utils import ScriptMethod, StatusEnum
 from lsst.cm.tools.db.job import Job
@@ -43,7 +43,7 @@ class JobHandler(JobHandlerBase):
         ScriptMethod.slurm: PandaChecker,
     }
 
-    rollback_class_name = FakeRollback().get_rollback_class_name()
+    rollback_class_name = RollbackRun().get_rollback_class_name()
 
     def insert(self, dbi: DbInterface, parent: Any, **kwargs: Any) -> JobBase:
         kwcopy = kwargs.copy()

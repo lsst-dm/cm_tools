@@ -78,5 +78,5 @@ class WorkflowHandler(GenericEntryHandler):
     def make_children(self, dbi: DbInterface, entry: Workflow) -> StatusEnum:
         return StatusEnum.populating
 
-    def supersede_hook(self, dbi: DbInterface, entry: Any) -> None:
-        rollback_jobs(dbi, entry)
+    def supersede_hook(self, dbi: DbInterface, entry: Any, purge: bool = False) -> None:
+        rollback_jobs(dbi, entry, purge)
