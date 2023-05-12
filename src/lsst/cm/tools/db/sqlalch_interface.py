@@ -403,6 +403,7 @@ class SQLAlchemyInterface(DbInterface):
             parent = script_.parent()
             handler = parent.get_handler()
             handler.rerun_script(self, parent, script_name, script_.script_type)
+            script_.update_values(self, script_.id, status=StatusEnum.running)
             parent.update_values(self, parent.id, status=parent_status_map[script_.script_type])
             db_id_list.append(parent.db_id)
         self.connection().commit()
