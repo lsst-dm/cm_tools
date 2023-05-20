@@ -124,7 +124,7 @@ class StepHandler(GenericEntryHandler):
             campaign_name=entry.c_.name,
             step_name=entry.name,
         )
-        data_query_base = self.config["data_query_base"]
+        data_query_base = self.config.get("data_query_base", "")
         split_args = self.config.get("split_args", {})
         split_vals = self.config.get("split_vals", {})
         if split_args:
