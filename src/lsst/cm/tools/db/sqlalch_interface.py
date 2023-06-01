@@ -13,7 +13,7 @@ from lsst.cm.tools.core.butler_utils import butler_associate_kludge, print_datas
 from lsst.cm.tools.core.db_interface import CMTableBase, ConfigBase, DbInterface, JobBase, ScriptBase
 from lsst.cm.tools.core.dbid import DbId
 from lsst.cm.tools.core.handler import Handler
-from lsst.cm.tools.core.utils import LevelEnum, ScriptType, StatusEnum, TableEnum
+from lsst.cm.tools.core.utils import LevelEnum, ScriptMethod, ScriptType, StatusEnum, TableEnum
 from lsst.cm.tools.db import common, top
 from lsst.cm.tools.db.config import Config, ConfigAssociation, Fragment
 from lsst.cm.tools.db.dependency import Dependency
@@ -559,20 +559,20 @@ class SQLAlchemyInterface(DbInterface):
             self.queue_jobs(LevelEnum.campaign, db_id)
             self.launch_jobs(LevelEnum.campaign, db_id, max_running)
             self.check(LevelEnum.campaign, db_id)
+            if Handler.script_method == ScriptMethod.fake_run:
+                self.fake_run(LevelEnum.campaign, db_id)
             if verbose:
                 with open(log_file, "a") if log_file else nullcontext(sys.stdout) as log_stream:
                     self.print_table(log_stream, TableEnum.step)
                     self.print_table(log_stream, TableEnum.group)
                     self.print_table(log_stream, TableEnum.workflow)
-            i_iter -= 1
             if self._check_terminal_state(LevelEnum.campaign, db_id):
                 with open(log_file, "a") if log_file else nullcontext(sys.stdout) as log_stream:
                     self.print_table(log_stream, TableEnum.step)
                     self.print_table(log_stream, TableEnum.group)
                     self.print_table(log_stream, TableEnum.workflow)
-                    self.print_table(log_stream, TableEnum.job)
                 break
-
+            i_iter -= 1
             sleep(sleep_time)
 
     def parse_config(self, config_name: str, config_yaml: str) -> Config:

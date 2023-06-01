@@ -81,7 +81,7 @@ class SQLScriptMixin(SQLTableMixin):
     def check_status(cls, dbi: DbInterface, script: ScriptBase) -> StatusEnum:
         """Check the status of a script"""
         if script.checker is None:
-            return script.status
+            return StatusEnum.completed
         checker = Checker.get_checker(script.checker)
         if checker is None:
             return script.status

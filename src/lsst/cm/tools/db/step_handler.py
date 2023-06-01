@@ -3,8 +3,9 @@ from typing import Any, Iterable, Optional
 
 from lsst.daf.butler import Butler
 
-from lsst.cm.tools.core.butler_utils import build_data_queries
+from lsst.cm.tools.core.butler_utils import build_data_queries, fake_data_queries
 from lsst.cm.tools.core.db_interface import DbInterface
+from lsst.cm.tools.core.handler import Handler
 from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.campaign import Campaign
 from lsst.cm.tools.db.entry_handler import GenericEntryHandler
@@ -132,7 +133,12 @@ class StepHandler(GenericEntryHandler):
                 entry.butler_repo,
                 collections=[entry.coll_source],
             )
-            data_queries = build_data_queries(butler, **split_args)
+            if Handler.script_method.value > 0:
+                data_queries = build_data_queries(butler, **split_args)
+            else:
+                data_queries = fake_data_queries(
+                    field=split_args.get("field"), min_queries=split_args.get("min_queries")
+                )
         elif split_vals:
             split_field = split_vals["field"]
             split_list = split_vals["values"]
