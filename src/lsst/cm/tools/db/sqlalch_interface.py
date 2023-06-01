@@ -572,6 +572,7 @@ class SQLAlchemyInterface(DbInterface):
                     self.print_table(log_stream, TableEnum.workflow)
                     self.print_table(log_stream, TableEnum.job)
                 break
+
             sleep(sleep_time)
 
     def parse_config(self, config_name: str, config_yaml: str) -> Config:
@@ -640,7 +641,8 @@ class SQLAlchemyInterface(DbInterface):
             conn.execute(stmt)
         conn.commit()
 
-    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
+        summary_only = kwargs.get("summary", False)
         entry = self.get_entry(level, db_id)
         error_dict = {}
         for job_ in entry.jobs_:
@@ -651,13 +653,18 @@ class SQLAlchemyInterface(DbInterface):
                     error_dict[err_.error_name] = [err_]
         stream.write("~Here are the errors!~\n")
         for error_name, error_list in error_dict.items():
-            stream.write(f"Error: {error_name}\n")
+            stream.write(f"Error: {error_name}")
+            if summary_only:
+                stream.write(f":  {len(error_list)}\n")
+                continue
+            else:
+                stream.write("\n")
             truncate_limit = 10
             if error_name is None:
                 truncate_limit = 1000
             for i, err in enumerate(error_list):
                 if i > truncate_limit:
-                    stream.write("\tTruncating list at 10\n")
+                    stream.write(f"\tTruncating list at {truncate_limit}\n")
                     break
                 stream.write(
                     f"""\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\t
@@ -796,13 +803,8 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             if script_.status in terminal_states:
                 return True
-
-        for job_ in entry.jobs_:
-            if job_.superseded:
-                continue
-            if job_.status in terminal_states:
-                return True
-            if job_.status == StatusEnum.rescuable:
-                if job_.w_.status in terminal_states:
-                    return True
+        if entry.status in terminal_states:
+            return True
+        if entry.status == StatusEnum.accepted:
+            return True
         return False

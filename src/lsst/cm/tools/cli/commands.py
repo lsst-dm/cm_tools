@@ -590,10 +590,11 @@ def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
 @cli.command()
 @options.dbi()
 @options.fullname()
+@options.summary()
 def report_errors(
     dbi: DbInterface,
     **kwargs: Any,
 ) -> None:
     """Summarize the output of a particular entry"""
     the_db_id = dbi.get_db_id(**kwargs)
-    dbi.report_errors(sys.stdout, the_db_id.level(), the_db_id)
+    dbi.report_errors(sys.stdout, the_db_id.level(), the_db_id, **kwargs)
