@@ -100,8 +100,10 @@ class CampaignHandler(GenericEntryHandler):
                 prereq_cols.append(prereq.coll_out)
                 Dependency.add_prerequisite(dbi, new_step.db_id, prereq.db_id)
             if prereq_cols:
-                new_step.update_values(dbi, new_step.id, coll_source=",".join(prereq_cols))
-            else:
-                new_step.update_values(dbi, new_step.id, coll_source=campaign.coll_in)
-
+                new_step.update_values(
+                    dbi,
+                    new_step.id,
+                    coll_source=",".join(prereq_cols),
+                    coll_int=",".join(prereq_cols),
+                )
         return out_dict
