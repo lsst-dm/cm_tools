@@ -79,8 +79,8 @@ class CampaignHandler(GenericEntryHandler):
             The newly made Steps
         """
         out_dict = {}
-        coll_source = campaign.coll_in
         steps = self.config.get("steps", [])
+        #        coll_source = campaign.coll_in
         for step_name in steps:
             step_handler = campaign.get_sub_handler(step_name)
             step_prereqs = step_handler.config.get("prerequisites")
@@ -90,11 +90,18 @@ class CampaignHandler(GenericEntryHandler):
                 production_name=campaign.p_.name,
                 campaign_name=campaign.name,
                 step_name=step_name,
-                coll_source=coll_source,
+                #                coll_source=coll_source,
             )
             out_dict[step_name] = new_step
-            coll_source = new_step.coll_out
+            #            coll_source = new_step.coll_out
+            prereq_cols = []
             for prereq_step in step_prereqs:
                 prereq = dbi.get_entry_from_parent(campaign.db_id, prereq_step)
+                prereq_cols.append(prereq.coll_out)
                 Dependency.add_prerequisite(dbi, new_step.db_id, prereq.db_id)
+            if prereq_cols:
+                new_step.update_values(dbi, new_step.id, coll_source=",".join(prereq_cols))
+            else:
+                new_step.update_values(dbi, new_step.id, coll_source=campaign.coll_in)
+
         return out_dict
