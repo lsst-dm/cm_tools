@@ -90,9 +90,9 @@ class Workflow(common.Base, common.CMTable):
 
     def print_tree(self, stream: TextIO) -> None:
         """Print entry in tree-like format"""
-        stream.write(f"  {self}\n")
+        stream.write(f"      {self}\n")
         for job in self.jobs_:
-            stream.write(f"    -{job}\n")
+            stream.write(f"      -{job}\n")
 
     def children(self) -> Iterable:
         """Maps empty list to self.children() for consistency"""
