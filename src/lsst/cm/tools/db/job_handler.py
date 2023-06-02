@@ -109,7 +109,7 @@ class JobHandler(JobHandlerBase):
             workflow_config["custom_lsst_setup"] = job.lsst_custom_setup
         workflow_config["pipelineYaml"] = job.pipeline_yaml
         if parent.coll_in != parent.c_.coll_in:
-            inCollection = f"{parent.coll_in},{parent.c_.coll_in},{parent.c_.coll_ancil}"
+            inCollection = f"{parent.coll_in},{parent.c_.coll_ancil}"
         else:
             inCollection = f"{parent.c_.coll_in},{parent.c_.coll_ancil}"
 
