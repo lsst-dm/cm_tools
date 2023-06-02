@@ -586,6 +586,26 @@ class SQLAlchemyInterface(DbInterface):
         error_code_dict = config_data["pandaErrorCode"]
         for key, val in error_code_dict.items():
             for error_name, error_type in val.items():
+                matched_id = conn.query(ErrorType.id).filter_by(error_name=error_name).first()
+                if matched_id is not None:
+                    stmt = (
+                        update(ErrorType)
+                        .where(ErrorType.id == matched_id[0])
+                        .values(
+                            panda_err_code=key,
+                            diagnostic_message=error_type["diagMessage"],
+                            jira_ticket=str(error_type["ticket"]),
+                            pipetask=error_type["pipetask"],
+                            is_resolved=error_type["resolved"],
+                            is_rescueable=error_type["rescue"],
+                            error_flavor=ErrorFlavor[error_type["flavor"]],
+                            action=ErrorAction["failed_review"],
+                            max_intensity=error_type["intensity"],
+                        )
+                    )
+                    conn.execute(stmt)
+                    conn.commit()
+                    continue
                 new_error_type = ErrorType(
                     error_name=error_name,
                     panda_err_code=key,
