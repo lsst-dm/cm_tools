@@ -41,6 +41,7 @@ __all__ = [
     "sleep_time",
     "status",
     "step",
+    "summary",
     "table",
     "update_item",
     "verbose",
@@ -267,6 +268,12 @@ purge = PartialOption(
 root_coll = PartialOption(
     "--root-coll",
     help="Root for output collection names.",
+)
+
+summary = PartialOption(
+    "--summary",
+    help="Print out a summary only",
+    is_flag=True,
 )
 
 log_file = PartialOption(

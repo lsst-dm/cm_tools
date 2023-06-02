@@ -1000,7 +1000,7 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId) -> None:
+    def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
         """Report the errors associated with a particular entry
 
         Parameters
