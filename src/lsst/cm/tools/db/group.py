@@ -91,7 +91,7 @@ class Group(common.Base, common.CMTable):
         for script in self.scripts_:
             stream.write(f"      -{script}\n")
         for workflow in self.w_:
-            stream.write(f"      {workflow}")
+            workflow.print_tree(stream)
 
     def children(self) -> Iterable:
         """Maps self.w_ to self.children() for consistency"""
