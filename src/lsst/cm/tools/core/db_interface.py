@@ -978,8 +978,21 @@ class DbInterface:
         """
         raise NotImplementedError()
 
-    def rematch_errors(self) -> Any:
+    def rematch_errors(self, **kwargs: Any) -> Any:
         """Rematch the error instances"""
+        raise NotImplementedError()
+
+    def match_file_errors(self, config_yaml: str, error_file: str) -> None:
+        """Match the error instances to an error file
+
+        Parameters
+        ----------
+        config_yaml: str
+            File with the known error types
+
+        error_file: str
+            File the errors
+        """
         raise NotImplementedError()
 
     def extend_config(self, config_name: str, config_yaml: str) -> ConfigBase:

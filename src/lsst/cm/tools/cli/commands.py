@@ -558,6 +558,15 @@ def rematch_errors(dbi: DbInterface) -> None:
 @cli.command()
 @options.dbi()
 @options.config_yaml()
+@options.error_yaml()
+def match_file_errors(dbi: DbInterface, config_yaml: str, error_yaml: str) -> None:
+    """Match errors against existing error types in a file"""
+    dbi.match_file_errors(config_yaml, error_yaml)
+
+
+@cli.command()
+@options.dbi()
+@options.config_yaml()
 @options.config_name()
 def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
     """Parse a configuration file and add the fragments to another config"""

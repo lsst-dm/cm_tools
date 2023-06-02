@@ -20,6 +20,7 @@ __all__ = [
     "diag_message",
     "dbi",
     "error_name",
+    "error_yaml",
     "fmt",
     "fullname",
     "group",
@@ -311,6 +312,12 @@ diag_message = PartialOption(
 error_name = PartialOption(
     "--error-name",
     help="Unique name for this ErrorType.",
+)
+
+error_yaml = PartialOption(
+    "--error-yaml",
+    type=click.Path(),
+    help="Yaml file with errors to match",
 )
 
 update_item = PartialOption(
