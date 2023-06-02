@@ -48,6 +48,7 @@ __all__ = [
     "update_item",
     "verbose",
     "workflow",
+    "yaml_output",
 ]
 
 
@@ -324,6 +325,13 @@ update_item = PartialOption(
     "--update-item",
     type=(str, str),
     help="Item to update in Error.",
+)
+
+yaml_output = PartialOption(
+    "--yaml-output",
+    default=False,
+    help="print output in yaml format",
+    is_flag=True,
 )
 
 

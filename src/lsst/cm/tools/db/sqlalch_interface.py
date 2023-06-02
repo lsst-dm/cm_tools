@@ -700,7 +700,7 @@ class SQLAlchemyInterface(DbInterface):
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
         review_only = kwargs.get("review", False)
         summary_only = kwargs.get("summary", False)
-        yaml_output = kwargs.get("yaml_output", True)
+        yaml_output = kwargs.get("yaml_output", False)
         entry = self.get_entry(level, db_id)
         error_dict = {}
         for job_ in entry.jobs_:
