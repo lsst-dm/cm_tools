@@ -662,10 +662,14 @@ class SQLAlchemyInterface(DbInterface):
         conn.commit()
 
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
+        review_only = kwargs.get("review", False)
         summary_only = kwargs.get("summary", False)
         entry = self.get_entry(level, db_id)
         error_dict = {}
         for job_ in entry.jobs_:
+            if review_only:
+                if job_.w_.status != StatusEnum.reviewable:
+                    continue
             for err_ in job_.errors_:
                 try:
                     error_dict[err_.error_name].append(err_)
@@ -675,7 +679,7 @@ class SQLAlchemyInterface(DbInterface):
         for error_name, error_list in error_dict.items():
             stream.write(f"Error: {error_name}")
             if summary_only:
-                stream.write(f":  {len(error_list)}\n")
+                stream.write(f"    {len(error_list)}\n")
                 continue
             else:
                 stream.write("\n")

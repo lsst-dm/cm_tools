@@ -591,6 +591,7 @@ def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
 @options.dbi()
 @options.fullname()
 @options.summary()
+@options.review()
 def report_errors(
     dbi: DbInterface,
     **kwargs: Any,
