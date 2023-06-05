@@ -747,6 +747,7 @@ class SQLAlchemyInterface(DbInterface):
         conn = self.connection()
         n_frag = conn.query(func.count(Fragment.id)).scalar()
         frag_names = []
+
         for key, val in config_data.items():
             if isinstance(val, str):
                 assert val[0] == "@"
@@ -759,11 +760,15 @@ class SQLAlchemyInterface(DbInterface):
                 continue
             includes = val.pop("includes", [])
             data = val.copy()
+            include_data = {}
             for include_ in includes:
                 if include_ in config_data:
-                    data.update(config_data[include_])
+                    include_data.update(config_data[include_])
                 else:
-                    data.update(config.get_fragment(include_).data)
+                    include_data.update(config.get_fragment(include_).data)
+            for include_key, include_val in include_data.items():
+                if include_key not in data:
+                    data[include_key] = include_val
             handler = data.pop("class_name", None)
             if handler is None:
                 continue
