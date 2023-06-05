@@ -724,13 +724,15 @@ class SQLAlchemyInterface(DbInterface):
         n_frag = conn.query(func.count(Fragment.id)).scalar()
         frag_names = []
         for key, val in config_data.items():
-            fullname = f"{config_name}:{key}"
             if isinstance(val, str):
                 assert val[0] == "@"
                 fullname = f"{val[1:]}:{key}"
                 frag_names.append(fullname)
                 continue
             fullname = f"{config_name}:{key}"
+            fragment_check = conn.execute(select(Fragment.id).where(Fragment.fullname == fullname)).scalar()
+            if fragment_check is not None:
+                continue
             includes = val.pop("includes", [])
             data = val.copy()
             for include_ in includes:
@@ -741,6 +743,7 @@ class SQLAlchemyInterface(DbInterface):
             handler = data.pop("class_name", None)
             if handler is None:
                 continue
+            print(f"Adding fragment {fullname} which uses handler {handler}")
             new_fragment = Fragment(
                 id=n_frag,
                 name=config_name,
