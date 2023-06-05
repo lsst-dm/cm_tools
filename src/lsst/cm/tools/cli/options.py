@@ -35,6 +35,7 @@ __all__ = [
     "production",
     "purge",
     "rescuable",
+    "review",
     "root_coll",
     "script",
     "script_method",
@@ -262,6 +263,12 @@ panda_code = PartialOption(
 purge = PartialOption(
     "--purge",
     help="Remove superseded collections from butler",
+    is_flag=True,
+)
+
+review = PartialOption(
+    "--review",
+    help="Only print info about reviewable jobs",
     is_flag=True,
 )
 
