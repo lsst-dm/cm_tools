@@ -83,6 +83,18 @@ def build_data_queries(
     return ret_list
 
 
+def fake_data_queries(
+    field: str,
+    min_queries: int = 1,
+) -> list[str]:
+    ret_list = []
+    for idx in range(min_queries):
+        min_val = idx
+        max_val = idx + 1
+        ret_list.append(f"({min_val} <= {field}) and ({field} < {max_val})")
+    return ret_list
+
+
 def clean_collection_set(
     butler: Butler,
     input_colls: list[list[str]],

@@ -171,6 +171,8 @@ class GenericEntryHandler(EntryHandler):
                     continue
                 if script_.script_type != script_type:
                     continue
+                if script_.superseded:
+                    continue
                 handler = script_.get_handler()
                 status = handler.run(
                     dbi,
