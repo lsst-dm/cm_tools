@@ -635,10 +635,7 @@ class SQLAlchemyInterface(DbInterface):
         return
 
     def match_error_type_against_dict(self, error_dict: Any, panda_code: str, diag_message: str) -> Any:
-        try:
-            possible_matches = error_dict[panda_code]
-        except KeyError:
-            possible_matches = {}
+        possible_matches = error_dict.get(panda_code, {})
         for key, val in possible_matches.items():
             if re.match(val["diagMessage"].strip(), diag_message):
                 return key
