@@ -626,14 +626,19 @@ class SQLAlchemyInterface(DbInterface):
 
     def match_error_type(self, panda_code: str, diag_message: str) -> Any:
         conn = self.connection()
-        possible_matches = conn.execute(select(ErrorType).where(ErrorType.panda_err_code == panda_code))
+        possible_matches = conn.execute(
+            select(ErrorType).where(ErrorType.panda_err_code == panda_code.strip())
+        )
         for match_ in possible_matches:
-            if re.match(match_[0].diagnostic_message, diag_message):
+            if re.match(match_[0].diagnostic_message.strip(), diag_message.strip()):
                 return match_[0]
         return
 
     def match_error_type_against_dict(self, error_dict: Any, panda_code: str, diag_message: str) -> Any:
-        possible_matches = error_dict[panda_code]
+        try:
+            possible_matches = error_dict[panda_code]
+        except KeyError:
+            possible_matches = {}
         for key, val in possible_matches.items():
             if re.match(val["diagMessage"].strip(), diag_message):
                 return key
@@ -773,8 +778,15 @@ class SQLAlchemyInterface(DbInterface):
             raise ValueError(
                 f"Unknown error: {error_name}.   Do cm print-table --table error_type to see known errors"
             )
+        error_dict = {}
         for instance_ in error_type.instances_:
-            stream.write(f"{instance_.job_.w_}\n")
+            workflow_name = instance_.job_.w_.fullname
+            if workflow_name in error_dict:
+                error_dict[workflow_name] += 1
+            else:
+                error_dict[workflow_name] = 1
+        for key, val in error_dict.items():
+            stream.write(f"{key} : {val}\n")
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
