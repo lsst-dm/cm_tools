@@ -101,6 +101,6 @@ class CampaignHandler(GenericEntryHandler):
                     dbi,
                     new_step.id,
                     coll_source=",".join(prereq_cols),
-                    coll_int=",".join(prereq_cols),
+                    coll_in=",".join(prereq_cols),
                 )
         return out_dict
