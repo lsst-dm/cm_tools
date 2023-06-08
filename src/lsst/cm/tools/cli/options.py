@@ -20,6 +20,7 @@ __all__ = [
     "diag_message",
     "dbi",
     "error_name",
+    "error_yaml",
     "fmt",
     "fullname",
     "group",
@@ -47,6 +48,7 @@ __all__ = [
     "update_item",
     "verbose",
     "workflow",
+    "yaml_output",
 ]
 
 
@@ -313,10 +315,23 @@ error_name = PartialOption(
     help="Unique name for this ErrorType.",
 )
 
+error_yaml = PartialOption(
+    "--error-yaml",
+    type=click.Path(),
+    help="Yaml file with errors to match",
+)
+
 update_item = PartialOption(
     "--update-item",
     type=(str, str),
     help="Item to update in Error.",
+)
+
+yaml_output = PartialOption(
+    "--yaml-output",
+    default=False,
+    help="print output in yaml format",
+    is_flag=True,
 )
 
 

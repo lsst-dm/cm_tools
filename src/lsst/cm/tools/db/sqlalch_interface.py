@@ -626,10 +626,19 @@ class SQLAlchemyInterface(DbInterface):
 
     def match_error_type(self, panda_code: str, diag_message: str) -> Any:
         conn = self.connection()
-        possible_matches = conn.execute(select(ErrorType).where(ErrorType.panda_err_code == panda_code))
+        possible_matches = conn.execute(
+            select(ErrorType).where(ErrorType.panda_err_code == panda_code.strip())
+        )
         for match_ in possible_matches:
-            if re.match(match_[0].diagnostic_message, diag_message):
+            if re.match(match_[0].diagnostic_message.strip(), diag_message.strip()):
                 return match_[0]
+        return
+
+    def match_error_type_against_dict(self, error_dict: Any, panda_code: str, diag_message: str) -> Any:
+        possible_matches = error_dict.get(panda_code, {})
+        for key, val in possible_matches.items():
+            if re.match(val["diagMessage"].strip(), diag_message):
+                return key
         return
 
     def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
@@ -661,9 +670,39 @@ class SQLAlchemyInterface(DbInterface):
             conn.execute(stmt)
         conn.commit()
 
+    def match_file_errors(self, config_yaml: str, error_yaml: str) -> None:
+        with open(config_yaml, "rt", encoding="utf-8") as config_file:
+            config_data = yaml.safe_load(config_file)
+        with open(error_yaml, "rt", encoding="utf-8") as error_file:
+            error_data = yaml.safe_load(error_file)
+
+        error_type_dict = config_data["pandaErrorCode"]
+        match_dict = {}
+        unmatched_list = []
+        for key, val in error_data.items():
+            matched = self.match_error_type_against_dict(
+                error_type_dict, val["panda_err_code"], val["diagMessage"]
+            )
+            if matched is not None:
+                if matched in match_dict:
+                    match_dict[matched].append((key))
+                else:
+                    match_dict[matched] = [key]
+            else:
+                unmatched_list.append(val["panda_err_code"] + "  " + val["diagMessage"])
+
+        print("Matched Errors")
+        for key, val in match_dict.items():
+            print(f"{key}, {len(val)}")
+
+        print("Unmatched Errors")
+        for err_ in sorted(unmatched_list):
+            print(err_.strip())
+
     def report_errors(self, stream: TextIO, level: LevelEnum, db_id: DbId, **kwargs: Any) -> None:
         review_only = kwargs.get("review", False)
         summary_only = kwargs.get("summary", False)
+        yaml_output = kwargs.get("yaml_output", False)
         entry = self.get_entry(level, db_id)
         error_dict = {}
         for job_ in entry.jobs_:
@@ -675,26 +714,44 @@ class SQLAlchemyInterface(DbInterface):
                     error_dict[err_.error_name].append(err_)
                 except KeyError:
                     error_dict[err_.error_name] = [err_]
-        stream.write("~Here are the errors!~\n")
+        if not yaml_output:
+            stream.write("~Here are the errors!~\n")
         for error_name, error_list in error_dict.items():
-            stream.write(f"Error: {error_name}")
-            if summary_only:
-                stream.write(f"    {len(error_list)}\n")
-                continue
-            else:
-                stream.write("\n")
+            if not yaml_output:
+                stream.write(f"Error: {error_name}")
+                if summary_only:
+                    stream.write(f":  {len(error_list)}\n")
+                    continue
+                else:
+                    stream.write("\n")
             truncate_limit = 10
             if error_name is None:
                 truncate_limit = 1000
             for i, err in enumerate(error_list):
-                if i > truncate_limit:
-                    stream.write(f"\tTruncating list at {truncate_limit}\n")
-                    break
-                stream.write(
-                    f"""\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\t
-                    Pipetask: {err.pipetask}\n
-                    Diag Message: {err.diagnostic_message}\n"""
-                )
+                if not yaml_output:
+                    if i > truncate_limit:
+                        stream.write(f"\tTruncating list at {truncate_limit}\n")
+                        break
+                    stream.write(
+                        f"""\tJob: {err.job_.w_.fullname}:{err.job_.idx}\t\t
+                        Pipetask: {err.pipetask}\n
+                        Diag Message: {err.diagnostic_message}\n"""
+                    )
+                else:
+                    if error_name is not None:
+                        break
+                    stream.write(
+                        f"""error_{i}:
+    panda_err_code: {err.panda_err_code}
+    diagMessage: >
+        {err.diagnostic_message}
+    pipetask: {err.pipetask}
+    ticket: []
+    resolved: False
+    rescue: False
+    flavor: "pipelines"
+    intensity: 0\n"""
+                    )
 
     def commit_errors(self, job_id: int, errors_aggregate: Any) -> None:
         conn = self.connection()
@@ -718,8 +775,15 @@ class SQLAlchemyInterface(DbInterface):
             raise ValueError(
                 f"Unknown error: {error_name}.   Do cm print-table --table error_type to see known errors"
             )
+        error_dict = {}
         for instance_ in error_type.instances_:
-            stream.write(f"{instance_.job_.w_}\n")
+            workflow_name = instance_.job_.w_.fullname
+            if workflow_name in error_dict:
+                error_dict[workflow_name] += 1
+            else:
+                error_dict[workflow_name] = 1
+        for key, val in error_dict.items():
+            stream.write(f"{key} : {val}\n")
 
     def extend_config(self, config_name: str, config_yaml: str) -> Config:
         conn = self.connection()
