@@ -5,10 +5,7 @@ from lsst.daf.butler import Butler, CollectionType
 
 
 def get_sorted_array(itr: Iterable, field: str) -> np.ndarray:
-    the_set = set()
-    for x_ in itr:
-        the_set.add(x_.dataId[field])
-    the_array = np.array([x_ for x_ in the_set])
+    the_array = np.array([x_[field] for x_ in itr])
     return np.sort(the_array)
 
 
@@ -58,7 +55,7 @@ def build_data_queries(
     min_queries: int = 1,
     max_step_size: int = 10000000,
 ) -> list[str]:
-    itr = butler.registry.queryDatasets(dataset)
+    itr = butler.registry.queryDataIds([field], datasets=dataset).subset(unique=True)
     sorted_field_values = get_sorted_array(itr, field)
 
     n_matched = sorted_field_values.size
