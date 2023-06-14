@@ -83,6 +83,33 @@ def make_butler_associate_command(
     return command
 
 
+def make_butler_associate_command_series(
+    butler_repo: str,
+    coll_in: str,
+    coll_source: str,
+    dataid_file_path: str,
+) -> str:
+    with open(dataid_file_path) as dataid_file:
+        dataid_info = yaml.safe_load(dataid_file)
+
+    queries = []
+    visit_info = dataid_info["visit"]
+    step = 100
+    start = 0
+    for i in range(len(visit_info)):
+        end = start + step
+        chunk = visit_info[start:end]
+        single_query = f"visit in ( {','.join(chunk)} )"
+        queries.append(single_query)
+        start += step
+
+    commands = []
+    for query_ in queries:
+        commands.append(make_butler_associate_command(butler_repo, coll_in, coll_source, query_))
+
+    return "\n".join(commands)
+
+
 def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list[str]) -> str:
     """Build and return a butler collection-chain command
 

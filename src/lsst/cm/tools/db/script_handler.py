@@ -7,6 +7,7 @@ from lsst.cm.tools.core.script_utils import (
     RollbackNonRun,
     YamlChecker,
     make_butler_associate_command,
+    make_butler_associate_command_series,
     make_butler_chain_command,
     make_validate_command,
     write_command_script,
@@ -158,6 +159,24 @@ class PrepareScriptHandler(ScriptHandler):
             parent.coll_in,
             parent.coll_source,
             parent.data_query,
+        )
+        write_command_script(script, command, **kwargs)
+
+    def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:
+        return parent.coll_in
+
+
+class PrepareStep3ScriptHandler(ScriptHandler):
+    """Script handler for scripts that prepare input collections"""
+
+    script_type: ScriptType = ScriptType.prepare
+
+    def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
+        command = make_butler_associate_command_series(
+            parent.butler_repo,
+            parent.coll_in,
+            parent.coll_source,
+            script.config["data_id_file"],
         )
         write_command_script(script, command, **kwargs)
 
