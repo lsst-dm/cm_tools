@@ -749,7 +749,7 @@ class SQLAlchemyInterface(DbInterface):
     ticket: []
     resolved: False
     rescue: False
-    flavor: "pipelines"
+    flavor: "payload"
     intensity: 0\n"""
                     )
 
