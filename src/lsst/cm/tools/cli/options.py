@@ -336,6 +336,8 @@ yaml_output = PartialOption(
 
 
 def dbi(create: bool = False) -> Callable[[F], F]:
+    """Set up interface to underlying databases."""
+
     def decorator(f: F) -> F:
         @db(expose_value=False, callback=record_meta)
         @plugin_dir(expose_value=False, callback=record_meta)

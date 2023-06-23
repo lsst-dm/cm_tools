@@ -962,7 +962,7 @@ class DbInterface:
         raise NotImplementedError()
 
     def modify_error_type(self, error_name: str, **kwargs: Any) -> None:
-        """put what it does before committing
+        """Put what it does before committing
         Parameters
         ----------
         error_name: str
