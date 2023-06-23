@@ -76,7 +76,6 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
 
     Parameters
     ----------
-
     dbi: DbInterface
         Used to look up the error types
 
@@ -379,6 +378,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 def get_panda_errors(
     dbi: DbInterface, panda_reqid: int, panda_username=None
 ) -> tuple[Any]:  # pragma: no cover
+    """Get panda errors for a given reqID."""
     conn = panda_api.get_api()
     tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
     errors_aggregate = dict()

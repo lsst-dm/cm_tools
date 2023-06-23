@@ -226,7 +226,7 @@ def check_validating_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -> bool:
-    "Loop over statuses of all entries." ""
+    """Loop over statuses of all entries."""
     has_updates = False
     # print(f"do_entry_loop {status.name} {str(func)} {entry.level.name}")
     level_counter = {}
