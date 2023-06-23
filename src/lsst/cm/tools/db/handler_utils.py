@@ -54,7 +54,8 @@ def extract_child_status(itr: Iterable, min_status: StatusEnum, max_status: Stat
 
 def extract_completion_status(itr: Iterable, min_status: StatusEnum, max_status: StatusEnum) -> StatusEnum:
     """Return the status of all children in an array,
-    specific to running jobs to collectable"""
+    specific to running jobs to collectable
+    """
     child_status = np.array([x.status.value for x in itr if not x.superseded])
     if not child_status.size:  # pragma: no cover
         return min_status
@@ -126,6 +127,7 @@ def check_jobs(dbi: DbInterface, entry: Any) -> None:
 
 
 def check_waiting_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of an entry for prereqs"""
     if entry.check_prerequistes(dbi):
         handler = entry.get_handler()
         handler.make_scripts(dbi, entry)
@@ -136,6 +138,7 @@ def check_waiting_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_ready_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a ready entry to prepare it."""
     handler = entry.get_handler()
     new_status = handler.prepare(dbi, entry)
     entry.update_values(dbi, entry.id, status=new_status)
@@ -143,6 +146,7 @@ def check_ready_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_preparing_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check a preparing entry for scripts."""
     current_status = entry.status
     script_status = extract_scripts_status(entry.scripts_, ScriptType.prepare)
     new_status = prepare_script_status_map[script_status]
@@ -153,6 +157,7 @@ def check_preparing_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_prepared_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check a prepared entry for children."""
     handler = entry.get_handler()
     new_status = handler.make_children(dbi, entry)
     entry.update_values(dbi, entry.id, status=new_status)
@@ -160,6 +165,7 @@ def check_prepared_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_populating_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check a populating entry for movement to running."""
     current_status = entry.status
     new_status = extract_child_status(entry.children(), StatusEnum.populating, StatusEnum.running)
     if current_status != new_status:
@@ -169,6 +175,7 @@ def check_populating_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_running_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a currently running entry."""
     current_status = entry.status
     if entry.level == LevelEnum.workflow:
         new_status = extract_job_status(entry.jobs_)
@@ -181,6 +188,7 @@ def check_running_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_collectable_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a currently collectable entry."""
     handler = entry.get_handler()
     new_status = handler.collect(dbi, entry)
     entry.update_values(dbi, entry.id, status=new_status)
@@ -188,6 +196,7 @@ def check_collectable_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_collecting_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a currently collecting entry."""
     current_status = entry.status
     script_status = extract_scripts_status(entry.scripts_, ScriptType.collect)
     new_status = collect_script_status_map[script_status]
@@ -198,6 +207,7 @@ def check_collecting_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_completed_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a currently completed entry."""
     handler = entry.get_handler()
     new_status = handler.validate(dbi, entry)
     entry.update_values(dbi, entry.id, status=new_status)
@@ -205,6 +215,7 @@ def check_completed_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_validating_entry(dbi: DbInterface, entry: Any) -> bool:
+    """Check the status of a currently validating entry."""
     current_status = entry.status
     script_status = extract_scripts_status(entry.scripts_, ScriptType.validate)
     new_status = validate_script_status_map[script_status]
@@ -215,6 +226,7 @@ def check_validating_entry(dbi: DbInterface, entry: Any) -> bool:
 
 
 def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -> bool:
+    "Loop over statuses of all entries." ""
     has_updates = False
     # print(f"do_entry_loop {status.name} {str(func)} {entry.level.name}")
     level_counter = {}
@@ -239,6 +251,7 @@ def do_entry_loop(dbi: DbInterface, entry: Any, status: StatusEnum, func: Any) -
 
 
 def check_entry_loop_iteration(dbi: DbInterface, entry: Any) -> bool:
+    """Check entry loop iteration."""
     can_continue = False
 
     can_continue = do_entry_loop(dbi, entry, StatusEnum.waiting, check_waiting_entry)
@@ -263,6 +276,7 @@ def check_entry_loop_iteration(dbi: DbInterface, entry: Any) -> bool:
 
 
 def check_entry_loop(dbi: DbInterface, entry: Any) -> bool:
+    """Check entry loop while able to continue iterating."""
     can_continue = True
     while can_continue:
         can_continue = check_entry_loop_iteration(dbi, entry)

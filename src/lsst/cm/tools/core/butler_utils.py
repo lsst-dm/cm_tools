@@ -5,11 +5,13 @@ from lsst.daf.butler import Butler, CollectionType
 
 
 def get_sorted_array(itr: Iterable, field: str) -> np.ndarray:
+    """Sort an array."""
     the_array = np.array([x_[field] for x_ in itr])
     return np.sort(the_array)
 
 
 def print_dataset_summary(stream, butler_url: str, collections: list[str]) -> None:
+    """Print a summary of the butler dataset."""
     butler = Butler(butler_url, collections=collections)
 
     summary_dict = {}
@@ -55,6 +57,7 @@ def build_data_queries(
     min_queries: int = 1,
     max_step_size: int = 10000000,
 ) -> list[str]:
+    """Build a Butler data query from the requested requirements."""
     itr = butler.registry.queryDataIds([field], datasets=dataset).subset(unique=True)
     sorted_field_values = get_sorted_array(itr, field)
 
@@ -84,6 +87,7 @@ def fake_data_queries(
     field: str,
     min_queries: int = 1,
 ) -> list[str]:
+    """Fake a data query for testing."""
     ret_list = []
     for idx in range(min_queries):
         min_val = idx
@@ -96,6 +100,7 @@ def clean_collection_set(
     butler: Butler,
     input_colls: list[list[str]],
 ) -> list[list[str]]:
+    """Clean the set of collections from the Butler."""
     output_colls = []
     for input_colls_ in input_colls:
         existing_colls = []
@@ -118,6 +123,7 @@ def butler_associate_kludge(
     output_coll: str,
     input_colls: list[list[str]],
 ) -> None:  # pragma: no cover
+    """Fix Butler associates for later inputs."""
     assert input_colls
 
     butler = Butler(butler_repo, writeable=True)

@@ -9,6 +9,7 @@ from lsst.cm.tools.core.utils import StatusEnum
 
 
 def print_errors_aggregate(stream: TextIO, errors_aggregate: dict[int, dict[str, Any]]) -> None:
+    """Print an aggregated list of all encounter errors."""
     copy_dict = {}
     for key, val in errors_aggregate.items():
         if not isinstance(val, list):
@@ -50,6 +51,7 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma
     ----------
     reqid: int
         PanDA reqid as reported to bps submit
+
     username: str
         Username of original submitter
 
@@ -306,7 +308,6 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_
     panda_status: str
         the panda job status
     """
-
     # take our statuses and convert them
     status_mapped = [jtid_status_map[status] for status in statuses]
 
@@ -397,7 +398,8 @@ def get_panda_errors(
 
 class PandaChecker(SlurmChecker):  # pragma: no cover
     """Checker to use a slurm job_id and panda_id
-    to check job status"""
+    to check job status
+    """
 
     status_map = dict(
         done=StatusEnum.completed,

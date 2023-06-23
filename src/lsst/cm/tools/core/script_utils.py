@@ -256,6 +256,7 @@ def write_command_script(script: ScriptBase, command: str, **kwargs: Any) -> Non
 
 
 def run_script(script: ScriptBase, url: str, log_url: str):
+    """Run the provited script."""
     if script.script_method == ScriptMethod.bash:
         subprocess.run(["/bin/bash", url])
     elif script.script_method == ScriptMethod.slurm:  # pragma: no cover
