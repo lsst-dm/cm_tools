@@ -1,6 +1,7 @@
 import os
 from typing import Any, Iterable, Optional
 
+import numpy as np
 from lsst.daf.butler import Butler
 
 from lsst.cm.tools.core.butler_utils import build_data_queries, fake_data_queries
@@ -128,6 +129,7 @@ class StepHandler(GenericEntryHandler):
         data_query_base = self.config.get("data_query_base", "")
         split_args = self.config.get("split_args", {})
         split_vals = self.config.get("split_vals", {})
+        split_dict = self.config.get("split_dict", {})
         if split_args:
             butler = Butler(
                 entry.butler_repo,
@@ -143,6 +145,17 @@ class StepHandler(GenericEntryHandler):
             split_field = split_vals["field"]
             split_list = split_vals["values"]
             data_queries = [f"{split_field} in ({split_value_})" for split_value_ in split_list]
+        elif split_dict:
+            split_field = split_dict["field"]
+            id_dict = split_dict["id_dict"]
+            data_queries = []
+            for key, val in id_dict.items():
+                id_list = np.loadtxt(os.path.expandvars(val["id_file"])).astype("int")
+                id_per_query = val["id_per_query"]
+                chunks = np.split(id_list, range(id_per_query, len(id_list), id_per_query))
+                data_queries += [
+                    f"{split_field} in ( {', '.join(chunk_.astype('str'))} )" for chunk_ in chunks
+                ]
         else:
             data_queries = [None]
         for i, dq_ in enumerate(data_queries):

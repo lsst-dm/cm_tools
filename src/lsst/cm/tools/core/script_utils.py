@@ -83,7 +83,7 @@ def make_butler_associate_command(
     return command
 
 
-def make_butler_associate_command_series(
+def make_butler_associate_command_filter(
     butler_repo: str,
     coll_in: str,
     coll_source: str,
@@ -92,22 +92,10 @@ def make_butler_associate_command_series(
     with open(dataid_file_path) as dataid_file:
         dataid_info = yaml.safe_load(dataid_file)
 
-    queries = []
-    visit_info = dataid_info["visit"]
-    step = 100
-    start = 0
-    for i in range(len(visit_info)):
-        end = start + step
-        chunk = visit_info[start:end]
-        single_query = f"visit in ( {','.join(chunk)} )"
-        queries.append(single_query)
-        start += step
-
-    commands = []
-    for query_ in queries:
-        commands.append(make_butler_associate_command(butler_repo, coll_in, coll_source, query_))
-
-    return "\n".join(commands)
+    visit_info = [str(visit_) for visit_ in dataid_info["visit"]]
+    query_base = dataid_info["query_base"]
+    data_query = f"{query_base} AND visit NOT IN ( {','.join(visit_info)} )"
+    return make_butler_associate_command(butler_repo, coll_in, coll_source, data_query)
 
 
 def make_butler_chain_command(butler_repo: str, coll_out: str, input_colls: list[str]) -> str:
