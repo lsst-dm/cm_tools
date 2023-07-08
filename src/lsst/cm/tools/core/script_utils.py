@@ -89,6 +89,27 @@ def make_butler_associate_command_filter(
     coll_source: str,
     dataid_file_path: str,
 ) -> str:
+    """Build and return a butler collection-chain command
+
+    Parameters
+    ----------
+    butler_repo : str
+        Butler repo being used
+
+    coll_out : str
+        This will be the name given to the TAGGED collection
+
+    coll_source: str
+        This is the collection we are tagging things from
+
+    dataid_file_path : list[str]
+        File with the IDs to veto
+
+    Returns
+    -------
+    command : str
+        Requested butler command
+    """
     with open(os.path.expandvars(dataid_file_path)) as dataid_file:
         dataid_info = yaml.safe_load(dataid_file)
 
