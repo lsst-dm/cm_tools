@@ -166,7 +166,7 @@ class PrepareScriptHandler(ScriptHandler):
         return parent.coll_in
 
 
-class PrepareStep3ScriptHandler(ScriptHandler):
+class PrepareStep3Handler(ScriptHandler):
     """Script handler for scripts that prepare input collections"""
 
     script_type: ScriptType = ScriptType.prepare
@@ -176,7 +176,7 @@ class PrepareStep3ScriptHandler(ScriptHandler):
             parent.butler_repo,
             parent.coll_in,
             parent.coll_source,
-            script.config["data_id_file"],
+            self.config["data_id_file"],
         )
         write_command_script(script, command, **kwargs)
 

@@ -89,7 +89,7 @@ def make_butler_associate_command_filter(
     coll_source: str,
     dataid_file_path: str,
 ) -> str:
-    with open(dataid_file_path) as dataid_file:
+    with open(os.path.expandvars(dataid_file_path)) as dataid_file:
         dataid_info = yaml.safe_load(dataid_file)
 
     visit_info = [str(visit_) for visit_ in dataid_info["visit"]]
