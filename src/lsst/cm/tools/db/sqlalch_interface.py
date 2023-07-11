@@ -387,9 +387,9 @@ class SQLAlchemyInterface(DbInterface):
         db_id_list: list[DbId] = []
         entry = self.get_entry(level, db_id)
         parent_status_map = {
-            ScriptType.prepare: StatusEnum.preparing,
-            ScriptType.collect: StatusEnum.collecting,
-            ScriptType.validate: StatusEnum.validating,
+            ScriptType.prepare: StatusEnum.ready,
+            ScriptType.collect: StatusEnum.collectable,
+            ScriptType.validate: StatusEnum.completed,
         }
         for script_ in entry.all_scripts_:
             status = script_.status
