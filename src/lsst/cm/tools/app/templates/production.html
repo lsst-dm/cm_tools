@@ -1,17 +1,16 @@
 {%- extends 'base.html' %}
 {%- block content %}
-    <h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
-    <h3>Productions</h3>
+    <h3>Campaigns</h3>
     <table class="table table-striped">
         <thead>
             <th>ID</th>
             <th>Name</th>
         </thead>
         <tbody>
-            {%- for production in productions %}
+            {%- for campaign in campaigns %}
             <tr>
-                <td>{{ production[0].id }}</td>
-                <td><a href="production/{{ production[0].id }}">{{ production[0].name }}</a></td>
+                <td>{{ campaign[0].id }}</td>
+                <td><a href="campaign/{{ campaign[0].id }}">{{ campaign[0].name }}</a></td>
             </tr>
             {%- endfor %}
         </tbody>

@@ -138,7 +138,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_table(self, which_table: TableEnum, selection: str = "") -> Iterable:
         table = top.get_table(which_table)
-        sel = select(table, where=selection)
+        sel = select(table)
         return self.connection().execute(sel)
 
     def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
