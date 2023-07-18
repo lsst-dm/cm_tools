@@ -1,0 +1,18 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Campaigns</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+            <th>Name</th>
+        </thead>
+        <tbody>
+            {%- for campaign in campaigns %}
+            <tr>
+                <td>{{ campaign[0].id }}</td>
+                <td><a href="campaign/{{ campaign[0].id }}">{{ campaign[0].name }}</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}
