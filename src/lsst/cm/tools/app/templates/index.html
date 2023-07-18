@@ -1,0 +1,23 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
+    <h3>Productions</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>Name</th>
+            <th>Foo</th>
+            <th>Bar</th>
+            <th>Baz</th>
+        </thead>
+        <tbody>
+            {%- for production in productions %}
+            <tr>
+                <td>{{ production }}</td>
+                <td>foo</td>
+                <td>bar</td>
+                <td>baz</td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

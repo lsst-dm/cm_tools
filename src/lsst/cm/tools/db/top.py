@@ -30,7 +30,7 @@ def build_engine(db_url: str, **kwargs: Any) -> Any:
     """Return the sqlalchemy engine, building the database if needed"""
     kwcopy = kwargs.copy()
     create = kwcopy.pop("create", False)
-    engine = create_engine(db_url, **kwcopy)
+    engine = create_engine(db_url + "?check_same_thread=False", **kwcopy)
     if not database_exists(engine.url):
         if create:
             create_db(engine)

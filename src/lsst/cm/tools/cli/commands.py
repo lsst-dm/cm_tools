@@ -3,13 +3,14 @@ from typing import Any, Tuple
 
 import click
 
-from lsst.cm.tools.cli import options
-from lsst.cm.tools.core.db_interface import DbInterface
 
 from ..core.checker import Checker
+from .. import app
+from ..core.db_interface import DbInterface
 from ..core.handler import Handler
 from ..core.panda_utils import PandaChecker, print_errors_aggregate
 from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
+from . import options
 
 
 @click.group()
@@ -612,3 +613,10 @@ def report_errors(
     """Summarize the output of a particular entry"""
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.report_errors(sys.stdout, the_db_id.level(), the_db_id, **kwargs)
+
+
+@cli.command()
+@options.dbi()
+def server(dbi: DbInterface) -> None:
+    """Run web interface in developer mode"""
+    app.create(dbi).run(debug=True)
