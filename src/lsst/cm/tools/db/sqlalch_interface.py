@@ -136,6 +136,10 @@ class SQLAlchemyInterface(DbInterface):
         sel = table.get_match_query(db_id)
         common.print_select(self, stream, sel, fmt)
 
+    def get_table(self, which_table: TableEnum, selection: str = "") -> Iterable:
+        table = top.get_table(which_table)
+        return select(table, where=selection)
+
     def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:
         table = top.get_table(which_table)
         sel = select(table)
