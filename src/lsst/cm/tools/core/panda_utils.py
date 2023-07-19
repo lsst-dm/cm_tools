@@ -384,7 +384,7 @@ def get_panda_errors(
     errors_aggregate = dict()
     has_merging = False
     for task in tasks:
-        if task["taskname"].find("mergeExecutionButler") >= 0:
+        if task["taskname"].find("xecutionButler") >= 0:
             has_merging = True
     if not has_merging:
         return {}, tasks, False
