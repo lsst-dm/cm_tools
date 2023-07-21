@@ -6,6 +6,7 @@ import click
 from lsst.cm.tools.cli import options
 from lsst.cm.tools.core.db_interface import DbInterface
 
+from ..core.checker import Checker
 from ..core.handler import Handler
 from ..core.panda_utils import PandaChecker, print_errors_aggregate
 from ..core.utils import LevelEnum, ScriptMethod, StatusEnum, TableEnum
@@ -312,9 +313,11 @@ def launch(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kw
 @options.group()
 @options.workflow()
 @options.script_method()
+@options.username()
 def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Check all the matching database entries"""
     Handler.script_method = script_method
+    Checker.generic_username = kwargs.get("username", "None")
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.check(the_db_id.level(), the_db_id)
 
@@ -576,11 +579,11 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @cli.command()
 @options.dbi()
 @options.panda_url(type=int)
-@options.panda_username()
-def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> list[str]:
+@options.username()
+def check_panda_job(dbi: DbInterface, panda_url: int, username: str) -> list[str]:
     """Check the status of a panda job"""
     pc = PandaChecker()
-    status, errors_aggregate = pc.check_panda_status(dbi, panda_url, panda_username)
+    status, errors_aggregate = pc.check_panda_status(dbi, panda_url, username)
     errors_aggregate["panda_status"] = status
     print_errors_aggregate(sys.stdout, errors_aggregate)
 
@@ -588,11 +591,11 @@ def check_panda_job(dbi: DbInterface, panda_url: int, panda_username: str) -> li
 @cli.command()
 @options.dbi()
 @options.panda_url(type=int)
-@options.panda_username()
-def get_panda_errors(dbi: DbInterface, panda_url: int, panda_username: str):
+@options.username()
+def get_panda_errors(dbi: DbInterface, panda_url: int, username: str):
     """Check the status of a finished panda task"""
     pc = PandaChecker()
-    errors_aggregate, _, _ = pc.get_panda_errors(dbi, panda_url, panda_username)
+    errors_aggregate, _, _ = pc.get_panda_errors(dbi, panda_url, username)
     print_errors_aggregate(sys.stdout, errors_aggregate)
 
 

@@ -445,7 +445,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 return update_vals
         if panda_url is None:
             return update_vals
-        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url))
+        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.username)
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
 
