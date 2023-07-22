@@ -1,0 +1,48 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Job Details</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>Field</th>
+	    <th>Value</th>
+        </thead>
+        <tbody>
+	     <tr>
+	        <td>id</td>
+		<td>{{ job.id }}</td>
+	      </tr>
+	     <tr>
+	        <td>fragment_id</td>
+		<td>{{ job.frag_id }}</td>
+            </tr>
+	     <tr>
+	        <td>bps_yaml_template</td>
+		<td>{{ job.bps_yaml_template }}</td>
+            </tr>
+	     <tr>
+	        <td>bps_script_template</td>
+		<td>{{ job.bps_script_template }}</td>
+            </tr>
+	     <tr>
+	        <td>coll_out</td>
+		<td>{{ job.coll_out }}</td>
+            </tr>
+	     <tr>
+	        <td>script_url</td>
+		<td>{{ job.script_url }}</td>
+            </tr>
+	     <tr>
+	        <td>panda_url</td>
+		<td><a href="https://panda-doma.cern.ch/tasks/?idds_request_id={{ job.panda_url }}">{{ job.panda_url }}</a></td>
+            </tr>
+	     <tr>
+	        <td>batch_status</td>
+		<td>{{ job.batch_status }}</td>
+            </tr>
+	     <tr>
+	        <td>panda_status</td>
+		<td>{{ job.panda_status }}</td>
+            </tr>
+        </tbody>
+    </table>
+{%- endblock %}

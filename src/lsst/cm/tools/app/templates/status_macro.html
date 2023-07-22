@@ -1,0 +1,41 @@
+{% macro render_status_enum(status_enum) %}
+<div class="status_enum">
+  {% if status_enum.name in ['failed', 'rejected'] %}
+      <font color="red">{{ status_enum.name }}</font>
+  {% elif status_enum.name in ['waiting'] %}
+      <font color="gray">{{ status_enum.name }}</font>
+  {% elif status_enum.name in ['preparing', 'prepared', 'populating',
+  'running', 'collectable', 'collecting', 'completed', 'validating'] %}
+      <font color="black">{{ status_enum.name }}</font>
+  {% elif status_enum.name in ['reviewable'] %}
+      <font color="yellow">{{ status_enum.name }}</font>
+  {% elif status_enum.name in ['accepted'] %}
+      <font color="green">{{ status_enum.name }}</font>
+  {% elif status_enum.name in ['rescuable'] %}
+      <font color="blue">{{ status_enum.name }}</font>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro render_jobs_count(status_tuple) %}
+<div class="jobs_count">
+  <font color="black">{{ status_tuple[0] }}</font> /
+  <font color="green">{{ status_tuple[1] }}</font> /
+  <font color="light green">{{ status_tuple[2] }}</font> /
+  <font color="red">{{ status_tuple[3] }}</font> /
+  <font color="blue">{{ status_tuple[4] }}</font> /
+  <font color="purple">{{ status_tuple[5] }}</font> /
+  <font color="yellow">{{ status_tuple[6] }}</font>
+</div>
+{% endmacro %}
+
+{% macro render_scripts(status_tuple) %}
+<div class="script_count">
+  <font color="black">{{ status_tuple[0] }}</font> /
+  <font color="green">{{ status_tuple[1] }}</font> /
+  <font color="red">{{ status_tuple[2] }}</font> /
+  <font color="blue">{{ status_tuple[3] }}</font> /
+  <font color="gray">{{ status_tuple[4] }}</font>
+</div>
+{% endmacro %}

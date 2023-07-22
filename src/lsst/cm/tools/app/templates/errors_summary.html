@@ -1,0 +1,41 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Error Summary for {{ element.level.name }} {{ element.fullname }}</h3>
+
+    <h4>Known Errors</h4>
+    <table class="table table-striped">
+        <thead>
+	    <th>Name</th>
+	    <th>Count</th>
+        </thead>
+        <tbody>
+	  {%- for error_name, error_count in error_count.items() %}
+	  <tr>
+	    <td>
+	      <a href= "{{ url_for('error_details', element_id=error_dict[error_name]) }}">
+	      {{ error_name }}
+	      </a>
+	    </td>
+	    <td>{{ error_count }}</td>
+	  </tr>
+	  {%- endfor %}
+        </tbody>
+      </table>
+
+      <h4>New Errors</h4>
+      <table class="table table-striped">
+        <thead>
+	    <th>Job</th>
+	    <th>Message</th>
+        </thead>
+        <tbody>
+	  {%- for error_ in error_list %}
+	  <tr>
+	    <td>{{ error_.job_.w_.fullname }}:{{ error_.job_.name}}_{{ error_.job_.idx }}</td>
+	    <td>{{ error_count }}</td>
+	  </tr>
+	  {%- endfor %}
+        </tbody>
+      </table>
+
+{%- endblock %}

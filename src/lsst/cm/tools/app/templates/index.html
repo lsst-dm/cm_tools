@@ -11,7 +11,7 @@
             {%- for production in productions %}
             <tr>
                 <td>{{ production[0].id }}</td>
-                <td><a href="production/{{ production[0].id }}">{{ production[0].name }}</a></td>
+                <td><a href="{{ url_for('production_table', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
             </tr>
             {%- endfor %}
         </tbody>

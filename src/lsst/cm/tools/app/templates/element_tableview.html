@@ -1,0 +1,22 @@
+{% import 'element_macro.html' as element_macro %}
+
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>{{ element.level.name }} {{ element.fullname }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Name</th>
+	    <th>Links</th>
+	    <th>Jobs</th>
+	    <th>Scipts</th>
+	    <th>Status</th>
+	    <th>Errors</th>
+        </thead>
+        <tbody>
+	  {%- for child in children %}
+	  {{ element_macro.render_row(child) }}
+	  {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

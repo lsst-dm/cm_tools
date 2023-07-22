@@ -136,9 +136,20 @@ class SQLAlchemyInterface(DbInterface):
         sel = table.get_match_query(db_id)
         common.print_select(self, stream, sel, fmt)
 
-    def get_table(self, which_table: TableEnum, selection: str = "") -> Iterable:
+    def get_table(self, which_table: TableEnum, db_id: DbId | None = None) -> Iterable:
         table = top.get_table(which_table)
-        sel = select(table)
+        if db_id:
+            sel = table.get_match_query(db_id)
+        else:
+            sel = select(table)
+        return self.connection().execute(sel)
+
+    def get_job(self, job_id) -> Any:
+        sel = select(Job).where(Job.id == job_id)
+        return self.connection().execute(sel)
+
+    def get_error_type(self, error_id) -> Any:
+        sel = select(ErrorType).where(ErrorType.id == error_id)
         return self.connection().execute(sel)
 
     def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:

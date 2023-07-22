@@ -583,6 +583,7 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @options.username()
 def check_panda_job(dbi: DbInterface, panda_url: int, username: str) -> list[str]:
     """Check the status of a panda job"""
+    PandaChecker.panda_user = panda_username
     pc = PandaChecker()
     status, errors_aggregate = pc.check_panda_status(dbi, panda_url, username)
     errors_aggregate["panda_status"] = status

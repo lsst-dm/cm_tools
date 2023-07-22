@@ -21,6 +21,7 @@ class SQLTableMixin:
 
     depend_: Iterable
     id: int | None
+    match_keys: list[str] = []
 
     def __init__(self, id: int) -> None:
         self.id = id
@@ -61,6 +62,25 @@ class SQLTableMixin:
     def print_formatted(self, stream: TextIO, fmt: str) -> None:
         stream.write(fmt.format(**self.__dict__))
         stream.write("\n")
+
+    @classmethod
+    def get_match_query(cls, db_id: DbId) -> Any:
+        """Returns the selection all rows given db_id at a given level"""
+        if db_id is None:
+            id_tuple: tuple = ()
+        else:
+            id_tuple = db_id.to_tuple()[0 : cls.level.value + 1]
+        parent_key = None
+        row_id = None
+        for i, row_id_ in enumerate(id_tuple):
+            if row_id_ is not None:
+                parent_key = cls.match_keys[i]
+                row_id = row_id_
+        if parent_key is None:
+            sel = select(cls)
+        else:
+            sel = select(cls).where(parent_key == row_id)
+        return sel
 
 
 class SQLScriptMixin(SQLTableMixin):
@@ -114,7 +134,6 @@ class CMTable(SQLTableMixin, CMTableBase):
     name: str | None
     frag_: FragmentBase | None
     config_: ConfigBase | None
-    match_keys: list[str] = []
     parent_id: Any
 
     def get_handler(self) -> Handler:
@@ -124,25 +143,6 @@ class CMTable(SQLTableMixin, CMTableBase):
     def get_sub_handler(self, config_block: str) -> Handler:
         assert self.config_
         return self.config_.get_sub_handler(config_block)
-
-    @classmethod
-    def get_match_query(cls, db_id: DbId) -> Any:
-        """Returns the selection all rows given db_id at a given level"""
-        if db_id is None:
-            id_tuple: tuple = ()
-        else:
-            id_tuple = db_id.to_tuple()[0 : cls.level.value + 1]
-        parent_key = None
-        row_id = None
-        for i, row_id_ in enumerate(id_tuple):
-            if row_id_ is not None:
-                parent_key = cls.match_keys[i]
-                row_id = row_id_
-        if parent_key is None:
-            sel = select(cls)
-        else:
-            sel = select(cls).where(parent_key == row_id)
-        return sel
 
 
 Base = declarative_base()

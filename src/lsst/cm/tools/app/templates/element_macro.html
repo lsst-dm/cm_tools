@@ -1,0 +1,45 @@
+{% import 'status_macro.html' as status_macro %}
+
+{% macro render_element(element, attr_list) %}
+<div class="element_table">
+  <table>
+    <thead>
+      <tr>
+	<th>Field</th>
+	<th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for attr in attr_list %}
+      <tr>
+	<td>{{ attr }}
+	<td>{{ get_attribute(element, attr) }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+
+{% macro render_row(element) %}
+<div class="element_row">
+  <tr>
+    <td>{{ element.id }}</td>
+    <td>{{ element.fullname }}</td>
+    <td>
+      {{ count_children(element) }} children:
+      <a href="{{ url_for(element.level.name + '_table', element_id=element.id) }}">Table</a>
+      <a href="{{ url_for(element.level.name + '_details', element_id=element.id) }}">Details</a>
+    <td>{{ status_macro.render_jobs_count( count_jobs(element.jobs_) ) }}</td>
+    <td>
+      {{ status_macro. render_scripts ( count_scripts ( element.scripts_
+      ) ) }}</td>
+    <td>{{ status_macro.render_status_enum(element.status) }}</td>
+    <td>
+      <a href="{{ url_for(element.level.name + '_errors',
+      element_id=element.id) }}">{{ count_errors(element) }} </a>
+    </td>
+  </tr>
+</div>
+{% endmacro %}

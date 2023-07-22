@@ -70,6 +70,9 @@ class Job(common.Base, common.SQLScriptMixin, ScriptBase):
     frag_: Fragment = relationship("Fragment", viewonly=True)
     errors_: Iterable = relationship("ErrorInstance", back_populates="job_")
 
+    match_keys = [p_id, c_id, s_id, g_id, w_id]
+    level = LevelEnum.workflow
+
     def __repr__(self) -> str:
         if self.superseded:
             supersede_string = "SUPERSEDED"
