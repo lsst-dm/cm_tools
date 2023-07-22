@@ -246,6 +246,89 @@ def create(dbi: DbInterface) -> CMFlask:
     def count_children(element):
         return len(list(element.children()))
 
+    @app.template_global("get_attribute")
+    def get_attribute(element, attr):
+        return getattr(element, attr)
+
+    @app.template_global("count_errors")
+    def count_errors(element):
+        n = 0
+        for job_ in element.jobs_:
+            n += len(job_.errors_)
+        return n
+
+    @app.template_global("count_jobs")
+    def count_jobs(jobs):
+        n_tot = 0
+        n_accepted = 0
+        n_rescuable = 0
+        n_failed = 0
+        n_running = 0
+        n_review = 0
+        n_other = 0
+        for job_ in jobs:
+            n_tot += 1
+            if job_.status in [StatusEnum.failed, StatusEnum.rejected]:
+                n_failed += 1
+            elif job_.status in [
+                StatusEnum.waiting,
+                StatusEnum.ready,
+                StatusEnum.preparing,
+                StatusEnum.prepared,
+            ]:
+                n_other += 1
+            elif job_.status in [
+                StatusEnum.running,
+                StatusEnum.collectable,
+                StatusEnum.collecting,
+                StatusEnum.completed,
+                StatusEnum.validating,
+            ]:
+                n_running += 1
+            elif job_.status in [StatusEnum.reviewable]:
+                n_review += 1
+            elif job_.status in [StatusEnum.accepted]:
+                n_accepted += 1
+            elif job_.status in [StatusEnum.rescuable]:
+                n_rescuable += 1
+        return (n_tot, n_accepted, n_rescuable, n_failed, n_running, n_review, n_other)
+
+    @app.template_global("count_scripts")
+    def count_scripts(scripts):
+        n_tot = 0
+        n_accepted = 0
+        n_failed = 0
+        n_running = 0
+        n_other = 0
+        for script_ in scripts:
+            n_tot += 1
+            if script_.status in [
+                StatusEnum.failed,
+                StatusEnum.rejected,
+                StatusEnum.rescuable,
+                StatusEnum.reviewable,
+            ]:
+                n_failed += 1
+            elif script_.status in [
+                StatusEnum.waiting,
+                StatusEnum.ready,
+                StatusEnum.preparing,
+                StatusEnum.prepared,
+                StatusEnum.collectable,
+                StatusEnum.collecting,
+                StatusEnum.validating,
+            ]:
+                n_other += 1
+            elif script_.status in [StatusEnum.running]:
+                n_running += 1
+            elif script_.status in [StatusEnum.accepted, StatusEnum.completed]:
+                n_accepted += 1
+        return (n_tot, n_accepted, n_failed, n_running, n_other)
+
+    @app.template_global("count_children")
+    def count_children(element):
+        return len(list(element.children()))
+
     @app.route("/")
     def index() -> str:
         env = os.environ
