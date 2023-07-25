@@ -149,6 +149,12 @@ class CMFlask(Flask):
         self._dbi = dbi
         return self._dbi
 
+SECRET_KEY = """
+I was the shadow of the waxwing slain
+By the false azure in the windowpane;
+I was that smudge of ashen fluff–and I
+Lived on, flew on, in the reflected sky.
+"""
 
 def create(dbi: DbInterface) -> CMFlask:
     app = CMFlask("lsst.cm.tools.app", dbi)
@@ -1047,5 +1053,18 @@ def create(dbi: DbInterface) -> CMFlask:
         with open(abspath) as fin:
             data = fin.read()
         return render_template("text.html", content=data)
+
+    @app.route("/update_campaign/<int:element_id>/<field>", methods=("GET", "POST"))
+    def update_campaign(element_id: int, field: str):
+        campaign = dbi.get_entry(LevelEnum.campaign, DbId(-1, element_id))
+        current_value = getattr(campaign, field)
+        if request.method == "POST":
+            value = request.form["value"]
+            print(value)
+            return redirect(url_for("index"))
+
+        return render_template(
+            "update_values.html", field=field, element_fullname=campaign.fullname, current_value=current_value
+        )
 
     return app
