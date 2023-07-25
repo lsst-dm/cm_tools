@@ -29,7 +29,12 @@ class SQLAlchemyInterface(DbInterface):
     def __init__(self, db_url: str, **kwargs: Any):
         self._engine = top.build_engine(db_url, **kwargs)
         self._conn = Session(self._engine, future=True)
+        self._db_url = db_url
         DbInterface.__init__(self)
+
+    @property
+    def db_url(self) -> str:
+        return self._db_url
 
     def connection(self) -> Session:
         return self._conn
@@ -118,6 +123,10 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_config(self, config_name: str) -> ConfigBase:
         sel = select(Config).where(Config.name == config_name)
+        return common.return_first_column(self, sel)
+
+    def get_config_by_id(self, config_id: int) -> ConfigBase:
+        sel = select(Config).where(Config.id == config_id)
         return common.return_first_column(self, sel)
 
     def get_matching(self, level: LevelEnum, entry: CMTableBase, status: StatusEnum) -> Iterable:

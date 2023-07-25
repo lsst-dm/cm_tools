@@ -1,0 +1,18 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Productions for {{ db_url }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+            <th>Name</th>
+        </thead>
+        <tbody>
+            {%- for production in productions %}
+            <tr>
+                <td>{{ production[0].id }}</td>
+                <td><a href="{{ url_for('production_table', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

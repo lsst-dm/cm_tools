@@ -1,19 +1,7 @@
 {%- extends 'base.html' %}
 {%- block content %}
-    <h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
-    <h3>Productions</h3>
-    <table class="table table-striped">
-        <thead>
-            <th>ID</th>
-            <th>Name</th>
-        </thead>
-        <tbody>
-            {%- for production in productions %}
-            <tr>
-                <td>{{ production[0].id }}</td>
-                <td><a href="{{ url_for('production_table', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
-            </tr>
-            {%- endfor %}
-        </tbody>
-    </table>
-{%- endblock %}
+<h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
+<h3>Using {{ db_url }}</h3>
+<h3><a href="{{ url_for('all_productions') }}">Productions</a></h3>
+<h3><a href="{{ url_for('all_configs') }}">Configs</a></h3>
+{% endblock %}

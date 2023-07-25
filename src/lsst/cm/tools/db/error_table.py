@@ -12,7 +12,7 @@ class ErrorFlavor(enum.Enum):
     """What sort of error are we talking about"""
 
     critical = -1
-    payload = 0
+    pipelines = 0
     panda = 1
     usdf = 2
 

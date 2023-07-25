@@ -1,0 +1,19 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Configurations for {{ db_url }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Name</th>
+        </thead>
+        <tbody>
+            {%- for config in configs %}
+            <tr>
+                <td>{{ config[0].id }}</td>
+                <td><a href="{{ url_for('config_table', element_id=config[0].id)
+		  }}">{{ config[0].name }}</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

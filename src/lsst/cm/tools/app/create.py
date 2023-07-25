@@ -1,12 +1,34 @@
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, request, url_for
 
 from ..core.db_interface import DbInterface
 from ..core.dbid import DbId
 from ..core.utils import LevelEnum, StatusEnum, TableEnum
 
+SECRET_KEY = """
+I was the shadow of the waxwing slain
+By the false azure in the windowpane;
+I was that smudge of ashen fluff–and I
+Lived on, flew on, in the reflected sky.
+"""
 
-def create(dbi: DbInterface) -> Flask:
-    app = Flask("lsst.cm.tools.app")
+
+class CMFlask(Flask):
+    def __init__(self, appname, dbi: DbInterface):
+        Flask.__init__(self, appname)
+        self._dbi = dbi
+
+    @property
+    def dbi(self) -> DbInterface:
+        return self._dbi
+
+    def set_dbi(self, dbi: DbInterface) -> DbInterface:
+        self._dbi = dbi
+        return self._dbi
+
+
+def create(dbi: DbInterface) -> CMFlask:
+    app = CMFlask("lsst.cm.tools.app", dbi)
+    app.config["SECRET_KEY"] = SECRET_KEY
 
     @app.template_global("get_attribute")
     def get_attribute(element, attr):
@@ -93,8 +115,23 @@ def create(dbi: DbInterface) -> Flask:
 
     @app.route("/")
     def index() -> str:
+        return render_template("index.html", db_url=dbi.db_url)
+
+    @app.route("/all_confifs")
+    def all_configs() -> str:
+        configs = list(dbi.get_table(TableEnum.config))
+        return render_template("all_configs.html", db_url=dbi.db_url, configs=configs)
+
+    @app.route("/config_table/<int:element_id>")
+    def config_table(element_id: int) -> str:
+        config = dbi.get_config_by_id(element_id)
+        fragments = [assoc_.frag_ for assoc_ in config.assocs_]
+        return render_template("config_tableview.html", config=config, fragments=fragments)
+
+    @app.route("/all_productions")
+    def all_productions() -> str:
         productions = list(dbi.get_table(TableEnum.production))
-        return render_template("index.html", productions=productions)
+        return render_template("all_productions.html", db_url=dbi.db_url, productions=productions)
 
     @app.route("/production_table/<int:element_id>")
     def production_table(element_id: int) -> str:
@@ -217,6 +254,7 @@ def create(dbi: DbInterface) -> Flask:
             "pipetask",
             "is_resolved",
             "is_rescueable",
+            "error_flavor",
             "action",
             "max_intensity",
         ]
@@ -268,5 +306,18 @@ def create(dbi: DbInterface) -> Flask:
     def workflow_errors(element_id: int) -> str:
         workflow = dbi.get_entry(LevelEnum.workflow, DbId(-1, -1, -1, -1, element_id))
         return _element_errors(workflow)
+
+    @app.route("/update_campaign/<int:element_id>/<field>", methods=("GET", "POST"))
+    def update_campaign(element_id: int, field: str):
+        campaign = dbi.get_entry(LevelEnum.campaign, DbId(-1, element_id))
+        current_value = getattr(campaign, field)
+        if request.method == "POST":
+            value = request.form["value"]
+            print(value)
+            return redirect(url_for("index"))
+
+        return render_template(
+            "update_values.html", field=field, element_fullname=campaign.fullname, current_value=current_value
+        )
 
     return app
