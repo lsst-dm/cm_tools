@@ -25,6 +25,7 @@ __all__ = [
     "fullname",
     "group",
     "idx",
+    "input_coll",
     "level",
     "log_file",
     "lsst_version",
@@ -32,6 +33,7 @@ __all__ = [
     "n_iter",
     "panda_url",
     "panda_username",
+    "pipeline_yaml",
     "prod_base",
     "production",
     "purge",
@@ -244,6 +246,19 @@ lsst_version = PartialOption(
     help="Version of LSST software stack",
     envvar="CM_LSST_VERSION",
     show_envvar=True,
+)
+
+input_coll = PartialOption(
+    "--input-coll",
+    help="Input collection name.",
+    default=None,
+)
+
+pipeline_yaml = PartialOption(
+    "--pipeline-yaml",
+    type=click.Path(),
+    help="Pipeline Yaml file",
+    default=None,
 )
 
 panda_url = PartialOption(

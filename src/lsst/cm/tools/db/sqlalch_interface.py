@@ -247,6 +247,35 @@ class SQLAlchemyInterface(DbInterface):
         self.check(new_step.level, new_step.db_id)
         return new_step
 
+    def insert_group(
+        self,
+        parent_db_id: DbId,
+        config_block: str,
+        **kwargs: Any,
+    ) -> CMTableBase:
+        parent_level = parent_db_id.level()
+        step = self.get_entry(parent_level, parent_db_id)
+        config = step.config_
+        group_handler = config.get_sub_handler(config_block)
+        coll_source = step.coll_in
+
+        n_sib = len([step.g_])
+        group_name = f"group{n_sib}"
+
+        new_group = group_handler.insert(
+            self,
+            step,
+            production_name=step.p_.name,
+            campaign_name=step.c_.name,
+            step_name=step.name,
+            group_name=group_name,
+            coll_source=coll_source,
+            **kwargs,
+        )
+        self.connection().commit()
+        self.check(new_group.level, new_group.db_id)
+        return new_group
+
     def insert_rescue(
         self,
         db_id: DbId,

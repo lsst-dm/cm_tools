@@ -96,6 +96,40 @@ def insert_step(
 @cli.command()
 @options.dbi()
 @options.fullname()
+@options.production()
+@options.campaign()
+@options.step()
+@options.config_block()
+@options.script_method()
+@options.data_query()
+@options.lsst_version()
+@options.config_name()
+@options.pipeline_yaml()
+@options.input_coll()
+def insert_group(
+    dbi: DbInterface,
+    config_block: str,
+    script_method: ScriptMethod,
+    **kwargs: Any,
+) -> None:
+    """Insert a new step into an existing campaign"""
+    Handler.script_method = script_method
+    fullname = kwargs.pop("fullname")
+    if fullname is not None:
+        names = dbi.parse_fullname(fullname)
+        kwargs.update(**names)
+        the_db_id = dbi.get_db_id(**names)
+    else:
+        the_db_id = dbi.get_db_id(**kwargs)
+
+    assert the_db_id.level() == LevelEnum.campaign
+    assert config_block is not None
+    dbi.insert_group(the_db_id, config_block, **kwargs)
+
+
+@cli.command()
+@options.dbi()
+@options.fullname()
 @options.config_block()
 @options.script_method()
 def insert_rescue(
