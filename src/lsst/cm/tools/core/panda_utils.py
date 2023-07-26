@@ -277,6 +277,7 @@ jtid_status_map = dict(
     toretry="running",
     failed="failed",
     toincexec="running",
+    closed="failed",
 )
 
 
