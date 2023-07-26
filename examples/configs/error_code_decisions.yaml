@@ -28,7 +28,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-37089"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         psfex:
             diagMessage: >
@@ -38,7 +38,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         FWHM_value_of_nan:
             diagMessage: "Failed to execute payload:PSF at (.*) has an invalid FWHM value of nan"
@@ -46,7 +46,7 @@ pandaErrorCode:
             ticket: ["DM-37089"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         NaN_to_int_calibrate:
             diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
@@ -54,7 +54,7 @@ pandaErrorCode:
             ticket: ["DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         no_use_for_photocal:
             diagMessage: "Failed to execute payload:No matches to use for photocal"
@@ -62,7 +62,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-37089", "DM-32291", "DM-36763"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         NaN_to_int_detection:
             diagMessage: "Failed to execute payload:cannot convert float NaN to integer"
@@ -70,7 +70,7 @@ pandaErrorCode:
             ticket: ["DM-36763", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         all_pixels_masked:
             diagMessage: "Failed to execute payload:All pixels masked. Cannot estimate background"
@@ -78,7 +78,7 @@ pandaErrorCode:
             ticket: ["DM-37837", "DM-37570"]
             resolved: True
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0
         too_many_indicies:
             diagMessage: "too many indices for array: array is 1-dimensional, but 2 were indexed"
@@ -86,7 +86,7 @@ pandaErrorCode:
             ticket: ["DM-37837", "DM-37570"]
             resolved: True
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0
         do_compute_kernel_image:
             diagMessage: >
@@ -96,7 +96,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         kernel_candidacy:
             diagMessage: "Failed to execute payload:Cannot find any objects suitable for KernelCandidacy"
@@ -104,7 +104,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         psf_matching_kernel_subtractImages:
             diagMessage: "Failed to execute payload:Unable to calculate psf matching kernel"
@@ -112,7 +112,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37089"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         array_sample_empty:
             diagMessage: "Failed to execute payload:array of sample points is empty"
@@ -120,7 +120,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         kron_kron:
             diagMessage: >
@@ -131,7 +131,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         fp_xp:
             diagMessage: "Failed to execute payload:fp and xp are not of the same length."
@@ -139,7 +139,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         parquet_formatter:
             diagMessage: >
@@ -149,7 +149,7 @@ pandaErrorCode:
             ticket: ["DM-36306", "DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         fgcm_380:
             diagMessage: "Failed to execute payload:(380, 40)"
@@ -177,7 +177,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-37089", "DM-36763", "DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_psf_matching_kernel:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
@@ -185,7 +185,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-36763", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         psf_in_GAaP:
             diagMessage: >
@@ -195,7 +195,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-33375", "DM-36763", "DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_psfex:
             diagMessage: "Only spatial variation (ndim == 2) is supported; saw 0"
@@ -203,7 +203,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_no_use_for_photocal:
             diagMessage: >
@@ -213,7 +213,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-37089", "DM-32291", "DM-36763"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_NaN_to_int_calibrate:
             diagMessage: >
@@ -223,7 +223,7 @@ pandaErrorCode:
             ticket: ["DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_FWHM_value_of_nan:
             diagMessage: >
@@ -233,7 +233,7 @@ pandaErrorCode:
             ticket: ["DM-37089", "DM-36763"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         finalizeCharacterization_failed:
             diagMessage: >
@@ -313,7 +313,7 @@ pandaErrorCode:
             ticket: ["DM-37786", "DM-37570"]
             resolved: True
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0
         outside_image_bounds:
             diagMessage: >
@@ -323,7 +323,7 @@ pandaErrorCode:
             ticket: ["DM-35722", "DM-36066"]
             resolved: True
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_NaN_to_int_detection:
             diagMessage: >
@@ -333,7 +333,7 @@ pandaErrorCode:
             ticket: ["DM-36763", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_all_pixels_masked:
             diagMessage: "All pixels masked. Cannot estimate background"
@@ -341,7 +341,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: True
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0
         p_psf_matching_kernel_subtractImages:
             diagMessage: "ERROR: Unable to calculate psf matching kernel"
@@ -349,7 +349,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         cannot_compute_coaddpsf:
             diagMessage: >
@@ -362,7 +362,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-37089", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_kernel_candidacy:
             diagMessage: >
@@ -372,7 +372,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_do_compute_kernel_image:
             diagMessage: >
@@ -382,7 +382,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         kernel_does_not_exist:
             diagMessage: "Original kernel does not exist {0}; Visiting candidate {1}{{}}"
@@ -390,7 +390,7 @@ pandaErrorCode:
             ticket: ["DM-37570", "DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         kernel_sum:
             diagMessage: "Unable to determine kernel sum; 0 candidates"
@@ -398,7 +398,7 @@ pandaErrorCode:
             ticket: ["DM-37483", "DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_NaN_to_int_subtractImages:
             diagMessage: "Exception ValueError: cannot convert float NaN to integer"
@@ -406,7 +406,7 @@ pandaErrorCode:
             ticket: ["DM-36265", "DM-36356", "DM-36066"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_array_sample_empty:
             diagMessage: "array of sample points is empty"
@@ -414,7 +414,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_fp_xp:
             diagMessage: "fp and xp are not of the same length."
@@ -422,7 +422,7 @@ pandaErrorCode:
             ticket: ["DM-37570"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         u_psf:
             diagMessage: >
@@ -432,7 +432,7 @@ pandaErrorCode:
             ticket: ["DM-36305", "DM-36356"]
             resolved: False
             rescue: False
-            flavor: "pipelines"
+            flavor: "payload"
             intensity: 0.001
         p_remote_io:
             diagMessage: >
