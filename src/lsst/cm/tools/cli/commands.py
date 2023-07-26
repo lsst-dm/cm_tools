@@ -103,6 +103,7 @@ def insert_step(
 @options.script_method()
 @options.data_query()
 @options.lsst_version()
+@options.lsst_custom_setup()
 @options.config_name()
 @options.pipeline_yaml()
 @options.input_coll()

@@ -55,6 +55,9 @@ class GroupHandler(GenericEntryHandler):
             group_name=group_name,
         )
         coll_names = self.coll_names(insert_fields, **extra_fields)
+        input_coll_override = kwargs.get("input_coll")
+        if input_coll_override:
+            coll_names["coll_in"] = input_coll_override
         insert_fields.update(**coll_names)
         return Group.insert_values(dbi, **insert_fields)
 

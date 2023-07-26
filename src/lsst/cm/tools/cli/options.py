@@ -29,6 +29,7 @@ __all__ = [
     "level",
     "log_file",
     "lsst_version",
+    "lsst_custom_setup",
     "max_running",
     "n_iter",
     "panda_url",
@@ -245,6 +246,13 @@ lsst_version = PartialOption(
     "--lsst-version",
     help="Version of LSST software stack",
     envvar="CM_LSST_VERSION",
+    show_envvar=True,
+)
+
+lsst_custom_setup = PartialOption(
+    "--lsst-custom-setup",
+    help="Setup extra LSST packages",
+    envvar="CM_LSST_CUSTOM_SETUP",
     show_envvar=True,
 )
 
