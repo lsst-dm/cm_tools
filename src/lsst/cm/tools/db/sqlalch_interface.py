@@ -259,7 +259,7 @@ class SQLAlchemyInterface(DbInterface):
         group_handler = config.get_sub_handler(config_block)
         coll_source = step.coll_in
 
-        n_sib = len([step.g_])
+        n_sib = len([g for g in step.g_])
         group_name = f"group{n_sib}"
 
         new_group = group_handler.insert(
