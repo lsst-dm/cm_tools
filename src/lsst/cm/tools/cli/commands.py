@@ -119,11 +119,14 @@ def insert_group(
     if fullname is not None:
         names = dbi.parse_fullname(fullname)
         kwargs.update(**names)
+        kwargs.pop("production_name", None)
+        kwargs.pop("campaign_name", None)
+        kwargs.pop("step_name", None)
         the_db_id = dbi.get_db_id(**names)
     else:
         the_db_id = dbi.get_db_id(**kwargs)
 
-    assert the_db_id.level() == LevelEnum.campaign
+    assert the_db_id.level() == LevelEnum.step
     assert config_block is not None
     dbi.insert_group(the_db_id, config_block, **kwargs)
 
