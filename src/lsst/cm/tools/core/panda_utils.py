@@ -381,7 +381,7 @@ def get_panda_errors(
 ) -> tuple[Any]:  # pragma: no cover
     """Get panda errors for a given reqID."""
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=60)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=90)
     errors_aggregate = dict()
     has_merging = False
     for task in tasks:
@@ -445,7 +445,7 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 return update_vals
         if panda_url is None:
             return update_vals
-        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.username)
+        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.generic_username)
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
 
