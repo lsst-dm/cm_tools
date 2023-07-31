@@ -31,7 +31,7 @@ __all__ = [
     "max_running",
     "n_iter",
     "panda_url",
-    "panda_username",
+    "username",
     "prod_base",
     "production",
     "purge",
@@ -251,9 +251,9 @@ panda_url = PartialOption(
     help="ReqID associated with the PanDA job.",
 )
 
-panda_username = PartialOption(
-    "--panda-username",
-    help="Username in the PanDA workflow system.",
+username = PartialOption(
+    "--username",
+    help="Username to be passed to workflow system.",
     default=None,
 )
 

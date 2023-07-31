@@ -19,6 +19,8 @@ class Checker:
     of a file at the URL, or querying a server at that URL.
     """
 
+    generic_username = None
+
     checker_cache: dict[str, Checker] = {}
 
     @staticmethod
