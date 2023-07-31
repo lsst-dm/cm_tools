@@ -95,7 +95,7 @@ class JobHandler(JobHandlerBase):
     def write_job_hook(self, dbi: DbInterface, parent: Workflow, job: JobBase, **kwargs: Any) -> None:
         """Internal function to write the bps.yaml file for a given workflow"""
         workflow_template_yaml = os.path.expandvars(job.bps_yaml_template)
-        butler_repo = parent.butler_repo
+        submit_butler = parent.submit_butler
 
         outpath = job.config_url
 
@@ -130,7 +130,7 @@ class JobHandler(JobHandlerBase):
         payload = dict(
             payloadName=f"{parent.p_.name}/{parent.c_.name}",
             outputRun=job.coll_out,
-            butlerConfig=butler_repo,
+            butlerConfig=submit_butler,
             inCollection=inCollection,
         )
         if parent.data_query:

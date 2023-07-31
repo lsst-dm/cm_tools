@@ -43,6 +43,7 @@ class Campaign(common.Base, common.CMTable):
     status = Column(Enum(StatusEnum), default=StatusEnum.waiting)  # Status flag
     superseded = Column(Boolean, default=False)  # Has this been superseded
     butler_repo = Column(String)  # URL for butler repository
+    submit_butler = Column(String)  # URL for butler used to submit yamls
     lsst_version = Column(String)  # Version of LSST software stack
     lsst_custom_setup = Column(String)  # Custom setup for LSST software
     root_coll = Column(String)  # root for collection names

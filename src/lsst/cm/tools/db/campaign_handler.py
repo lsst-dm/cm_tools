@@ -47,6 +47,7 @@ class CampaignHandler(GenericEntryHandler):
             frag_id=self._fragment_id,
             status=StatusEnum.waiting,
             butler_repo=kwargs["butler_repo"],
+            submit_butler=self.get_config_var("submit_butler", kwargs["butler_repo"], **kwargs),
             prod_base_url=kwargs["prod_base_url"],
         )
         coll_names = self.coll_names(
