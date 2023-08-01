@@ -73,7 +73,7 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma
 # dict to map trans diagnostic codes to an associated useful message,
 # placeholder until more is handled externally.
 trans_diag_map = dict(
-    t1="Pilelines error: check logging",
+    t1="Pipelines error: check logging",
     t137="Resource error: check memory!",
 )
 
@@ -170,7 +170,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
             # transExitCode (no Diag)
             elif job.transExitCode == 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
-                error_dict["diagnostic_message"] = "check the logs"
+                error_dict["diagnostic_message"] = trans_diag_map("t" + str(job.transExitCode))
             else:
                 raise RuntimeError("Not sure what kinda error we got")
             jobname_words = [word for word in job.jobName.split("_") if word.isalpha() is True]
