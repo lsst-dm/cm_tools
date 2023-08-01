@@ -71,78 +71,10 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma
 
 
 # dict to map trans diagnostic codes to an associated useful message,
-# copied from PanDA documentation
+# placeholder until more is handled externally.
 trans_diag_map = dict(
-    t1="Unspecified error, consult log file",
-    t2="Athena core dump",
-    t6="TRF_SEGVIO - Segmentation violation",
-    t10="ATH_FAILURE - Athena non-zero exit",
-    t26="TRF_ATHENACRASH - Athena crash",
-    t30="TRF_PYT - transformation python error",
-    t31="TRF_ARG - transformation argument error",
-    t32="TRF_DEF - transformation definition error",
-    t33="TRF_ENV - transformation environment error",
-    t34="TRF_EXC - transformation exception",
-    t40="Athena crash - consult log file",
-    t41="TRF_OUTFILE - output file error",
-    t42="TRF_CONFIG - transform config file error",
-    t50="TRF_DB - problems with database",
-    t51="TRF_DBREL_TARFILE - Problems with the DBRelease tarfile",
-    t60="TRF_GBB_TIME - GriBB - output limit exceeded (time, memory, CPU)",
-    t79="Copying input file failed",
-    t80="file in trf definition not found, using the expandable syntax",
-    t81="file in trf definition not found, using the expandable syntax -- pileup case",
-    t98="Oracle error - session limit reached",
-    t99="TRF_UNKNOWN - unknown transformation error",
-    t102="One of the output files did not get produced by the job",
-    t104="Copying the output file to local SE failed (md5sum or size mismatch, or LFNnonunique)",
-    t126="Transformation not executable - consult log file",
-    t127="Transformation not installed in CE",
-    t134="Athena core dump or timeout, or conddb DB connect exception",
-    t141="No input file available - check availability of input dataset at site",
-    t200="Log file not transferred to destination",
-    t220="Proot: An exception occurred in the user analysis code",
-    t221="Proot: Framework decided to abort the job due to an internal problem",
-    t222="Proot: Job completed without reading all input files",
-    t223="Proot: Input files cannot be opened",
-    t1198="Can't check the child process status from the heartbeat process",
-    t2100="MyProxyError 2100: server name not specified",
-    t2101="MyProxyError 2101: voms attributes not specified",
-    t2102="MyProxyError 2102: user DN not specified",
-    t2103="MyProxyError 2103: pilot owner DN not specified",
-    t2104="MyProxyError 2104: invalid path for the delegated proxy",
-    t2105="MyProxyError 2105: invalid pilot proxy path",
-    t2106="MyProxyError 2106: no path to delegated proxy specified",
-    t2200="MyProxyError 2200: myproxy-init not available in PATH",
-    t2201="MyProxyError 2201: myproxy-logon not available in PATH",
-    t2202="MyProxyError 2202: myproxy-init version not valid",
-    t2203="MyProxyError 2203: myproxy-logon version not valid",
-    t2300="MyProxyError 2300: proxy delegation failed",
-    t2301="MyProxyError 2301: proxy retrieval failed",
-    t2400="MyProxyError 2400: security violation. Logname and DN do not match",
-    t2500="MyProxyError 2500: there is no a valid proxy",
-    t2501="MyProxyError 2501: voms-proxy-info not available in PATH",
-    t3000="curl failed to download pilot wrapper",
-    t3001="Failed to download pilot code",
-    t10020="dq2_cr environment variables not properly defined",
-    t10030="dq2_cr getVUID error",
-    t10040="dq2_cr queryFilesInDataset error",
-    t10050="dq2_cr getLocation error",
-    t10060="dq2_cr requested protocol is not supported",
-    t10070="dq2_cr EC_MAIN error, check logfile",
-    t10080="dq2_cr PFNfromLFC error",
-    t10090="dq2_cr file size check failed",
-    t10100="dq2_cr could not create LFC directory",
-    t10110="dq2_cr LS error",
-    t10120="dq2_cr could not get dataset state from DQ2 server",
-    t10130="dq2_cr could not load ToA",
-    t10140="dq2_cr could not parse XML",
-    t10150="dq2_cr FileNotFound error",
-    t1000001="ERROR message",
-    t1000002="FATAL message",
-    t1000003="segmentation violation message",
-    t1000004="IOError message",
-    t1000005="ValueError message",
+    t1="Pilelines error: check logging",
+    t137="Resource error: check memory!",
 )
 
 
@@ -205,7 +137,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
                 try:
                     trans_diag = trans_diag_map("t" + str(job.transExitCode))
                 except KeyError:
-                    trans_diag = "check the logs"
+                    trans_diag = "Stack error: check logging and report!"
                 error_dict["diagnostic_message"] = trans_diag
             # brokerageErrorCode/Diag
             if job.brokerageErrorCode != 0:
