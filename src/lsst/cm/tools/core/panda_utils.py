@@ -140,7 +140,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
                     trans_diag = "Stack error: check logging and report!"
                 error_dict["diagnostic_message"] = trans_diag
             # brokerageErrorCode/Diag
-            if job.brokerageErrorCode != 0:
+            elif job.brokerageErrorCode != 0:
                 error_dict["panda_err_code"] = "brokerage, " + str(job.brokerageErrorCode)
                 error_dict["diagnostic_message"] = job.brokerageErrorDiag
             # ddmErrorCode/Diag
