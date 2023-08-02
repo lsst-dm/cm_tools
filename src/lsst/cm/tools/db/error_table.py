@@ -50,7 +50,7 @@ class ErrorType(common.Base):
         s = f"Id={self.id}\n"
         s += f"  Name: {self.error_name} Panda Code: {self.panda_err_code}  Pipetask: {self.pipetask}\n"
         s += f"  JIRA: {self.jira_ticket}\n"
-        s += "  Flags (known, resolved, rescuable): "
+        s += "  Flags (resolved, rescuable): "
         s += f"{self.is_resolved}, {self.is_rescueable}\n"
         if len(self.diagnostic_message) > 150:
             diag_message = self.diagnostic_message[0:149]
@@ -95,6 +95,47 @@ class ErrorInstance(common.Base):
         s += f"  {self.panda_err_code}\n"
         s += f"  Data_id: {self.data_id}\n"
         s += "  Flags (known, resolved, rescuable): "
+        s += f"{is_resolved}, {is_rescueable}\n"
+        if len(self.diagnostic_message) > 150:
+            diag_message = self.diagnostic_message[0:150]
+        else:
+            diag_message = self.diagnostic_message
+        s += f"    {diag_message}"
+        return s
+
+
+class ButlerErrorInstance(common.Base):
+    """Database table to keep track of individual errors (WITH BUTLER!)."""
+
+    __tablename__ = "butler_error_instance"
+    __allow_unmapped__ = True
+
+    id = Column(Integer, primary_key=True)  # Unique ID
+    # job_id = Column(Integer, ForeignKey(Job.id))
+    # (butler doesn't know about these!)
+    data_id = Column(String)
+    error_type_id = Column(Integer, ForeignKey(ErrorType.id))
+    error_name = Column(String)
+
+    logs = Column(String)
+    diagnostic_message = Column(String)
+    pipetask = Column(String)
+
+    error_type_: ErrorType = relationship("ErrorType", back_populates="instances_")
+
+    def __repr__(self):
+        error_type = self.error_type_
+        if error_type is not None:
+            is_resolved = error_type.is_resolved
+            is_rescueable = error_type.is_rescueable
+        else:
+            is_resolved = False
+            is_rescueable = False
+
+        s = f"Id={self.id} {self.job_id}\n"
+        s += f"  Error_name: {self.error_name} {self.error_type_id} Pipetask: {self.pipetask}\n"
+        s += f"  Data_id: {self.data_id}\n"
+        s += "  Flags (resolved, rescuable): "
         s += f"{is_resolved}, {is_rescueable}\n"
         if len(self.diagnostic_message) > 150:
             diag_message = self.diagnostic_message[0:150]
