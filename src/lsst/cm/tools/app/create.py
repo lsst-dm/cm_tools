@@ -271,33 +271,47 @@ def create(dbi: DbInterface) -> CMFlask:
         n_failed = 0
         n_running = 0
         n_review = 0
-        n_other = 0
+        n_wait = 0
         for job_ in jobs:
             n_tot += 1
-            if job_.status in [StatusEnum.failed, StatusEnum.rejected]:
+            if job_.status.is_bad:
                 n_failed += 1
-            elif job_.status in [
-                StatusEnum.waiting,
-                StatusEnum.ready,
-                StatusEnum.preparing,
-                StatusEnum.prepared,
-            ]:
-                n_other += 1
-            elif job_.status in [
-                StatusEnum.running,
-                StatusEnum.collectable,
-                StatusEnum.collecting,
-                StatusEnum.completed,
-                StatusEnum.validating,
-            ]:
+            elif job_.status.is_not_yet_processing:
+                n_wait += 1
+            elif job_.status.is_now_processing:
                 n_running += 1
-            elif job_.status in [StatusEnum.reviewable]:
+            elif job_.status.is_reviewable:
                 n_review += 1
-            elif job_.status in [StatusEnum.accepted]:
+            elif job_.status.is_accepted:
                 n_accepted += 1
-            elif job_.status in [StatusEnum.rescuable]:
+            elif job_.status.is_rescuable:
                 n_rescuable += 1
-        return (n_tot, n_accepted, n_rescuable, n_failed, n_running, n_review, n_other)
+        return (n_tot, n_wait, n_running, n_review, n_accepted, n_rescuable, n_failed)
+
+    @app.template_global("child_status_tuple")
+    def child_status_tuple(element):
+        n_tot = 0
+        n_accepted = 0
+        n_rescuable = 0
+        n_failed = 0
+        n_running = 0
+        n_review = 0
+        n_wait = 0
+        for child_ in element.children():
+            n_tot += 1
+            if child_.status.is_bad:
+                n_failed += 1
+            elif child_.status.is_not_yet_processing:
+                n_wait += 1
+            elif child_.status.is_now_processing:
+                n_running += 1
+            elif child_.status.is_reviewable:
+                n_review += 1
+            elif child_.status.is_accepted:
+                n_accepted += 1
+            elif child_.status.is_rescuable:
+                n_rescuable += 1
+        return (n_tot, n_wait, n_running, n_review, n_accepted, n_rescuable, n_failed)
 
     @app.template_global("count_scripts")
     def count_scripts(scripts):
@@ -828,6 +842,17 @@ def create(dbi: DbInterface) -> CMFlask:
         else:
             jobs = [job_ for job_ in element.jobs_ if getattr(job_.status, status) is True]
         return render_template("jobs.html", element=element, jobs=jobs, status=status)
+
+    @app.route("/jobs_filtered/<level>/<int:element_id>/<status>")
+    def jobs_filtered(level: str, element_id: int, status: str) -> str:
+        the_level = LevelEnum[level]
+        db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
+        element = dbi.get_entry(the_level, db_id)
+        if status == "None":
+            jobs = [job_ for job_ in element.jobs_]
+        else:
+            jobs = [job_ for job_ in element.jobs_ if getattr(job_.status, status)]
+        return render_template("filtered_jobs.html", element=element, jobs=jobs)
 
     @app.route("/job/<int:job_id>")
     def job(job_id: int) -> str:

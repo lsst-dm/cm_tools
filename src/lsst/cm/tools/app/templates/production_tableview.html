@@ -1,0 +1,19 @@
+{% import 'element_macro.html' as element_macro %}
+
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Campaigns for {{ production.name }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Fullname</th>
+	    <th>Links</th>
+	    <th>Status</th>
+        </thead>
+        <tbody>
+	  {%- for campaign in campaigns %}
+	  {{ element_macro.render_row(campaign, 'campaign') }}
+	  {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}
