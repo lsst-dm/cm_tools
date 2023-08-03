@@ -26,14 +26,18 @@
 <div class="element_row">
   <tr>
     <td>{{ element.id }}</td>
-    <td>{{ element.fullname }}</td>
+    <td>{{ element.name }}</td>
     <td>
-      {{ count_children(element) }} children:
       <a href="{{ url_for(element.level.name + '_table', element_id=element.id) }}">Table</a>
-      <a href="{{ url_for(element.level.name + '_details', element_id=element.id) }}">Details</a>
-    <td>{{ status_macro.render_jobs_count( count_jobs(element.jobs_) ) }}</td>
+      <a href="{{ url_for(element.level.name + '_details',
+      element_id=element.id) }}">Details</a>
+    </td>
+    <td>{{ status_macro.render_child_count( element.level.name,
+      element.id, child_status_tuple(element) ) }}</td>
+    <td>{{ status_macro.render_jobs_count( element.level.name,
+      element.id, count_jobs(element.jobs_) ) }}</td>
     <td>
-      {{ status_macro. render_scripts ( count_scripts ( element.scripts_
+      {{ status_macro.render_scripts ( count_scripts ( element.scripts_
       ) ) }}</td>
     <td>{{ status_macro.render_status_enum(element.status) }}</td>
     <td>

@@ -18,15 +18,41 @@
 {% endmacro %}
 
 
-{% macro render_jobs_count(status_tuple) %}
+{% macro render_jobs_count(level, element_id, status_tuple) %}
 <div class="jobs_count">
-  <font color="black">{{ status_tuple[0] }}</font> /
-  <font color="green">{{ status_tuple[1] }}</font> /
-  <font color="light green">{{ status_tuple[2] }}</font> /
-  <font color="red">{{ status_tuple[3] }}</font> /
-  <font color="blue">{{ status_tuple[4] }}</font> /
-  <font color="purple">{{ status_tuple[5] }}</font> /
-  <font color="yellow">{{ status_tuple[6] }}</font>
+  <a href="{{ url_for('jobs_filtered', level=level, element_id=element_id, status='None') }}"><font color="black">{{ status_tuple[0] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered',
+  level=level,element_id=element_id, status='is_not_yet_processing')
+  }}"><font color="gray">{{ status_tuple[1] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_now_processing') }}"><font color="blue">{{ status_tuple[2] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_reviewable') }}"><font color="purple">{{ status_tuple[3] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_accepted') }}"><font color="green">{{ status_tuple[4] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_rescuable') }}"><font color="light green">{{ status_tuple[5] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[6] }}</font></a>
+</div>
+{% endmacro %}
+
+{% macro render_child_count(level, element_id, status_tuple) %}
+<div class="child_count">
+  <a href="{{ url_for('jobs_filtered', level=level, element_id=element_id, status='None') }}"><font color="black">{{ status_tuple[0] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered',
+  level=level,element_id=element_id, status='is_not_yet_processing')
+  }}"><font color="gray">{{ status_tuple[1] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_now_processing') }}"><font color="blue">{{ status_tuple[2] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_reviewable') }}"><font color="purple">{{ status_tuple[3] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_accepted') }}"><font color="green">{{ status_tuple[4] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_rescuable') }}"><font color="light green">{{ status_tuple[5] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[6] }}</font></a>
 </div>
 {% endmacro %}
 

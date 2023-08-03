@@ -102,9 +102,35 @@ class StatusEnum(enum.Enum):
     accepted = 11
     rescuable = 12
 
-    def bad(self) -> bool:
+    @property
+    def is_bad(self) -> bool:
         """Can be used to filter out failed and rejected runs"""
         return self.value < 0
+
+    @property
+    def is_not_yet_processing(self) -> bool:
+        """Collect all the states before running"""
+        return self in [self.waiting, self.ready, self.preparing, self.prepared]
+
+    @property
+    def is_now_processing(self) -> bool:
+        """Collect the status between running and validating"""
+        return self in [self.running, self.collectable, self.collecting, self.completed, self.validating]
+
+    @property
+    def is_reviewable(self) -> bool:
+        """return True if the state is 'reviewable'"""
+        return self in [self.reviewable]
+
+    @property
+    def is_accepted(self) -> bool:
+        """return True if the state is 'accepted'"""
+        return self in [self.accepted]
+
+    @property
+    def is_rescuable(self) -> bool:
+        """return True if the state is 'rescuable'"""
+        return self in [self.rescuable]
 
 
 class LevelEnum(enum.Enum):

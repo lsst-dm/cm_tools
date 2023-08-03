@@ -69,6 +69,18 @@ class SQLAlchemyInterface(DbInterface):
         return DbId(p_id=p_id, c_id=c_id, s_id=s_id, g_id=g_id, w_id=w_id)
 
     @staticmethod
+    def dbi_id_from_level_and_element(level: LevelEnum, element_id: int) -> DbId:
+        if level == LevelEnum.campaign:
+            return DbId(-1, element_id)
+        elif level == LevelEnum.step:
+            return DbId(-1, -1, element_id)
+        elif level == LevelEnum.group:
+            return DbId(-1, -1, -1, element_id)
+        elif level == LevelEnum.group:
+            return DbId(-1, -1, -1, -1, element_id)
+        raise ValueError(f"Can't convert {level} to DbId")  # pragma: no cover
+
+    @staticmethod
     def parse_fullname(fullname: str) -> dict[str, str]:
         tokens = fullname.split("/")
         n_tokens = len(tokens)
@@ -389,7 +401,7 @@ class SQLAlchemyInterface(DbInterface):
         handler = entry.get_handler()
         for job_ in entry.jobs_:
             status = job_.status
-            if not status.bad():
+            if not status.is_bad:
                 continue
             if job_.superseded:
                 continue
@@ -420,7 +432,7 @@ class SQLAlchemyInterface(DbInterface):
             status = script_.status
             if script_.superseded:
                 continue
-            if not status.bad():
+            if not status.is_bad:
                 continue
             if script_.name != script_name:
                 continue

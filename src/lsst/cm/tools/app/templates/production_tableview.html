@@ -2,21 +2,17 @@
 
 {%- extends 'base.html' %}
 {%- block content %}
-    <h3>{{ element.level.name }} {{ element.fullname }}</h3>
+    <h3>Campaigns for {{ production.name }}</h3>
     <table class="table table-striped">
         <thead>
             <th>ID</th>
-	    <th>Name</th>
+	    <th>Fullname</th>
 	    <th>Links</th>
-	    <th>Children</th>
-	    <th>Jobs</th>
-	    <th>Scipts</th>
 	    <th>Status</th>
-	    <th>Errors</th>
         </thead>
         <tbody>
-	  {%- for child in children %}
-	  {{ element_macro.render_row(child) }}
+	  {%- for campaign in campaigns %}
+	  {{ element_macro.render_row(campaign, 'campaign') }}
 	  {%- endfor %}
         </tbody>
     </table>
