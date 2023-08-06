@@ -12,7 +12,8 @@
     <tbody>
       {%- for attr in attr_list %}
       <tr>
-	<td>{{ attr }}
+	<td><a href="{{ url_for('update_values',
+	  level=element.level.name, element_id=element.id, field=attr) }}">{{ attr }}</a></td>
 	<td>{{ get_attribute(element, attr) }}</td>
       </tr>
       {%- endfor %}
@@ -26,24 +27,41 @@
 <div class="element_row">
   <tr>
     <td>{{ element.id }}</td>
-    <td>{{ element.name }}</td>
-    <td>
-      <a href="{{ url_for(element.level.name + '_table', element_id=element.id) }}">Table</a>
-      <a href="{{ url_for(element.level.name + '_details',
-      element_id=element.id) }}">Details</a>
-    </td>
+    <td><a href="{{ url_for('details', level=element.level.name, element_id=element.id) }}">{{ element.name }}</a></td>
     <td>{{ status_macro.render_child_count( element.level.name,
       element.id, child_status_tuple(element) ) }}</td>
     <td>{{ status_macro.render_jobs_count( element.level.name,
       element.id, count_jobs(element.jobs_) ) }}</td>
     <td>
-      {{ status_macro.render_scripts ( count_scripts ( element.scripts_
+      {{ status_macro.render_script_count ( element.level.name,
+      element.id, count_scripts ( element.scripts_
       ) ) }}</td>
     <td>{{ status_macro.render_status_enum(element.status) }}</td>
     <td>
-      <a href="{{ url_for(element.level.name + '_errors',
-      element_id=element.id) }}">{{ count_errors(element) }} </a>
+      <a href="{{ url_for('errors', level=element.level.name, element_id=element.id) }}">{{ count_errors(element) }} </a>
     </td>
   </tr>
+</div>
+{% endmacro %}
+
+
+{% macro render_error(error, attr_list) %}
+<div class="error_table">
+  <table>
+    <thead>
+      <tr>
+	<th>Field</th>
+	<th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for attr in attr_list %}
+      <tr>
+	<td>{{ attr }}</td>
+	<td>{{ get_attribute(error, attr) }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
 </div>
 {% endmacro %}

@@ -115,7 +115,14 @@ class StatusEnum(enum.Enum):
     @property
     def is_now_processing(self) -> bool:
         """Collect the status between running and validating"""
-        return self in [self.running, self.collectable, self.collecting, self.completed, self.validating]
+        return self in [
+            self.populating,
+            self.running,
+            self.collectable,
+            self.collecting,
+            self.completed,
+            self.validating,
+        ]
 
     @property
     def is_reviewable(self) -> bool:

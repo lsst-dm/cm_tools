@@ -40,3 +40,8 @@ class Production(common.Base, common.CMTable):
 
     def __repr__(self) -> str:
         return f"Production {self.fullname} {self.p_id} {self.db_id}"
+
+    def children(self) -> Iterable:
+        """Maps self.c_ to self.children() for consistency"""
+        for campaign in self.c_:
+            yield campaign

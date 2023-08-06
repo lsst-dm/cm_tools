@@ -1,0 +1,40 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Script Details</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>Field</th>
+	    <th>Value</th>
+        </thead>
+        <tbody>
+	     <tr>
+	        <td>id</td>
+		<td>{{ script.id }}</td>
+	      </tr>
+	     <tr>
+	        <td>fragment_id</td>
+		<td>{{ script.frag_id }}</td>
+            </tr>
+	     <tr>
+	        <td>name</td>
+		<td>{{ script.name }}</td>
+            </tr>
+	     <tr>
+	        <td>idx</td>
+		<td>{{ script.idx }}</td>
+            </tr>
+	     <tr>
+	        <td>script_url</td>
+		<td>{{ script.script_url }}</td>
+            </tr>
+	     <tr>
+	        <td>stamp_url</td>
+		<td>{{ script.stamp_url }}</td>
+            </tr>
+	     <tr>
+	        <td>batch_status</td>
+		<td>{{ script.batch_status }}</td>
+            </tr>
+        </tbody>
+    </table>
+{%- endblock %}

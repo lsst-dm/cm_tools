@@ -10,9 +10,16 @@
             {%- for production in productions %}
             <tr>
                 <td>{{ production[0].id }}</td>
-                <td><a href="{{ url_for('production_table', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
+                <td><a href="{{ url_for('table', level='production', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
             </tr>
             {%- endfor %}
-        </tbody>
+	    <tr>
+	        <td colspan=2>
+		<form method="post">
+	        <input type="submit" value="insert" name="insert">
+		  </form>
+		</td>
+	    </tr>
+	</tbody>
     </table>
 {%- endblock %}

@@ -70,13 +70,15 @@ class SQLAlchemyInterface(DbInterface):
 
     @staticmethod
     def dbi_id_from_level_and_element(level: LevelEnum, element_id: int) -> DbId:
-        if level == LevelEnum.campaign:
+        if level == LevelEnum.production:
+            return DbId(element_id)
+        elif level == LevelEnum.campaign:
             return DbId(-1, element_id)
         elif level == LevelEnum.step:
             return DbId(-1, -1, element_id)
         elif level == LevelEnum.group:
             return DbId(-1, -1, -1, element_id)
-        elif level == LevelEnum.group:
+        elif level == LevelEnum.workflow:
             return DbId(-1, -1, -1, -1, element_id)
         raise ValueError(f"Can't convert {level} to DbId")  # pragma: no cover
 
@@ -167,6 +169,14 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_job(self, job_id) -> Any:
         sel = select(Job).where(Job.id == job_id)
+        return self.connection().execute(sel)
+
+    def get_script(self, script_id) -> Any:
+        sel = select(Script).where(Script.id == script_id)
+        return self.connection().execute(sel)
+
+    def get_all_error_types(self) -> Any:
+        sel = select(ErrorType)
         return self.connection().execute(sel)
 
     def get_error_type(self, error_id) -> Any:

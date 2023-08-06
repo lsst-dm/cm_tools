@@ -1,0 +1,28 @@
+{%- extends 'base.html' %}
+{%- block content %}
+    <h3>Error types for {{ db_url }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Name</th>
+	    <th>Panda Error Code</th>
+	    <th>Flavor</th>
+	    <th>Action</th>
+	    <th>Rescuable</th>
+	    <th>Resolved</th>
+        </thead>
+        <tbody>
+            {%- for error_type in error_types %}
+            <tr>
+                <td>{{ error_type[0].id }}</td>
+                <td><a href="{{ url_for('error_type', element_id=error_type[0].id) }}">{{ error_type[0].error_name }}</a></td>
+                <td>{{ error_type[0].panda_err_code }}</td>
+                <td>{{ error_type[0].error_flavor.name }}</td>
+		<td>{{ error_type[0].action.name }}</td>
+		<td>{{ error_type[0].is_resolved }}</td>
+                <td>{{ error_type[0].is_rescueable }}</td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

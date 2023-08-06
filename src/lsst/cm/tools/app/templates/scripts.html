@@ -1,0 +1,32 @@
+{%- extends 'base.html' %}
+{% import 'status_macro.html' as status_macro %}
+{%- block content %}
+    <h3>Scripts for {{ element.fullname }}</h3>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Attempt</th>
+	    <th>Status</th>
+	    <th>Slurm</th>
+	    <th></th>
+        </thead>
+        <tbody>
+            {%- for script in scripts %}
+            <tr>
+                <td>{{ script.id }}</td>
+                <td><a href="{{ url_for('script', script_id=script.id)
+		  }}">{{ script.name }}_{{ script.idx }}</a></td>
+		<td>{{ status_macro.render_status_enum(script.status)
+		  }}</td>
+		  <td>{{ script.batch_status }}</td>
+		  <td>
+		  {% if script.status.is_bad %}
+		    <form method="post">
+		    <input type="submit" value="rerun" name={{ script.name }}>
+		    </form>
+		  {% endif %}
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}
