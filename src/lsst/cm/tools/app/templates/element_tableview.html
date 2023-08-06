@@ -9,7 +9,6 @@
         <thead>
             <th>ID</th>
 	    <th>Name</th>
-	    <th>Links</th>
 	    <th>Children</th>
 	    <th>Jobs</th>
 	    <th>Scipts</th>
@@ -19,6 +18,17 @@
 	  {%- for child in children %}
 	  {{ element_macro.render_row(child) }}
 	  {%- endfor %}
+	    <tr>
+	      <td colspan=7>
+		<form method="post">
+	        <input type="submit" value="insert" name="insert">
+		  </form>
+		<form method="post">
+		<input type="submit" value="check" name="check">
+		</form>
+
+	      </td>
+	    </tr>
 	  </tbody>
     </table>
 {%- endblock %}

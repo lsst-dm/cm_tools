@@ -618,6 +618,8 @@ def report_errors(
 
 @cli.command()
 @options.dbi()
-def server(dbi: DbInterface) -> None:
+@options.script_method()
+def server(dbi: DbInterface, script_method: ScriptMethod) -> None:
     """Run web interface in developer mode"""
+    Handler.script_method = script_method
     app.create(dbi).run(debug=True)
