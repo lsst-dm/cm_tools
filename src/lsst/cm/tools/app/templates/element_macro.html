@@ -26,8 +26,10 @@
 {% macro render_row(element) %}
 <div class="element_row">
   <tr>
-    <td>{{ element.id }}</td>
-    <td><a href="{{ url_for('details', level=element.level.name, element_id=element.id) }}">{{ element.name }}</a></td>
+    <td><a href="{{ url_for('details', level=element.level.name,
+      element_id=element.id) }}">{{ element.id }}</a></td>
+     <td><a href="{{ url_for('table', level=element.level.name,
+      element_id=element.id) }}">{{ element.name }}</a></td>
     <td>{{ status_macro.render_child_count( element.level.name,
       element.id, child_status_tuple(element) ) }}</td>
     <td>{{ status_macro.render_jobs_count( element.level.name,

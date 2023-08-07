@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>{% block title %} Insert Group into Step "{{ parent.fullname
+}}" {% endblock %}
+</h3>
+
+<form method="post">
+    <div class="form-group">
+        <label for="g_name">Group Name</label>
+        <textarea name="g_name" class="form-control">{{ request.form['g_name'] }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="config_block">Config Block</label>
+        <textarea name="config_block" placeholder="{{
+    def_values['config_block'] }}" default="{{ def_values['config_block'] }}" class="form-control">{{ request.form['config_block'] }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="lsst_version">LSST Software Stack Version</label>
+        <textarea name="lsst_version"  placeholder="{{
+    def_values['lsst_version'] }}" default="{{ def_values['lsst_version'] }}" class="form-control">{{ request.form['lsst_version'] }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="data_query">Data Query</label>
+        <textarea name="data_query"  placeholder="{{
+    def_values['data_query'] }}" default="{{ def_values['data_query'] }}" class="form-control">{{ request.form['data_query'] }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="pipeline_yaml">Pipeline Yaml</label>
+        <textarea name="pipeline_yaml"  placeholder="{{
+    def_values['prod_base_url'] }}" default="{{ def_values['prod_base_url'] }}" class="form-control">{{ request.form['pipeline_yaml'] }}</textarea>
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+</form>
+{% endblock %}

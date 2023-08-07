@@ -14,13 +14,13 @@
 		  }}">{{ config[0].name }}</a></td>
             </tr>
             {%- endfor %}
-	    <tr>
-	        <td colspan=2>
-		<form method="post">
-	        <input type="submit" value="load" name="load">
-		  </form>
-		</td>
-	    </tr>
          </tbody>
     </table>
+    {%- endblock %}
+ {%- block content2 %}
+    <h3>functions</h3>
+
+    <form method="post">
+    <input type="submit" value="load" name="load">
+    </form>
 {%- endblock %}

@@ -200,7 +200,8 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/")
     def index() -> str:
-        return render_template("index.html", db_url=dbi.db_url)
+        env = os.environ
+        return render_template("index.html", db_url=dbi.db_url, env=env)
 
     @app.route("/all_confifs", methods=["GET", "POST"])
     def all_configs() -> str:
@@ -231,7 +232,7 @@ def create(dbi: DbInterface) -> CMFlask:
         productions = list(dbi.get_table(TableEnum.production))
         if request.method == "POST":
             insert = request.form.get("insert")
-            if insert == "insert":
+            if insert == "insert_production":
                 return redirect(url_for("insert_production"))
         return render_template("all_productions.html", db_url=dbi.db_url, productions=productions)
 
@@ -261,16 +262,25 @@ def create(dbi: DbInterface) -> CMFlask:
         if request.method == "POST":
             insert = request.form.get("insert")
             check = request.form.get("check")
-            if insert == "insert":
-                if levelEnum == LevelEnum.production:
-                    return redirect(url_for("insert_campaign", parent_id=element_id))
+            if insert == "insert_campaign":
+                assert levelEnum == LevelEnum.production
+                return redirect(url_for("insert_campaign", parent_id=element_id))
+            elif insert == "insert_step":
+                assert levelEnum == LevelEnum.campaign
+                return redirect(url_for("insert_step", parent_id=element_id))
+            elif insert == "insert_group":
+                assert levelEnum == LevelEnum.step
+                return redirect(url_for("insert_group", parent_id=element_id))
+            elif insert == "insert_rescue":
+                assert levelEnum == LevelEnum.group
+                return redirect(url_for("insert_rescue", parent_id=element_id))
             if check == "check":
                 dbi.check(levelEnum, dbid)
                 return redirect(url_for("table", level=level, element_id=element_id))
 
         if levelEnum == LevelEnum.workflow:
             return render_template("workflow_tableview.html", workflow=element, jobs=element.jobs_)
-        return render_template("element_tableview.html", element=element, children=element.children())
+        return render_template(f"{level}_tableview.html", element=element, children=element.children())
 
     @app.route("/insert_campaign/<int:parent_id>", methods=["GET", "POST"])
     def insert_campaign(parent_id: int) -> str:
@@ -298,6 +308,75 @@ def create(dbi: DbInterface) -> CMFlask:
             dbi.insert(parent_dbid, config_block, config, **kwargs)
             return redirect(url_for("table", level="production", element_id=parent_id))
         return render_template("insert_campaign.html", parent=parent, def_values=default_values)
+
+    @app.route("/insert_step/<int:parent_id>", methods=["GET", "POST"])
+    def insert_step(parent_id: int) -> str:
+        parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.campaign, parent_id)
+        parent = dbi.get_entry(LevelEnum.campaign, parent_dbid)
+        default_values = dict(
+            config_block="",
+            lsst_version="dummy",
+        )
+        if request.method == "POST":
+            config_block = request.form.get("config_block")
+            kwargs = dict(
+                production_name=parent.p_name,
+                campaign_name=parent.c_name,
+                step_name=request.form.get("s_name"),
+                lsst_version=request.form.get("lsst_version"),
+                pipeline_yaml="",
+            )
+            dbi.insert_step(parent_dbid, config_block, **kwargs)
+            return redirect(url_for("table", level="campaign", element_id=parent_id))
+        return render_template("insert_step.html", parent=parent, def_values=default_values)
+
+    @app.route("/insert_group/<int:parent_id>", methods=["GET", "POST"])
+    def insert_group(parent_id: int) -> str:
+        parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.step, parent_id)
+        parent = dbi.get_entry(LevelEnum.step, parent_dbid)
+        default_values = dict(
+            config_block="",
+            lsst_version="dummy",
+        )
+        if request.method == "POST":
+            config_block = request.form.get("config_block")
+            config_name = request.form.get("config_name")
+            config = dbi.get_config(config_name)
+            kwargs = dict(
+                production_name=parent.p_name,
+                campaign_name=parent.c_name,
+                step_name=parent.s_name,
+                group_name=request.form.get("g_name"),
+                lsst_version=request.form.get("lsst_version"),
+                data_query=request.form.get("data_query"),
+                pipeline_yaml=request.form.get("pipeline_yaml"),
+            )
+            dbi.insert(parent_dbid, config_block, config, **kwargs)
+            return redirect(url_for("table", level="step", element_id=parent_id))
+        return render_template("insert_group.html", parent=parent, def_values=default_values)
+
+    @app.route("/insert_rescue/<int:parent_id>", methods=["GET", "POST"])
+    def insert_rescue(parent_id: int) -> str:
+        parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.group, parent_id)
+        parent = dbi.get_entry(LevelEnum.group, parent_dbid)
+        default_values = dict(
+            config_block="",
+            lsst_version="dummy",
+        )
+        if request.method == "POST":
+            config_block = request.form.get("config_block")
+            kwargs = dict(
+                production_name=parent.p_name,
+                campaign_name=parent.c_name,
+                step_name=parent.s_name,
+                group_name=parent.g_name,
+                lsst_version=request.form.get("lsst_version"),
+                data_query="",
+                pipeline_yaml="",
+            )
+            dbi.insert_rescue(parent_dbid, config_block, **kwargs)
+            return redirect(url_for("table", level="group", element_id=parent_id))
+        return render_template("insert_rescue.html", parent=parent, def_values=default_values)
 
     @app.route("/table_filtered/<level>/<int:element_id>/<status>")
     def table_filtered(level: str, element_id: int, status: str) -> str:

@@ -1,7 +1,11 @@
 from typing import Any, TextIO
 
 import yaml
-from pandaclient import Client, panda_api
+
+try:
+    from pandaclient import Client, panda_api
+except Exception:
+    pass
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.slurm_utils import SlurmChecker

@@ -1,8 +1,25 @@
 {%- extends 'base.html' %}
 {%- block content %}
 <h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
-<h3>Using {{ db_url }}</h3>
-<h3><a href="{{ url_for('all_productions') }}">Productions</a></h3>
-<h3><a href="{{ url_for('all_configs') }}">Configs</a></h3>
-<h3><a href="{{ url_for('all_error_types') }}">Error Types</a></h3>
-{% endblock %}
+
+<table>
+  <tbody>
+<tr>
+<td><a href="{{ url_for('all_productions') }}"><img src="/static/horse.png" width="50%"><h3>Productions</h3></a></td>
+<td><a href="{{ url_for('all_configs') }}"><img src="/static/horse.png" width="50%"><h3> Configs</h3></a></td>
+<td><a href="{{ url_for('all_error_types') }}"><img src="/static/horse.png" width="50%"><h3> Error Types</h3></a></td>
+<tr>
+  </tbody>
+</table>
+
+<hr>
+<table>
+  <tbody>
+    <tr><td colspan=2><h3>Configuration</h3></td></tr>
+    <tr><td>Database</td><td>{{ db_url }}</td></tr>
+    <tr><td>Butler</td><td>{{ env['CM_BUTLER'] }}</td></tr>
+    <tr><td>Production Directory</td><td>{{ env['CM_PROD_DIR'] }}</td></tr>
+    <tr><td>Production Area</td><td>{{ env['CM_PROD_URL'] }}</td></tr>
+    <tr><td>Config Area</td><td>{{ env['CM_CONFIGS'] }}</td></tr>
+
+    {% endblock %}

@@ -13,13 +13,15 @@
                 <td><a href="{{ url_for('table', level='production', element_id=production[0].id) }}">{{ production[0].name }}</a></td>
             </tr>
             {%- endfor %}
-	    <tr>
-	        <td colspan=2>
-		<form method="post">
-	        <input type="submit" value="insert" name="insert">
-		  </form>
-		</td>
-	    </tr>
 	</tbody>
     </table>
+    {%- endblock %}
+
+{%- block content2 %}
+<div>
+<h3>functions</h3>
+<form method="post">
+<input type="submit" value="insert_production" name="insert">
+  </form>
+</div>
 {%- endblock %}
