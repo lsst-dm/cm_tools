@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% import 'insert_macro.html' as insert_macro %}
+{% import 'element_macro.html' as element_macro %}
+
+{% block function_bar %}
+{% if parent %}
+<h3>Insert into {{ element_macro.render_name(parent) }}</h3>
+{% elif db_url %}
+<h3>Insert production into {{ db_url }}</h3>
+{% endif %}
+
+<hr>
+{{ insert_macro.render_insert_form(field_dict) }}
+{% endblock %}

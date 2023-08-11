@@ -1,0 +1,18 @@
+{%- extends 'base.html' %}
+{%- block function_bar %}
+    <h3>Trend for ErrorType {{ error_type_id }} by {{ level }}</h3>
+    <table class="table table-striped">
+        <thead>
+	    <th>{{ level }}</th>
+	    <th>Count</th>
+        </thead>
+        <tbody>
+            {%- for key, val in trend_dict.items() %}
+            <tr>
+                <td>{{ key }}</td>
+		<td>{{ val }}</td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endblock %}

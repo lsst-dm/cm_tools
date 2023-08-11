@@ -629,32 +629,11 @@ class SQLAlchemyInterface(DbInterface):
     def load_error_types(self, config_yaml: str) -> None:
         with open(config_yaml, "rt", encoding="utf-8") as config_file:
             config_data = yaml.safe_load(config_file)
-        conn = self.connection()
         error_code_dict = config_data["pandaErrorCode"]
         for key, val in error_code_dict.items():
             for error_name, error_type in val.items():
-                matched_id = conn.query(ErrorType.id).filter_by(error_name=error_name).first()
-                if matched_id is not None:
-                    stmt = (
-                        update(ErrorType)
-                        .where(ErrorType.id == matched_id[0])
-                        .values(
-                            panda_err_code=key,
-                            diagnostic_message=error_type["diagMessage"],
-                            jira_ticket=str(error_type["ticket"]),
-                            pipetask=error_type["pipetask"],
-                            is_resolved=error_type["resolved"],
-                            is_rescueable=error_type["rescue"],
-                            error_flavor=ErrorFlavor[error_type["flavor"]],
-                            action=ErrorAction["failed_review"],
-                            max_intensity=error_type["intensity"],
-                        )
-                    )
-                    conn.execute(stmt)
-                    conn.commit()
-                    continue
-                new_error_type = ErrorType(
-                    error_name=error_name,
+                self.insert_error_type(
+                    error_name,
                     panda_err_code=key,
                     diagnostic_message=error_type["diagMessage"],
                     jira_ticket=str(error_type["ticket"]),
@@ -665,11 +644,24 @@ class SQLAlchemyInterface(DbInterface):
                     action=ErrorAction["failed_review"],
                     max_intensity=error_type["intensity"],
                 )
-                try:
-                    conn.add(new_error_type)
-                    conn.commit()
-                except Exception:
-                    print(f"Avoiding duplicate error entry {error_name}")
+
+    def insert_error_type(self, error_name: str, **kwargs):
+        conn = self.connection()
+        matched_id = conn.query(ErrorType.id).filter_by(error_name=error_name).first()
+        if matched_id is not None:
+            stmt = (
+                update(ErrorType).where(ErrorType.id == matched_id[0]).values(error_name=error_name, **kwargs)
+            )
+            conn.execute(stmt)
+            conn.commit()
+            return
+
+        new_error_type = ErrorType(error_name=error_name, **kwargs)
+        try:
+            conn.add(new_error_type)
+            conn.commit()
+        except Exception:
+            print(f"Avoiding duplicate error entry {error_name}")
 
     def match_error_type(self, panda_code: str, diag_message: str) -> Any:
         conn = self.connection()
@@ -708,7 +700,6 @@ class SQLAlchemyInterface(DbInterface):
                     f"Unknown {unmatched_error_[0].panda_err_code} {unmatched_error_[0].diagnostic_message}"
                 )
                 continue
-            print(error_type.error_name, error_type.id)
             stmt = (
                 update(ErrorInstance)
                 .where(ErrorInstance.id == unmatched_error_[0].id)
@@ -814,6 +805,53 @@ class SQLAlchemyInterface(DbInterface):
                 error_instance = ErrorInstance(**copy_dict)
                 conn.add(error_instance)
         conn.commit()
+
+    def get_error_trend_dict(self, error_type_id: int, level: LevelEnum) -> Any:
+        conn = self.connection()
+        out_dict = {}
+        error_instances = conn.execute(
+            select(ErrorInstance).where(ErrorInstance.error_type_id == error_type_id)
+        )
+        for error_ in error_instances:
+            if level == LevelEnum.campaign:
+                key = error_[0].job_.c_.fullname
+            elif level == LevelEnum.step:
+                key = error_[0].job_.s_.fullname
+            elif level == LevelEnum.group:
+                key = error_[0].job_.g_.fullname
+            elif level == LevelEnum.workflow:
+                key = error_[0].job_.w_.fullname
+            if key in out_dict:
+                out_dict[key] += 1
+            else:
+                out_dict[key] = 1
+        return out_dict
+
+    def requires_attention(self) -> Any:
+        elements = []
+        conn = self.connection()
+        workflows_sel = self.get_table(TableEnum.workflow)
+        workflows = [
+            workflow_[0]
+            for workflow_ in workflows_sel
+            if (workflow_[0].status.is_bad or workflow_[0].status.is_reviewable)
+            and (not workflow_[0].superseded)
+        ]
+        elements += workflows
+
+        jobs_sel = conn.execute(select(Job))
+        jobs = [
+            job_[0]
+            for job_ in jobs_sel
+            if (job_[0].status.is_bad or job_[0].status.is_reviewable) and (not job_[0].superseded)
+        ]
+        scripts_sel = conn.execute(select(Script).where(Script.superseded is False))
+        scripts = [
+            script_[0]
+            for script_ in scripts_sel
+            if (script_[0].status.is_bad or script_[0].status.is_reviewable) and (not script_[0].superseded)
+        ]
+        return elements, jobs, scripts
 
     def report_error_trend(self, stream: TextIO, error_name: str) -> None:
         conn = self.connection()

@@ -28,6 +28,8 @@ class Production(common.Base, common.CMTable):
     parent_id = None
     parent_ = None
 
+    scripts_ = []
+
     @hybrid_property
     def p_id(self) -> Any:
         """Maps id to p_id for consistency"""

@@ -1,0 +1,39 @@
+{%- extends 'base.html' %}
+{% import 'element_macro.html' as element_macro %}
+
+{%- block function_bar %}
+    {%- if element %}
+    <h3>Error list for {{ element_macro.render_name(element) }}</h3>
+    {%- elif job %}
+    <h3>Error list for {{ element_macro.render_name(job.w_) }}:{{ job.name }}_{{ job.idx
+}}</h3>
+    {%- endif %}
+
+    {%- if error_type %}
+    <h3>Filtered for ErrorType {{ error_type }}</h3>
+    {%- endif %}
+{% endblock %}
+
+{%- block content %}
+
+<table class="table table-striped">
+  <thead>
+  <th>Job</th>
+  <th>Data ID</th>
+  <th>Error Type</ht>
+  <th>Message</th>
+  </thead>
+  <tbody>
+    {%- for error_ in error_list %}
+    <tr>
+      <td>{{ error_.job_.w_.fullname }}:{{ error_.job_.name}}_{{
+	error_.job_.idx }}</td>
+      <td> A Fake Data Id </td>
+      <td>{{ error_.error_name }}</td>
+      <td>{{ error_.diagnostic_message }}</td>
+    </tr>
+    {%- endfor %}
+  </tbody>
+</table>
+
+{%- endblock %}

@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% import 'insert_macro.html' as insert_macro %}
+{% import 'element_macro.html' as element_macro %}
 
 {% block function_bar %}
-<h3>{% block title %} Update value for {{ field }} in {{ element_fullname }}{% endblock %}
+<h3>{% block title %} Add Script to {{ parent.level.name }}: {{ element_macro.render_name(parent) }}{% endblock %}
 </h3>
 {{ insert_macro.render_insert_form(field_dict) }}
 {% endblock %}

@@ -1,5 +1,4 @@
 {% macro render_status_enum(status_enum) %}
-<div class="status_enum">
   {% if status_enum.is_bad %}
       <font color="red">{{ status_enum.name }}</font>
   {% elif status_enum.is_not_yet_processing %}
@@ -15,12 +14,10 @@
   {% else %}
   <font color="yellow">{{ status_enum.name }}</font>
   {% endif %}
-</div>
 {% endmacro %}
 
 
 {% macro render_jobs_count(level, element_id, status_tuple) %}
-<div class="jobs_count">
   <a href="{{ url_for('jobs', level=level, element_id=element_id) }}"><font color="black">{{ status_tuple[0] }}</font></a> /
   <a href="{{ url_for('jobs_filtered',
   level=level,element_id=element_id, status='is_not_yet_processing')
@@ -35,12 +32,10 @@
   element_id=element_id, status='is_rescuable') }}"><font color="cyan">{{ status_tuple[5] }}</font></a> /
   <a href="{{ url_for('jobs_filtered', level=level,
   element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[6] }}</font></a>
-</div>
 {% endmacro %}
 
 
 {% macro render_child_count(level, element_id, status_tuple) %}
-<div class="child_count">
   <a href="{{ url_for('table', level=level, element_id=element_id) }}"><font color="black">{{ status_tuple[0] }}</font></a> /
   <a href="{{ url_for('table_filtered',
   level=level,element_id=element_id, status='is_not_yet_processing')
@@ -55,7 +50,6 @@
   element_id=element_id, status='is_rescuable') }}"><font color="cyan">{{ status_tuple[5] }}</font></a> /
   <a href="{{ url_for('table_filtered', level=level,
   element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[6] }}</font></a>
-</div>
 {% endmacro %}
 
 
@@ -66,10 +60,10 @@
   level=level, element_id=element_id, status='is_not_yet_processing')
   }}"><font color="gray">{{ status_tuple[1] }}</font></a> /
   <a href="{{ url_for('scripts_filtered', level=level,
-  element_id=element_id, status='is_now_processing') }}"><font color="blue">{{ status_tuple[2] }}</font></a> /
+  element_id=element_id, status='is_now_processing_script') }}"><font color="blue">{{ status_tuple[2] }}</font></a> /
   <a href="{{ url_for('scripts_filtered', level=level,
-  element_id=element_id, status='is_accepted') }}"><font color="green">{{ status_tuple[3] }}</font></a> /
+  element_id=element_id, status='is_accepted_script') }}"><font color="green">{{ status_tuple[3] }}</font></a> /
   <a href="{{ url_for('scripts_filtered', level=level,
-  element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[4] }}</font></a>
+  element_id=element_id, status='is_bad_script') }}"><font color="red">{{ status_tuple[4] }}</font></a>
 </div>
 {% endmacro %}

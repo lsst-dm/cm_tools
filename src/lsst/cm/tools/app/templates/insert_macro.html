@@ -1,0 +1,18 @@
+{% macro render_insert_form(field_dict) %}
+
+<form method="post">
+{%- for field in field_dict.keys() %}
+<div class="form-group">
+  <label for="{{ field }}">{{ field_dict[field]['label'] }}</label>
+  <input type="text",  name="{{ field }}"
+  placeholder="{{ field_dict[field]['default'] }}"
+  value="{{ field_dict[field]['default'] }}"
+  class="form-control">{{ request.form['{{ field }}'] }}</input>
+</div>
+{%- endfor %}
+<div class="form-group">
+  <button type="submit" value="submit" name="action" class="btn btn-primary">Submit</button>
+  <button type="submit" value="cancel" name="action" class="btn btn-primary">Cancel</button>
+</div>
+</form>
+{% endmacro %}

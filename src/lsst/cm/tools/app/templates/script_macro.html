@@ -1,0 +1,30 @@
+{% import 'status_macro.html' as status_macro %}
+{% macro render_scripts(element, scripts) %}
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Script and attempt</th>
+	    <th>Status</th>
+	    <th>Slurm</th>
+	    <th></th>
+        </thead>
+        <tbody>
+            {%- for script in scripts %}
+            <tr>
+                <td><a href="{{ url_for('script', script_id=script.id)
+		  }}"> {{ script.id }} </a></td>
+                <td>{{ script.name }}_{{ script.idx }}</td>
+		<td>{{ status_macro.render_status_enum(script.status)
+		  }}</td>
+		  <td>{{ script.batch_status }}</td>
+		  <td>
+		  {% if script.status.is_bad %}
+		    <form method="post">
+		    <input type="submit" value="rerun" name={{ script.name }}>
+		    </form>
+		  {% endif %}
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+{%- endmacro %}

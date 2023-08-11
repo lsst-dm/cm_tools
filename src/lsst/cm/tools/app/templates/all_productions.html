@@ -1,6 +1,6 @@
 {%- extends 'base.html' %}
 {%- block content %}
-    <h3>Productions for {{ db_url }}</h3>
+    <h5>Productions for {{ db_url }}</h5>
     <table class="table table-striped">
         <thead>
             <th>ID</th>
@@ -17,11 +17,14 @@
     </table>
     {%- endblock %}
 
-{%- block content2 %}
-<div>
-<h3>functions</h3>
+{%- block function_bar %}
+<img src="/static/Productions.png" height="100px">
+<h5>CM Database: '{{ db_url  }}'</h5>
+<hr>
+<h5>functions</h5>
 <form method="post">
-<input type="submit" value="insert_production" name="insert">
-  </form>
-</div>
+    {% for action_ in actions %}
+    <input type="submit" value="{{ action_ }}" name="action">
+    {% endfor %}
+</form>
 {%- endblock %}

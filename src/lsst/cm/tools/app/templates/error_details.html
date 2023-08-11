@@ -1,6 +1,6 @@
 {%- extends 'base.html' %}
 {% import 'element_macro.html' as element_macro %}
-{%- block content %}
+{%- block function_bar %}
 <h3>Details for Error Type {{ element.error_name }}</h3>
 {{ element_macro.render_error(element, attrs) }}
 {%- endblock %}

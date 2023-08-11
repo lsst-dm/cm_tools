@@ -26,14 +26,15 @@
         </tbody>
     </table>
 {%- endblock %}
- {%- block content2 %}
-    <h3>functions</h3>
 
-    <form method="post">
-    <input type="submit" value="load" name="load">
-    </form>
-    <form method="post">
-    <input type="submit" value="rematch" name="rematch">
-    </form>
+{%- block function_bar %}
+<img src="/static/Errors.png" height="100px">
+<h3>functions</h3>
 
+<form method="post">
+    {% for action_ in actions %}
+    <input type="submit" value="{{ action_ }}" name="action">
+    {% endfor %}
+</form>
+<hr>
 {%- endblock %}

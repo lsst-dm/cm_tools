@@ -2,7 +2,7 @@
 {% import 'insert_macro.html' as insert_macro %}
 
 {% block function_bar %}
-<h3>{% block title %} Update value for {{ field }} in {{ element_fullname }}{% endblock %}
+<h3>{% block title %} Load error types into {{ db_url }}{% endblock %}
 </h3>
 {{ insert_macro.render_insert_form(field_dict) }}
 {% endblock %}

@@ -10,10 +10,17 @@
       </tr>
     </thead>
     <tbody>
-      {%- for attr in attr_list %}
+      {%- for attr, mutable in attr_list %}
       <tr>
-	<td><a href="{{ url_for('update_values',
-	  level=element.level.name, element_id=element.id, field=attr) }}">{{ attr }}</a></td>
+	<td>
+	  {% if mutable %}
+	  <a href="{{ url_for('update_values',
+	  level=element.level.name, element_id=element.id, field=attr)
+	  }}">{{ attr }}</a>
+	  {% else %}
+	  {{ attr }}
+	  {% endif %}
+	</td>
 	<td>{{ get_attribute(element, attr) }}</td>
       </tr>
       {%- endfor %}
@@ -29,7 +36,11 @@
     <td><a href="{{ url_for('details', level=element.level.name,
       element_id=element.id) }}">{{ element.id }}</a></td>
      <td><a href="{{ url_for('table', level=element.level.name,
-      element_id=element.id) }}">{{ element.name }}</a></td>
+       element_id=element.id) }}">{{ element.name }}</a></td>
+      <td>{% if element.superseded %}
+	<font color="red">X</font>
+	{% endif %}
+	{{ status_macro.render_status_enum(element.status) }}</td>
     <td>{{ status_macro.render_child_count( element.level.name,
       element.id, child_status_tuple(element) ) }}</td>
     <td>{{ status_macro.render_jobs_count( element.level.name,
@@ -38,14 +49,36 @@
       {{ status_macro.render_script_count ( element.level.name,
       element.id, count_scripts ( element.scripts_
       ) ) }}</td>
-    <td>{{ status_macro.render_status_enum(element.status) }}</td>
     <td>
-      <a href="{{ url_for('errors', level=element.level.name, element_id=element.id) }}">{{ count_errors(element) }} </a>
+      <a href="{{ url_for('error_summary', level=element.level.name, element_id=element.id) }}">{{ count_errors(element) }} </a>
     </td>
   </tr>
 </div>
 {% endmacro %}
 
+{% macro render_workflow(workflow) %}
+<div class="workflow_row">
+  <tr>
+    <td><a href="{{ url_for('details', level=workflow.level.name,
+      element_id=workflow.id) }}">{{ workflow.id }}</a></td>
+     <td><a href="{{ url_for('table', level=workflow.level.name,
+       element_id=workflow.id) }}">{{ workflow.fullname }}</a></td>
+      <td>{% if workflow.superseded %}
+	<font color="red">X</font>
+	{% endif %}
+	{{ status_macro.render_status_enum(workflow.status) }}</td>
+    <td>{{ status_macro.render_jobs_count( workflow.level.name,
+      workflow.id, count_jobs(workflow.jobs_) ) }}</td>
+    <td>
+      {{ status_macro.render_script_count ( workflow.level.name,
+      workflow.id, count_scripts ( workflow.scripts_
+      ) ) }}</td>
+    <td>
+      <a href="{{ url_for('error_summary', level=workflow.level.name, element_id=workflow.id) }}">{{ count_errors(workflow) }} </a>
+    </td>
+  </tr>
+</div>
+{% endmacro %}
 
 {% macro render_error(error, attr_list) %}
 <div class="error_table">
@@ -67,3 +100,81 @@
   </table>
 </div>
 {% endmacro %}
+
+
+
+{% macro render_jobs(jobs) %}
+<table class="table table-striped">
+  <thead>
+  <th>ID</th>
+  <th>Attempt</th>
+  <th>Status</th>
+  <th>Slurm</th>
+  <th>Panda</th>
+  <th>Errors</th>
+  <th></th>
+  </thead>
+  <tbody>
+    {%- for job in jobs %}
+    <tr>
+      <td><a href="{{ url_for('job', job_id=job.id)}}">{{ job.id }}</a></td>
+      <td>{{ job.w_.fullname }}:{{ job.name }}_{{ job.idx }}</td>
+      <td>
+	{% if job.superseded %}
+	<font color="red">X</font>
+	{% endif %}
+	{{ status_macro.render_status_enum(job.status)}}</td>
+      <td>{{ job.batch_status }}</td>
+      <td>
+	{%  if job.panda_url %}
+	<a href="https://panda-doma.cern.ch/tasks/?idds_request_id={{
+	job.panda_url }}">{{ job.panda_url }}  </a>
+	{% endif %}
+	{{ job.panda_status }}</td>
+      <td><a href="{{ url_for('job_errors', element_id=job.id) }}">{{ count_errors_in_job(job) }} </a></td>
+      <td>
+	{% if job.status.is_bad and not job.superseded %}
+	<form method="post">
+	<input type="submit" value="requeue" name={{ job.id }}>
+	</form>
+	{% endif %}
+
+	</td>
+    </tr>
+    {%- endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+
+
+{% macro render_name(element) %}
+{{ element.level.name }}:
+{%  if element.level.value >= 1 %}
+<a href="{{ url_for('table', level='production',
+element_id=element.p_id) }}">{{ element.p_.name }}/</a>
+{% elif element.level.value == 0 %}
+{{ element.name }}
+{% endif %}
+{% if element.level.value >= 2 %}
+<a href="{{ url_for('table', level='campaign',
+element_id=element.c_id) }}">{{ element.c_.name }}/</a>
+{% elif element.level.value  == 1 %}
+{{ element.name }}
+{% endif %}
+{% if element.level.value >= 3 %}
+<a href="{{ url_for('table', level='step',
+element_id=element.s_id) }}">{{ element.s_.name }}/</a>
+{% elif element.level.value == 2 %}
+{{ element.name }}
+{% endif %}
+{% if element.level.value >= 4 %}
+<a href="{{ url_for('table', level='group',
+element_id=element.g_id) }}">{{ element.g_.name }}/</a>
+{% elif element.level.value == 3 %}
+{{ element.name }}
+{% endif %}
+{% if element.level.value == 4 %}
+{{ element.name }}
+{% endif %}
+{%- endmacro %}

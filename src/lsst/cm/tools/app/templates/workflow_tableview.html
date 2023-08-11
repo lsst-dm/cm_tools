@@ -1,29 +1,42 @@
 {%- extends 'base.html' %}
 {% import 'status_macro.html' as status_macro %}
+{% import 'script_macro.html' as script_macro %}
+{% import 'element_macro.html' as element_macro %}
+
 {%- block content %}
-    <h3>Jobs for {{ workflow.fullname }}</h3>
-    <table class="table table-striped">
-        <thead>
-            <th>ID</th>
-	    <th>Attempt</th>
-	    <th>Status</th>
-	    <th>Slurm</th>
-	    <th>Panda</th>
-        </thead>
-        <tbody>
-            {%- for job in jobs %}
-            <tr>
-                <td>{{ job.id }}</td>
-                <td><a href="{{ url_for('job', job_id=job.id)
-		  }}">{{ job.name }}_{{ job.idx }}</a></td>
-		<td>{{ status_macro.render_status_enum(job.status)
-		  }}</td>
-		<td>{{ job.batch_status }}</td>
-		<td><a
-		  href="https://panda-doma.cern.ch/tasks/?idds_request_id={{
-		  job.panda_url }}">{{ job.panda_url }}</a> {{ job.panda_status }}</td>
-            </tr>
-            {%- endfor %}
-        </tbody>
-    </table>
+    <h5>Jobs</h5>
+{{ element_macro.render_jobs(workflow.jobs_) }}
+
+{%- endblock %}
+
+{%- block function_bar %}
+{{ element_macro.render_name(workflow) }}
+<hr>
+<h5>Status {{ status_macro.render_status_enum(workflow.status) }}</h5>
+<hr>
+<div>
+<h5>functions</h5>
+  <form method="post">
+  {% for action_ in actions %}
+  <input type="submit" value="{{ action_ }}" name="action">
+  {% endfor %}
+  </form>
+  <hr>
+  <h5>Scripts</h5>
+  {{ script_macro.render_scripts(workflow, scripts) }}
+
+</div>
+{%- endblock %}
+
+
+{%- block doc_block %}
+    <div style="text-align: center;">
+    <font color="black">All</font><br>
+    <font color="gray">Preparing</font><br>
+    <font color="blue">Processing</font><br>
+    <font color="purple">Reviewable</font><br>
+    <font color="green">Accepted</font><br>
+    <font color="cyan">Rescuable</font><br>
+    <font color="red">Failed</font><br>
+    </div>
 {%- endblock %}

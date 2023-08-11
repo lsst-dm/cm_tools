@@ -108,36 +108,60 @@ class StatusEnum(enum.Enum):
         return self.value < 0
 
     @property
+    def is_bad_script(self) -> bool:
+        """Can be used to filter out failed and rejected runs"""
+        return self in [
+            StatusEnum.failed,
+            StatusEnum.rejected,
+            StatusEnum.populating,  # These states should not happen for scripts
+            StatusEnum.rescuable,
+            StatusEnum.reviewable,
+            StatusEnum.collectable,
+            StatusEnum.collecting,
+            StatusEnum.validating,
+        ]
+
+    @property
     def is_not_yet_processing(self) -> bool:
         """Collect all the states before running"""
-        return self in [self.waiting, self.ready, self.preparing, self.prepared]
+        return self in [StatusEnum.waiting, StatusEnum.ready, StatusEnum.preparing, StatusEnum.prepared]
+
+    @property
+    def is_now_processing_script(self) -> bool:
+        """Collect all the states before running"""
+        return self in [StatusEnum.running]
 
     @property
     def is_now_processing(self) -> bool:
         """Collect the status between running and validating"""
         return self in [
-            self.populating,
-            self.running,
-            self.collectable,
-            self.collecting,
-            self.completed,
-            self.validating,
+            StatusEnum.populating,
+            StatusEnum.running,
+            StatusEnum.collectable,
+            StatusEnum.collecting,
+            StatusEnum.completed,
+            StatusEnum.validating,
         ]
 
     @property
     def is_reviewable(self) -> bool:
         """return True if the state is 'reviewable'"""
-        return self in [self.reviewable]
+        return self in [StatusEnum.reviewable]
 
     @property
     def is_accepted(self) -> bool:
         """return True if the state is 'accepted'"""
-        return self in [self.accepted]
+        return self in [StatusEnum.accepted]
+
+    @property
+    def is_accepted_script(self) -> bool:
+        """return True if the state is 'accepted'"""
+        return self in [StatusEnum.completed, StatusEnum.accepted]
 
     @property
     def is_rescuable(self) -> bool:
         """return True if the state is 'rescuable'"""
-        return self in [self.rescuable]
+        return self in [StatusEnum.rescuable]
 
 
 class LevelEnum(enum.Enum):

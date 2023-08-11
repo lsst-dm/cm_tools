@@ -1,8 +1,18 @@
 {%- extends 'base.html' %}
-{%- block content %}
-    <h3>Error Summary for {{ element.level.name }} {{ element.fullname }}</h3>
+{% import 'element_macro.html' as element_macro %}
 
-    <h4>Known Errors</h4>
+{%- block function_bar %}
+    {%- if element %}
+    <h3>Error summary for {{ element_macro.render_name(element) }}</h3>
+    {%- endif %}
+    {%- if job %}
+    <h3>Error summary for job {{ job.w_.fullname }}:{{ job.name }}_{{
+job.idx }}</h3>
+    {%- endif %}
+{% endblock %}
+
+{%- block content %}
+<h4>Known Errors</h4>
     <table class="table table-striped">
         <thead>
 	    <th>Name</th>
@@ -12,11 +22,23 @@
 	  {%- for error_name, error_count in error_count.items() %}
 	  <tr>
 	    <td>
-	      <a href= "{{ url_for('error_details', element_id=error_dict[error_name]) }}">
+	      <a href="{{ url_for('error_type', element_id=error_dict[error_name]) }}">
 	      {{ error_name }}
 	      </a>
 	    </td>
-	    <td>{{ error_count }}</td>
+	    <td>
+	      {% if element %}
+	      <a href="{{ url_for('filtered_error_list',
+	      level=element.level.name, element_id=element.id, error_type=error_dict[error_name]) }}">
+	      {{ error_count }}</a>
+	      {% elif job %}
+	      <a href="{{ url_for('filtered_job_error_list',
+	      job_id=job.id, error_type=error_dict[error_name]) }}">
+	      {{ error_count }}</a>
+	      {%  else %}
+	      {{ error_count }}
+	      {% endif %}
+	    </td>
 	  </tr>
 	  {%- endfor %}
         </tbody>
@@ -32,7 +54,7 @@
 	  {%- for error_ in error_list %}
 	  <tr>
 	    <td>{{ error_.job_.w_.fullname }}:{{ error_.job_.name}}_{{ error_.job_.idx }}</td>
-	    <td>{{ error_count }}</td>
+	    <td>{{ error_.diagnostic_message }}</td>
 	  </tr>
 	  {%- endfor %}
         </tbody>

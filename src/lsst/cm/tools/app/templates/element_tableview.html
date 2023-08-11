@@ -1,22 +1,18 @@
 {% import 'element_macro.html' as element_macro %}
 {% import 'status_macro.html' as status_macro %}
+{% import 'script_macro.html' as script_macro %}
 
 {%- extends 'base.html' %}
 {%- block content %}
-    <h3>{{ element.level.name }}: '{{ element.fullname
-}}'</h3>
-    <hr>
-    <h5>Status {{ status_macro.render_status_enum(element.status) }}</h5>
-    <hr>
-    <h5>Table</h5>
+    <h5>Children</h5>
     <table class="table table-striped">
         <thead>
             <th>ID</th>
 	    <th>Name</th>
+	    <th>Status</th>
 	    <th>Children</th>
 	    <th>Jobs</th>
 	    <th>Scipts</th>
-	    <th>Status</th>
 	    <th>Errors</th>
         </thead>
 	  <tbody>
@@ -25,4 +21,43 @@
 	  {%- endfor %}
 	  </tbody>
     </table>
+{%- endblock %}
+    {%- block doc_block %}
+    <div style="text-align: center;">
+    <font color="black">All</font><br>
+    <font color="gray">Preparing</font><br>
+    <font color="blue">Processing</font><br>
+    <font color="purple">Reviewable</font><br>
+    <font color="green">Accepted</font><br>
+    <font color="cyan">Rescuable</font><br>
+    <font color="red">Failed</font><br>
+    </div>
+{%- endblock %}
+
+{%- block function_bar %}
+<h3>{{ element_macro.render_name(element) }}</h3>
+<hr>
+{% if element.level.value > 0 %}
+    <h5>Status: {{ status_macro.render_status_enum(element.status) }}<br>
+    Children: {{ status_macro.render_child_count( element.level.name, element.id, child_status_tuple(element) ) }}<br>
+    Jobs: {{ status_macro.render_jobs_count( element.level.name, element.id,
+    count_jobs(element.jobs_) ) }}
+    </h5>
+
+<hr>
+{% endif  %}
+
+<div>
+<h5>functions</h5>
+  <form method="post">
+  {% for action_ in actions %}
+  <input type="submit" value="{{ action_ }}" name="action">
+  {% endfor %}
+  </form>
+  <hr>
+  {% if element.level.value > 0 %}
+  <h5>Scripts</h5>
+  {{ script_macro.render_scripts(element, scripts) }}
+  {% endif  %}
+</div>
 {%- endblock %}

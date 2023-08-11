@@ -1,5 +1,5 @@
 {%- extends 'base.html' %}
-{%- block content %}
+{%- block function_bar %}
     <h3>Job Details</h3>
     <table class="table table-striped">
         <thead>
@@ -16,24 +16,54 @@
 		<td>{{ job.frag_id }}</td>
             </tr>
 	     <tr>
-	        <td>bps_yaml_template</td>
-		<td>{{ job.bps_yaml_template }}</td>
+	       <td>bps_yaml_template</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.bps_yaml_template) }}">
+		  {{ job.bps_yaml_template }}</a></td>
+	      </tr>
             </tr>
 	     <tr>
-	        <td>bps_script_template</td>
-		<td>{{ job.bps_script_template }}</td>
+	       <td>bps_script_template</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.bps_script_template) }}">
+		  {{ job.bps_script_template }}</a></td>
+	      </tr>
             </tr>
 	     <tr>
 	        <td>coll_out</td>
 		<td>{{ job.coll_out }}</td>
             </tr>
 	     <tr>
-	        <td>script_url</td>
-		<td>{{ job.script_url }}</td>
+	       <td>script_url</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.script_url) }}">
+		  {{ job.script_url }}</a></td>
+	      </tr>
+	     <tr>
+	        <td>stamp_url</td>
+		<td>{{ job.stamp_url }}</td>
             </tr>
 	     <tr>
 	        <td>panda_url</td>
 		<td><a href="https://panda-doma.cern.ch/tasks/?idds_request_id={{ job.panda_url }}">{{ job.panda_url }}</a></td>
+	      </tr>
+	      <tr>
+		<td>log_url</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.log_url) }}">
+		  {{ job.log_url }}</a></td>
+            </tr>
+	     <tr>
+	        <td>config_url</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.config_url) }}">
+		  {{ job.config_url }}</a></td>
+            </tr>
+	     <tr>
+	       <td>json_url</td>
+		<td><a href="{{ url_for("production_file",
+		  path=job.json_url) }}">
+		  {{ job.json_url }}</a></td>
             </tr>
 	     <tr>
 	        <td>batch_status</td>

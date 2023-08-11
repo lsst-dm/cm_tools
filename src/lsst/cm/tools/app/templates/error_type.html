@@ -1,52 +1,18 @@
 {%- extends 'base.html' %}
+{% import 'element_macro.html' as element_macro %}
+
+{%- block function_bar %}
+<h3>Details for Error Type {{ error_type.error_name }}</h3>
+<hr>
+<h5>functions</h5>
+<form method="post">
+  {% for action_ in actions %}
+  <input type="submit" value="{{ action_ }}" name="action">
+  {% endfor %}
+  </form>
+{%- endblock %}
+
 {%- block content %}
-    <h3>Error Type {{ error_type.error_name }}</h3>
-    <table class="table table-striped">
-        <thead>
-            <th>Field</th>
-	    <th>Value</th>
-        </thead>
-        <tbody>
-	     <tr>
-	        <td>id</td>
-		<td>{{ error_type.id }}</td>
-	      </tr>
-	     <tr>
-	        <td>panda_err_code</td>
-		<td>{{ error_type.panda_err_code }}</td>
-	      </tr>
-	     <tr>
-	        <td>diagnostic_message</td>
-		<td>{{ error_type.diagnostic_message }}</td>
-	      </tr>
-	     <tr>
-	        <td>jira_ticket</td>
-		<td>{{ error_type.jira_ticket }}</td>
-	      </tr>
-	     <tr>
-	        <td>pipetask</td>
-		<td>{{ error_type.pipetask }}</td>
-	      </tr>
-	     <tr>
-	        <td>is_resolved</td>
-		<td>{{ error_type.is_resolved }}</td>
-	      </tr>
-	     <tr>
-	        <td>is_rescueable</td>
-		<td>{{ error_type.is_rescueable }}</td>
-	      </tr>
-	     <tr>
-	        <td>error_flavor</td>
-		<td>{{ error_type.error_flavor }}</td>
-	      </tr>
-	     <tr>
-	        <td>action</td>
-		<td>{{ error_type.action }}</td>
-	      </tr>
-	     <tr>
-	        <td>max_intensity</td>
-		<td>{{ error_type.max_intensity }}</td>
-	      </tr>
-        </tbody>
-    </table>
+<h3>Error Type {{ error_type.error_name }}</h3>
+{{ element_macro.render_error(error_type, attrs) }}
 {%- endblock %}

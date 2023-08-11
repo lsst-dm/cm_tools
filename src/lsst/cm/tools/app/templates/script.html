@@ -1,6 +1,8 @@
 {%- extends 'base.html' %}
-{%- block content %}
+{%- block function_bar %}
     <h3>Script Details</h3>
+{%- endblock %}
+{%- block content %}
     <table class="table table-striped">
         <thead>
             <th>Field</th>
@@ -25,12 +27,18 @@
             </tr>
 	     <tr>
 	        <td>script_url</td>
-		<td>{{ script.script_url }}</td>
+		<td><a href="{{ url_for("production_file",
+		  path=script.script_url) }}">{{ script.script_url }}</a></td>
             </tr>
 	     <tr>
 	        <td>stamp_url</td>
 		<td>{{ script.stamp_url }}</td>
-            </tr>
+	      </tr>
+	    <tr>
+	      <td>log_url</td>
+		<td><a href="{{ url_for("production_file",
+		  path=script.log_url) }}">
+		  {{ script.log_url }}</a></td>
 	     <tr>
 	        <td>batch_status</td>
 		<td>{{ script.batch_status }}</td>

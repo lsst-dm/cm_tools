@@ -1,17 +1,26 @@
 {%- extends 'base.html' %}
-{%- block content %}
-<h1>{% block title %}Welcome to CM Tools{% endblock %}</h1>
+{%- block function_bar %}
+<table width="100%">
+  <tbody width="100%">
+<tr width="100%">
+<td width="50%"><a href="{{ url_for('all_productions') }}"><img
+  src="/static/Productions.png" height="100px"></a></td>
+<td width="50%"><a href="{{ url_for('all_configs') }}"><img
+  src="/static/Configs.png" height="100px"></a></td>
+</tr>
+<tr width="100%">
+<td width="50%"><a href="{{ url_for('all_error_types') }}"><img src="/static/Errors.png" height="100px"></a></td>
+<td width="50%"xs><a href="{{ url_for('attention') }}"><img src="/static/Attention.png" height="100px"></a></td>
+</tr>
+</tr>
+<tr width="100%">
+<td width="50%"><a href="{{ url_for('launch_campaign') }}"><img src="/static/Launch.png" height="100px"></a></td>
+</tr>
 
-<table>
-  <tbody>
-<tr>
-<td><a href="{{ url_for('all_productions') }}"><img src="/static/horse.png" width="50%"><h3>Productions</h3></a></td>
-<td><a href="{{ url_for('all_configs') }}"><img src="/static/horse.png" width="50%"><h3> Configs</h3></a></td>
-<td><a href="{{ url_for('all_error_types') }}"><img src="/static/horse.png" width="50%"><h3> Error Types</h3></a></td>
-<tr>
   </tbody>
 </table>
-
+{%- endblock %}
+{%- block content %}
 <hr>
 <table>
   <tbody>
@@ -21,5 +30,6 @@
     <tr><td>Production Directory</td><td>{{ env['CM_PROD_DIR'] }}</td></tr>
     <tr><td>Production Area</td><td>{{ env['CM_PROD_URL'] }}</td></tr>
     <tr><td>Config Area</td><td>{{ env['CM_CONFIGS'] }}</td></tr>
-
-    {% endblock %}
+  </tbody>
+  </table>
+{% endblock %}
