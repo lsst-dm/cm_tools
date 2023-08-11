@@ -29,6 +29,10 @@
   <a href="{{ url_for('jobs_filtered', level=level,
   element_id=element_id, status='is_accepted') }}"><font color="green">{{ status_tuple[4] }}</font></a> /
   <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_rescuable') }}"><font color="cyan">{{ status_tuple[5] }}</font></a> /
+  <a href="{{ url_for('jobs_filtered', level=level,
+  element_id=element_id, status='is_bad') }}"><font color="red">{{ status_tuple[6] }}</font></a>
+
 {% endmacro %}
 
 
