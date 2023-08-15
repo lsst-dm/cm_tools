@@ -185,18 +185,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def get_table_with_selection(self, which_table: TableEnum, selection: str = "") -> Iterable:
         table = top.get_table(which_table)
-        if db_id:
-            sel = table.get_match_query(db_id)
-        else:
-            sel = select(table)
-        return self.connection().execute(sel)
-
-    def get_job(self, job_id) -> Any:
-        sel = select(Job).where(Job.id == job_id)
-        return self.connection().execute(sel)
-
-    def get_error_type(self, error_id) -> Any:
-        sel = select(ErrorType).where(ErrorType.id == error_id)
+        sel = select(table, where=selection)
         return self.connection().execute(sel)
 
     def print_table(self, stream: TextIO, which_table: TableEnum, **kwargs: Any) -> None:

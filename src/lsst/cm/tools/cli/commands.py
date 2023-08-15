@@ -3,9 +3,8 @@ from typing import Any, Tuple
 
 import click
 
-
-from ..core.checker import Checker
 from .. import app
+from ..core.checker import Checker
 from ..core.db_interface import DbInterface
 from ..core.handler import Handler
 from ..core.panda_utils import PandaChecker, print_errors_aggregate
@@ -583,7 +582,7 @@ def extend(dbi: DbInterface, config_yaml: str, config_name: str) -> None:
 @options.username()
 def check_panda_job(dbi: DbInterface, panda_url: int, username: str) -> list[str]:
     """Check the status of a panda job"""
-    PandaChecker.panda_user = panda_username
+    PandaChecker.panda_user = username
     pc = PandaChecker()
     status, errors_aggregate = pc.check_panda_status(dbi, panda_url, username)
     errors_aggregate["panda_status"] = status
