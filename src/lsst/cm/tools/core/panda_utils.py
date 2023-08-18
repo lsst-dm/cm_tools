@@ -336,7 +336,9 @@ def decide_panda_status(dbi: DbInterface, statuses: list, errors_agg: dict, max_
     return panda_status
 
 
-def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) -> str:  # pragma: no cover
+def check_panda_status(
+    dbi: DbInterface, panda_reqid: int, panda_username=None, while_running=False
+) -> str:  # pragma: no cover
     """Check the errors for a given panda reqid and
     return a final overarching error
 
@@ -349,6 +351,9 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     panda_username: str
         None by default, username required for other
         submissions
+    while_running: Bool
+        False by default, allows for limited checking
+        of jobs still running
 
     Returns
     -------
@@ -360,7 +365,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
         we want to update the error instance db with
     """
     # first pull down all the tasks
-    errors_aggregate, tasks, merging = get_panda_errors(dbi, int(panda_reqid), panda_username)
+    errors_aggregate, tasks, merging = get_panda_errors(dbi, int(panda_reqid), panda_username, while_running)
     if not merging:
         return "running", {}
 
@@ -388,7 +393,7 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
 
 
 def get_panda_errors(
-    dbi: DbInterface, panda_reqid: int, panda_username=None
+    dbi: DbInterface, panda_reqid: int, panda_username=None, while_running=False
 ) -> tuple[Any]:  # pragma: no cover
     """Get panda errors for a given reqID."""
     conn = pandaclient.idds_api.get_api(idds_utils.json_dumps, idds_host=None, compress=True, manager=True)
@@ -399,9 +404,11 @@ def get_panda_errors(
     for task in tasks:
         if task["transform_name"].find("finalJob") >= 0 or task["transform_name"].find("xecutionButler") >= 0:
             has_merging = True
-    if not has_merging:
+    if not has_merging and not while_running:
         return {}, tasks, False
 
+    if while_running:
+        print("Checking for errors.")
     jtids = [
         task["transform_workload_id"]
         for task in tasks
@@ -410,6 +417,14 @@ def get_panda_errors(
     for jtid in jtids:
         errors_dict = get_errors_from_jeditaskid(dbi, conn, int(panda_reqid), jtid)
         errors_aggregate[jtid] = errors_dict
+    if while_running:
+        for jtid in jtids:
+            for error_dict in errors_aggregate[jtid]:
+                print(
+                    f'JTID: {jtid}, Error: {error_dict["panda_err_code"]}, \
+                Diag: {error_dict["diagnostic_message"]}'
+                )
+        return {}, tasks, False
     return errors_aggregate, tasks, True
 
 
@@ -464,7 +479,9 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
                 return update_vals
         if panda_url is None:
             return update_vals
-        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.generic_username)
+        panda_status, errors_aggregate = check_panda_status(
+            dbi, int(panda_url), self.generic_username, self.while_running
+        )
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
 

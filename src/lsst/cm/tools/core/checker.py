@@ -20,6 +20,7 @@ class Checker:
     """
 
     generic_username = None
+    while_running = False  # flag to enable checking running jobs
 
     checker_cache: dict[str, Checker] = {}
 

@@ -314,10 +314,12 @@ def launch(dbi: DbInterface, script_method: ScriptMethod, max_running: int, **kw
 @options.workflow()
 @options.script_method()
 @options.username()
+@options.while_running()
 def check(dbi: DbInterface, script_method: ScriptMethod, **kwargs: Any) -> None:
     """Check all the matching database entries"""
     Handler.script_method = script_method
     Checker.generic_username = kwargs.get("username", "None")
+    Checker.while_running = kwargs.get("while_running", "None")
     the_db_id = dbi.get_db_id(**kwargs)
     dbi.check(the_db_id.level(), the_db_id)
 
