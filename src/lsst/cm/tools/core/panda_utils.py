@@ -70,6 +70,45 @@ def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma
     return jeditaskids
 
 
+# dict to map trans diagnostic codes to an associated useful message,
+# placeholder until more is handled externally.
+trans_diag_map = dict(
+    t1="Pipelines error: check logging.",
+    t129="SIGHUP: Hangup detected in controlling terminal or death of \
+    controlling process.",
+    t130="SIGINT: Interrupt from keyboard.",
+    t131="SIGQUIT: Quit from keyboard.",
+    t132="SIGILL: Illegal instruction.",
+    t133="SIGTRAP: Trace/breakpoint trap.",
+    t134="SIGABRT: Abort signal.",
+    t135="SIGBUS: Bus error (bad memory access).",
+    t136="SIGFPE: Floating Point Exemption.",
+    t137="SIGKILL: Kill signal.",
+    t138="SIGUSR1: User defined signal.",
+    t139="SIGSEGV: Invalid memory reference.",
+    t140="SIGUSR2: User defined signal.",
+    t141="SIGPIPE: Broken pipe.",
+    t142="SIGALRM: Timer signal.",
+    t143="SIGTERM: Termination signal.",
+    t144="SIGSTKFLT: Stack fault on coprocessor.",
+    t145="SIGCHLD: Child stopped or terminated.",
+    t146="SIGCONT: Continue if stopped.",
+    t147="SIGSTOP: Stop process.",
+    t148="SIGTSTP: Stop typed at terminal.",
+    t149="SIGTTIN: Terminal input for background process.",
+    t150="SIGTTOU: Terminal output for background process.",
+    t151="SIGURG: Urgent condition on socket.",
+    t152="SIGXCPU: CPU Time Limit Exceeded.",
+    t153="SIGXFSZ: File size limit exceeded.",
+    t154="SIGVTALRM: Virtual alarm clock.",
+    t155="SIGPROF: Profiling timer expired.",
+    t156="SIGWINCH: Window resize signal.",
+    t157="SIGIO: I/O now possible",
+    t158="SIGPWR: Power failure",
+    t159="SIGSYS: Bad system call",
+)
+
+
 def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no cover
     """Return the errors associated with a jeditaskid as
     a dictionary for each job.
@@ -124,9 +163,15 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
         for job in failed_jobs:
             error_dict = dict()
             # TODO: store the hecking pandaIDs so people can look things up
-
+            if job.transExitCode != 0 and job.transExitCode != 1:
+                error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
+                try:
+                    trans_diag = trans_diag_map("t" + str(job.transExitCode))
+                except KeyError:
+                    trans_diag = "Stack error: check logging and report!"
+                error_dict["diagnostic_message"] = trans_diag
             # brokerageErrorCode/Diag
-            if job.brokerageErrorCode != 0:
+            elif job.brokerageErrorCode != 0:
                 error_dict["panda_err_code"] = "brokerage, " + str(job.brokerageErrorCode)
                 error_dict["diagnostic_message"] = job.brokerageErrorDiag
             # ddmErrorCode/Diag
@@ -154,9 +199,9 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
                 error_dict["panda_err_code"] = "taskBuffer, " + str(job.taskBufferErrorCode)
                 error_dict["diagnostic_message"] = job.taskBufferErrorDiag
             # transExitCode (no Diag)
-            elif job.transExitCode != 0:
+            elif job.transExitCode == 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
-                error_dict["diagnostic_message"] = "check the logging"
+                error_dict["diagnostic_message"] = trans_diag_map("t" + str(job.transExitCode))
             else:
                 raise RuntimeError("Not sure what kinda error we got")
             jobname_words = [word for word in job.jobName.split("_") if word.isalpha() is True]
