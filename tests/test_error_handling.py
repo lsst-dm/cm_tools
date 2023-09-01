@@ -10,6 +10,41 @@ from lsst.cm.tools.core.utils import LevelEnum, StatusEnum
 from lsst.cm.tools.db.sqlalch_interface import SQLAlchemyInterface
 
 
+def test_load_error_type() -> None:
+    """"""
+    # Connect to test db saved in examples.
+    try:
+        os.unlink("test_error_loading.db")
+    except OSError:  # pragma: no cover
+        pass
+    # Make an interface for the test database with errors loaded already
+    db_errors_already_loaded = SQLAlchemyInterface(
+        "sqlite:///examples/test_error_loading.db", echo=False, create=False
+    )
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
+    # Connect to new test db with no errors yet.
+    try:
+        os.unlink("test_error_handling.db")
+    except OSError:  # pragma: no cover
+        pass
+    os.system("\\rm -rf archive_test")
+    # Make an interface for the test database
+    db_just_loaded_errors = SQLAlchemyInterface("sqlite:///test_error_handling.db", echo=False, create=True)
+    Handler.plugin_dir = "examples/handlers/"
+    Handler.config_dir = "examples/configs/"
+    os.environ["CM_CONFIGS"] = Handler.config_dir
+    # Load error types into test database:
+    db_just_loaded_errors.load_error_types("examples/configs/error_code_decisions.yaml")
+    # Assert that db 1 and 2 are the same.
+    error1 = db_errors_already_loaded.match_error_type("trans, 137", "Transform received signal SIGKILL")
+    error2 = db_just_loaded_errors.match_error_type("trans, 137", "Transform received signal SIGKILL")
+    assert error1 is not None, "Saved error database is missing test error"
+    assert error2 is not None, "Database created from test file is missing test error"
+    assert error1 == error2, "Load does not match existing database"
+
+
 def test_error_handling() -> None:
     try:
         os.unlink("test_error_handling.db")
