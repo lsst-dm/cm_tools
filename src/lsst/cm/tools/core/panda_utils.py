@@ -166,7 +166,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
             if job.transExitCode != 0 and job.transExitCode != 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
                 try:
-                    trans_diag = trans_diag_map("t" + str(job.transExitCode))
+                    trans_diag = trans_diag_map["t" + str(job.transExitCode)]
                 except KeyError:
                     trans_diag = "Stack error: check logging and report!"
                 error_dict["diagnostic_message"] = trans_diag
@@ -201,7 +201,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
             # transExitCode (no Diag)
             elif job.transExitCode == 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
-                error_dict["diagnostic_message"] = trans_diag_map("t" + str(job.transExitCode))
+                error_dict["diagnostic_message"] = trans_diag_map["t" + str(job.transExitCode)]
             else:
                 raise RuntimeError("Not sure what kinda error we got")
             jobname_words = [word for word in job.jobName.split("_") if word.isalnum() is True]
