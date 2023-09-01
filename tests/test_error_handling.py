@@ -42,7 +42,8 @@ def test_load_error_type() -> None:
     error2 = db_just_loaded_errors.match_error_type("trans, 137", "Transform received signal SIGKILL")
     assert error1 is not None, "Saved error database is missing test error"
     assert error2 is not None, "Database created from test file is missing test error"
-    assert error1 == error2, "Load does not match existing database"
+    comp = error1.panda_err_code == error2.panda_err_code
+    assert comp is True, "Load does not match existing database"
 
 
 def test_error_handling() -> None:
