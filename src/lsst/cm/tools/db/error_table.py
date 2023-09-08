@@ -1,9 +1,10 @@
 import enum
-from typing import Iterable
+from typing import Any, Iterable
 
-from sqlalchemy import Boolean, Column, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Enum, Float, ForeignKey, Integer, String, update
 from sqlalchemy.orm import relationship
 
+from lsst.cm.tools.core.db_interface import DbInterface
 from lsst.cm.tools.db import common
 from lsst.cm.tools.db.job import Job
 
@@ -58,6 +59,14 @@ class ErrorType(common.Base):
             diag_message = self.diagnostic_message
         s += f"    {diag_message}"
         return s
+
+    @classmethod
+    def update_values(cls, dbi: DbInterface, row_id: int, **kwargs: Any) -> Any:
+        """Updates a given row with values given in kwargs"""
+        stmt = update(cls).where(cls.id == row_id).values(**kwargs)
+        conn = dbi.connection()
+        upd_result = conn.execute(stmt)
+        assert upd_result
 
 
 class ErrorInstance(common.Base):

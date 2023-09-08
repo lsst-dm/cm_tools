@@ -136,75 +136,6 @@ attribute_dict = {
 }
 
 
-attribute_dict = {
-    LevelEnum.production: [],
-    LevelEnum.campaign: [
-        "id",
-        "config_id",
-        "frag_id",
-        "fullname",
-        "data_query",
-        "bps_yaml_template",
-        "bps_script_template",
-        "coll_source",
-        "coll_in",
-        "coll_out",
-        "coll_validate",
-        "coll_ancil",
-        "butler_repo",
-        "lsst_version",
-        "lsst_custom_setup",
-        "root_coll",
-        "prod_base_url",
-    ],
-    LevelEnum.step: [
-        "id",
-        "config_id",
-        "frag_id",
-        "fullname",
-        "data_query",
-        "bps_yaml_template",
-        "bps_script_template",
-        "coll_source",
-        "coll_in",
-        "coll_out",
-        "coll_validate",
-        "lsst_version",
-        "lsst_custom_setup",
-    ],
-    LevelEnum.group: [
-        "id",
-        "config_id",
-        "frag_id",
-        "fullname",
-        "data_query",
-        "bps_yaml_template",
-        "bps_script_template",
-        "coll_source",
-        "coll_in",
-        "coll_out",
-        "coll_validate",
-        "lsst_version",
-        "lsst_custom_setup",
-    ],
-    LevelEnum.workflow: [
-        "id",
-        "config_id",
-        "frag_id",
-        "fullname",
-        "data_query",
-        "bps_yaml_template",
-        "bps_script_template",
-        "pipeline_yaml",
-        "coll_in",
-        "coll_out",
-        "coll_validate",
-        "lsst_version",
-        "lsst_custom_setup",
-    ],
-}
-
-
 class CMFlask(Flask):
     def __init__(self, appname, dbi: DbInterface):
         Flask.__init__(self, appname)
@@ -490,9 +421,74 @@ def create(dbi: DbInterface) -> CMFlask:
         )
         return render_template("insert_error_type.html", db_url=dbi.db_url, field_dict=field_dict)
 
-    @app.route("/error_type/<int:element_id>", methods=["GET", "POST"])
-    def error_type(element_id: int) -> str:
-        err_type = dbi.get_error_type(element_id).scalar()
+    @app.route("/insert_error_as_type/<int:error_id>", methods=["GET", "POST"])
+    def insert_error_as_type(error_id: int) -> str:
+        error_instance = dbi.get_error_instance(error_id).scalar()
+        if request.method == "POST":
+            action = request.form.get("action")
+            if action == "submit":
+                error_name = request.form.get("error_name")
+                kwargs = dict(
+                    panda_err_code=request.form.get("panda_err_code"),
+                    diagnostic_message=request.form.get("diagnostic_message"),
+                    jira_ticket=request.form.get("jira_ticket"),
+                    pipetask=request.form.get("pipetask"),
+                    is_resolved=request.form.get("is_resolved") == "True",
+                    is_rescueable=request.form.get("is_rescueable") == "True",
+                    error_flavor=ErrorFlavor[request.form.get("error_flavor")],
+                    action=ErrorAction[request.form.get("error_action")],
+                    max_intensity=request.form.get("max_intensity"),
+                )
+                dbi.insert_error_type(error_name, **kwargs)
+                dbi.connection().commit()
+            return redirect(url_for("all_error_types"))
+        field_dict = dict(
+            error_name=dict(
+                label="Name",
+                default="",
+            ),
+            panda_err_code=dict(
+                label="Panda Error Code",
+                default=error_instance.panda_err_code,
+            ),
+            diagnostic_message=dict(
+                label="Diag. Message",
+                default=error_instance.diagnostic_message,
+            ),
+            jira_ticket=dict(
+                label="Jira Ticket",
+                default="",
+            ),
+            pipetask=dict(
+                label="Pipetask",
+                default=error_instance.pipetask,
+            ),
+            is_resolved=dict(
+                label="Is Resolved",
+                default=False,
+            ),
+            is_rescueable=dict(
+                label="Is Rescueable",
+                default=True,
+            ),
+            error_flavor=dict(
+                label="Error Flavor",
+                default="pipelines",
+            ),
+            error_action=dict(
+                label="Error Action",
+                default="failed_review",
+            ),
+            max_intensity=dict(
+                label="Max. Intensity",
+                default=0.001,
+            ),
+        )
+        return render_template("insert_error_type.html", db_url=dbi.db_url, field_dict=field_dict)
+
+    @app.route("/error_type/<int:error_id>", methods=["GET", "POST"])
+    def error_type(error_id: int) -> str:
+        err_type = dbi.get_error_type(error_id).scalar()
         if request.method == "POST":
             action = request.form.get("action")
             if action == "trend_campaign":
@@ -503,7 +499,7 @@ def create(dbi: DbInterface) -> CMFlask:
                 levelEnum = LevelEnum.group
             elif action == "trend_workflow":
                 levelEnum = LevelEnum.workflow
-            return redirect(url_for("error_trend", level=levelEnum.name, error_type_id=element_id))
+            return redirect(url_for("error_trend", level=levelEnum.name, error_type_id=error_id))
         attrs = [
             "id",
             "error_name",
@@ -860,7 +856,7 @@ def create(dbi: DbInterface) -> CMFlask:
                     if error_.error_name in error_dict:
                         error_count[error_.error_name] += 1
                     else:
-                        error_dict[error_.error_name] = error_.error_type_id
+                        error_dict[error_.error_name] = (error_.error_type_id, error_.diagnostic_message)
                         error_count[error_.error_name] = 1
         return error_count, error_dict, error_list
 
@@ -946,6 +942,10 @@ def create(dbi: DbInterface) -> CMFlask:
         if request.method == "POST":
             action = request.form["action"]
             if action == "submit":
+                kwupdate = {field: request.form["value"]}
+                element.update_values(dbi, element_id, **kwupdate)
+                return redirect(url_for("details", level=level, element_id=element_id))
+            elif action == "cancel":
                 return redirect(url_for("details", level=level, element_id=element_id))
         field_dict = dict(
             value=dict(
@@ -955,6 +955,28 @@ def create(dbi: DbInterface) -> CMFlask:
         )
         return render_template(
             "update_values.html", field=field, element_fullname=element.fullname, field_dict=field_dict
+        )
+
+    @app.route("/update_error_type/<int:error_id>/<field>", methods=("GET", "POST"))
+    def update_error_type(error_id: int, field: str):
+        error_type = dbi.get_error_type(error_id).scalar()
+        current_value = getattr(error_type, field)
+        if request.method == "POST":
+            action = request.form["action"]
+            if action == "submit":
+                kwupdate = {field: request.form["value"]}
+                error_type.update_values(dbi, error_id, **kwupdate)
+                return redirect(url_for("error_type", error_id=error_id))
+            elif action == "cancel":
+                return redirect(url_for("error_type", error_id=error_id))
+        field_dict = dict(
+            value=dict(
+                label="Value",
+                default=current_value,
+            )
+        )
+        return render_template(
+            "update_values.html", field=field, element_fullname=error_type.error_name, field_dict=field_dict
         )
 
     @app.route("/attention")

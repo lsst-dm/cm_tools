@@ -92,7 +92,10 @@
     <tbody>
       {%- for attr in attr_list %}
       <tr>
-	<td>{{ attr }}</td>
+	<td>
+	  <a href="{{ url_for('update_error_type', error_id=error.id, field=attr)
+	  }}">{{ attr }}</a>
+	</td>
 	<td>{{ get_attribute(error, attr) }}</td>
       </tr>
       {%- endfor %}

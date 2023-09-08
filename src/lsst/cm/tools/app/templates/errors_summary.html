@@ -15,25 +15,29 @@ job.idx }}</h3>
 <h4>Known Errors</h4>
     <table class="table table-striped">
         <thead>
-	    <th>Name</th>
-	    <th>Count</th>
+	<th>Name</th>
+	<th>Diagnostic Message</th>
+	<th>Count</th>
         </thead>
         <tbody>
 	  {%- for error_name, error_count in error_count.items() %}
 	  <tr>
 	    <td>
-	      <a href="{{ url_for('error_type', element_id=error_dict[error_name]) }}">
+	      <a href="{{ url_for('error_type', error_id=error_dict[error_name][0]) }}">
 	      {{ error_name }}
 	      </a>
 	    </td>
 	    <td>
+	      {{ error_dict[error_name][1] }}
+	    </td>
+	    <td>
 	      {% if element %}
 	      <a href="{{ url_for('filtered_error_list',
-	      level=element.level.name, element_id=element.id, error_type=error_dict[error_name]) }}">
+	      level=element.level.name, element_id=element.id, error_type=error_dict[error_name][0]) }}">
 	      {{ error_count }}</a>
 	      {% elif job %}
 	      <a href="{{ url_for('filtered_job_error_list',
-	      job_id=job.id, error_type=error_dict[error_name]) }}">
+	      job_id=job.id, error_type=error_dict[error_name][0]) }}">
 	      {{ error_count }}</a>
 	      {%  else %}
 	      {{ error_count }}
@@ -54,7 +58,9 @@ job.idx }}</h3>
 	  {%- for error_ in error_list %}
 	  <tr>
 	    <td>{{ error_.job_.w_.fullname }}:{{ error_.job_.name}}_{{ error_.job_.idx }}</td>
-	    <td>{{ error_.diagnostic_message }}</td>
+	    <td>
+	      <a href="{{ url_for('insert_error_as_type', error_id=error_.id)}}">
+	      {{ error_.diagnostic_message }}</a></td>
 	  </tr>
 	  {%- endfor %}
         </tbody>

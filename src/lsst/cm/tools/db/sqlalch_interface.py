@@ -183,6 +183,10 @@ class SQLAlchemyInterface(DbInterface):
         sel = select(ErrorType).where(ErrorType.id == error_id)
         return self.connection().execute(sel)
 
+    def get_error_instance(self, error_id) -> Any:
+        sel = select(ErrorInstance).where(ErrorInstance.id == error_id)
+        return self.connection().execute(sel)
+
     def get_table_with_selection(self, which_table: TableEnum, selection: str = "") -> Iterable:
         table = top.get_table(which_table)
         sel = select(table, where=selection)
@@ -702,7 +706,7 @@ class SQLAlchemyInterface(DbInterface):
             )
             if error_type is None:
                 print(
-                    f"Unknown {unmatched_error_[0].panda_err_code} {unmatched_error_[0].diagnostic_message}"
+                    f"Unknown '{unmatched_error_[0].panda_err_code} {unmatched_error_[0].diagnostic_message}'"
                 )
                 continue
             stmt = (
