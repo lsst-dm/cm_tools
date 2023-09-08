@@ -7,10 +7,11 @@
 	    <th>Count</th>
         </thead>
         <tbody>
-            {%- for key, val in trend_dict.items() %}
+            {%- for (key, id), val in trend_dict.items() %}
             <tr>
-                <td>{{ key }}</td>
-		<td>{{ val }}</td>
+	      <td>{{ key }}</td>
+	      <td><a href="{{ url_for('filted_error_list',
+		level=level, element_id=id, error_type_id=error_type_id) }}">{{ val }}</a></td>
             </tr>
             {%- endfor %}
         </tbody>

@@ -150,24 +150,22 @@ class CMFlask(Flask):
         return self._dbi
 
 
-SECRET_KEY = """
-I was the shadow of the waxwing slain
-By the false azure in the windowpane;
-I was that smudge of ashen fluff–and I
-Lived on, flew on, in the reflected sky.
-"""
-
-
 def create(dbi: DbInterface) -> CMFlask:
     app = CMFlask("lsst.cm.tools.app", dbi)
     app.config["SECRET_KEY"] = SECRET_KEY
 
     @app.template_global("get_attribute")
     def get_attribute(element, attr):
+        """Utility function to call getattr from template parser"""
         return getattr(element, attr)
 
     @app.template_global("count_errors")
     def count_errors(element):
+        """Utility function to count errors assocatied to an element
+
+        This loops over all the jobs in the element and sums
+        the number of associated errors
+        """
         n = 0
         for job_ in element.jobs_:
             n += len(job_.errors_)
@@ -175,10 +173,12 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.template_global("count_errors_in_job")
     def count_errors_in_job(job):
+        """Utility function to count the number of errors associated to job"""
         return len(job.errors_)
 
     @app.template_global("count_jobs")
     def count_jobs(jobs):
+        """Utility function to count the number of jobs in different states"""
         n_tot = 0
         n_accepted = 0
         n_rescuable = 0
@@ -206,6 +206,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.template_global("child_status_tuple")
     def child_status_tuple(element):
+        """Utility function to count the childern of an element by states"""
         n_tot = 0
         n_accepted = 0
         n_rescuable = 0
@@ -233,6 +234,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.template_global("count_scripts")
     def count_scripts(scripts):
+        """Utility function to count the scripts associated to an element"""
         n_tot = 0
         n_accepted = 0
         n_failed = 0
@@ -252,15 +254,21 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.template_global("count_children")
     def count_children(element):
+        """Utility function to count the children of an element"""
         return len(list(element.children()))
 
     @app.route("/")
     def index() -> str:
+        """Render the top-level page"""
         env = os.environ
         return render_template("index.html", db_url=dbi.db_url, env=env)
 
-    @app.route("/all_confifs", methods=["GET", "POST"])
+    @app.route("/all_configs", methods=["GET", "POST"])
     def all_configs() -> str:
+        """Render the page all the configurations in the database
+
+        Note that this also provides a function to load configuration files.
+        """
         configs = list(dbi.get_table(TableEnum.config))
         if request.method == "POST":
             action = request.form.get("action")
@@ -270,6 +278,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/load_config", methods=["GET", "POST"])
     def load_config() -> str:
+        """Interface to load a new configuration file"""
         if request.method == "POST":
             action = request.form.get("action")
             if action == "submit":
@@ -278,19 +287,24 @@ def create(dbi: DbInterface) -> CMFlask:
                 dbi.parse_config(config_name, config_yaml)
             return redirect(url_for("all_configs"))
         field_dict = dict(
-            config_name=dict(label="Config Name", default=""),
-            config_yaml=dict(label="Config Yaml", default=""),
+            config_name=dict(label="Config Name (Arbitrary name for new configuration)", default=""),
+            config_yaml=dict(label="Config Yaml (Path to yaml file)", default=""),
         )
         return render_template("load_config.html", db_url=dbi.db_url, field_dict=field_dict)
 
     @app.route("/config_table/<int:element_id>")
     def config_table(element_id: int) -> str:
+        """Render the table for a given configuration"""
         config = dbi.get_config_by_id(element_id)
         fragments = [assoc_.frag_ for assoc_ in config.assocs_]
         return render_template("config_tableview.html", config=config, fragments=fragments)
 
     @app.route("/all_productions", methods=["GET", "POST"])
     def all_productions() -> str:
+        """Render the page with the set of all the productions in the database
+
+        Note that this also provides a function to create a new production.
+        """
         productions = list(dbi.get_table(TableEnum.production))
         if request.method == "POST":
             action = request.form.get("action")
@@ -303,6 +317,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_production", methods=["GET", "POST"])
     def insert_production() -> str:
+        """Interface to create a new production"""
         if request.method == "POST":
             action = request.form.get("action")
             if action == "submit":
@@ -311,7 +326,7 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("all_productions"))
         field_dict = dict(
             p_name=dict(
-                label="Production Name",
+                label="Production Name (arbitrary)",
                 default="",
             )
         )
@@ -319,6 +334,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/error_trend/<level>/<int:error_type_id>")
     def error_trend(level: str, error_type_id: int) -> str:
+        """Report the number of errors of a given type by element"""
         levelEnum = LevelEnum[level]
         trend_dict = dbi.get_error_trend_dict(error_type_id, levelEnum)
         return render_template(
@@ -327,6 +343,12 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/all_error_types", methods=["GET", "POST"])
     def all_error_types() -> str:
+        """Render the page with the set of all the known error types
+
+        Note that this also provides functions to load and insert
+        new error types and to rematch the existing errors against
+        the known error types
+        """
         if request.method == "POST":
             action = request.form.get("action")
             if action == "load":
@@ -344,6 +366,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/load_error_types", methods=["GET", "POST"])
     def load_error_types() -> str:
+        """Interface to load new error types from a yaml file"""
         if request.method == "POST":
             action = request.form.get("action")
             if action == "submit":
@@ -360,6 +383,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_error_type", methods=["GET", "POST"])
     def insert_error_type() -> str:
+        """Interface to add a new error type to the database"""
         if request.method == "POST":
             action = request.form.get("action")
             if action == "submit":
@@ -379,7 +403,7 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("all_error_types"))
         field_dict = dict(
             error_name=dict(
-                label="Name",
+                label="Name (arbitrary)",
                 default="",
             ),
             panda_err_code=dict(
@@ -387,11 +411,11 @@ def create(dbi: DbInterface) -> CMFlask:
                 default="",
             ),
             diagnostic_message=dict(
-                label="Diag. Message",
+                label="Diag. Message (Regular Expression)",
                 default="",
             ),
             jira_ticket=dict(
-                label="Jira Ticket",
+                label="Jira Ticket (list of associated JIRA tickets)",
                 default="",
             ),
             pipetask=dict(
@@ -403,11 +427,11 @@ def create(dbi: DbInterface) -> CMFlask:
                 default=True,
             ),
             is_rescueable=dict(
-                label="Is Rescueable",
+                label="Is Rescuable",
                 default=True,
             ),
             error_flavor=dict(
-                label="Error Flavor",
+                label="Error Flavor (Pipelines | Panda | Critical)",
                 default="pipelines",
             ),
             action=dict(
@@ -423,6 +447,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_error_as_type/<int:error_id>", methods=["GET", "POST"])
     def insert_error_as_type(error_id: int) -> str:
+        """Interface to add an error type to the database from an instance"""
         error_instance = dbi.get_error_instance(error_id).scalar()
         if request.method == "POST":
             action = request.form.get("action")
@@ -444,7 +469,7 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("all_error_types"))
         field_dict = dict(
             error_name=dict(
-                label="Name",
+                label="Name (arbitrary)",
                 default="",
             ),
             panda_err_code=dict(
@@ -452,11 +477,11 @@ def create(dbi: DbInterface) -> CMFlask:
                 default=error_instance.panda_err_code,
             ),
             diagnostic_message=dict(
-                label="Diag. Message",
+                label="Diag. Message (Regular Expression)",
                 default=error_instance.diagnostic_message,
             ),
             jira_ticket=dict(
-                label="Jira Ticket",
+                label="Jira Ticket (list of associated JIRA tickets)",
                 default="",
             ),
             pipetask=dict(
@@ -472,7 +497,7 @@ def create(dbi: DbInterface) -> CMFlask:
                 default=True,
             ),
             error_flavor=dict(
-                label="Error Flavor",
+                label="Error Flavor (Pipelines | Panda | Critical)",
                 default="pipelines",
             ),
             error_action=dict(
@@ -488,6 +513,10 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/error_type/<int:error_id>", methods=["GET", "POST"])
     def error_type(error_id: int) -> str:
+        """Interface to view and edit details of a particular error type
+
+        This also provides functions to trend the error of that type
+        """
         err_type = dbi.get_error_type(error_id).scalar()
         if request.method == "POST":
             action = request.form.get("action")
@@ -501,17 +530,17 @@ def create(dbi: DbInterface) -> CMFlask:
                 levelEnum = LevelEnum.workflow
             return redirect(url_for("error_trend", level=levelEnum.name, error_type_id=error_id))
         attrs = [
-            "id",
-            "error_name",
-            "panda_err_code",
-            "diagnostic_message",
-            "jira_ticket",
-            "pipetask",
-            "is_resolved",
-            "is_rescueable",
-            "error_flavor",
-            "action",
-            "max_intensity",
+            ("id", False),
+            ("error_name", False),
+            ("panda_err_code", True),
+            ("diagnostic_message", True),
+            ("jira_ticket", True),
+            ("pipetask", True),
+            ("is_resolved", True),
+            ("is_rescueable", True),
+            ("error_flavor", True),
+            ("action", True),
+            ("max_intensity", True),
         ]
         actions = ["trend_campaign", "trend_step", "trend_group", "trend_workflow"]
         return render_template("error_type.html", error_type=err_type, actions=actions, attrs=attrs)
@@ -582,6 +611,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_campaign/<int:parent_id>", methods=["GET", "POST"])
     def insert_campaign(parent_id: int) -> str:
+        """Interface to add a campaign to the database"""
         parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.production, parent_id)
         parent = dbi.get_entry(LevelEnum.production, parent_dbid)
         if request.method == "POST":
@@ -602,17 +632,19 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level="production", element_id=parent_id))
         field_dict = dict(
             c_name=dict(
-                label="Campaign Name",
+                label="Campaign Name (Arbitrary)",
                 default="",
             ),
-            config_name=dict(label="Config Name", default=""),
-            config_block=dict(label="Config Block", default="campaign"),
+            config_name=dict(label="Config Name (must match an existing configuration name)", default=""),
+            config_block=dict(
+                label="Config Block (must match a tag in said configuration)", default="campaign"
+            ),
             butler_repo=dict(
                 label="Butler Repo",
                 default=os.environ.get("CM_BUTLER", "/sdf/group/rubin/repo/main"),
             ),
             root_coll=dict(
-                label="Root collection",
+                label="Root collection in Butler",
                 default=f"u/{os.environ['USER']}/cm",
             ),
             lsst_version=dict(
@@ -620,7 +652,7 @@ def create(dbi: DbInterface) -> CMFlask:
                 default="",
             ),
             prod_base_url=dict(
-                label="Production Area",
+                label="Production Area (for scripts and log files)",
                 default=os.environ.get("CM_PROD_URL", "output/archive"),
             ),
         )
@@ -628,6 +660,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_step/<int:parent_id>", methods=["GET", "POST"])
     def insert_step(parent_id: int) -> str:
+        """Interface to add a step to the database"""
         parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.campaign, parent_id)
         parent = dbi.get_entry(LevelEnum.campaign, parent_dbid)
         if request.method == "POST":
@@ -645,16 +678,16 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level="campaign", element_id=parent_id))
         field_dict = dict(
             s_name=dict(
-                label="Step Name",
+                label="Step Name (Arbitrary)",
                 default="",
             ),
-            config_block=dict(label="Config Block", default=""),
+            config_block=dict(label="Config Block (must match a tag in campaign configuration)", default=""),
             lsst_version=dict(
                 label="LSST Software stack Version",
                 default=parent.lsst_version,
             ),
             pipeline_yaml=dict(
-                label="Pipeline Yaml",
+                label="Pipeline Yaml (including #subset for this step)",
                 default="",
             ),
         )
@@ -662,6 +695,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/add_script/<level>/<int:parent_id>", methods=["GET", "POST"])
     def add_script(level: str, parent_id: int) -> str:
+        """Interface to add a script to the database"""
         levelEnum = LevelEnum[level]
         parent_dbid = dbi.dbi_id_from_level_and_element(levelEnum, parent_id)
         parent = dbi.get_entry(levelEnum, parent_dbid)
@@ -674,7 +708,7 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level=level, element_id=parent_id))
         field_dict = dict(
             script_name=dict(
-                label="Script Name",
+                label="Script Name (must match a tag in campaign configuration)",
                 default="",
             ),
         )
@@ -682,6 +716,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_group/<int:parent_id>", methods=["GET", "POST"])
     def insert_group(parent_id: int) -> str:
+        """Interface to add a group to the database"""
         parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.step, parent_id)
         parent = dbi.get_entry(LevelEnum.step, parent_dbid)
         if request.method == "POST":
@@ -703,15 +738,15 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level="step", element_id=parent_id))
         field_dict = dict(
             g_name=dict(
-                label="Group Name",
+                label="Group Name (arbitrary)",
                 default="",
             ),
             config_block=dict(
-                label="Config Block",
+                label="Config Block (must match a tag in campaign configuration)",
                 default="group",
             ),
             lsst_version=dict(
-                label="LSST Software stack Version",
+                label="LSST Software stack Version (can be used to overide higher level stack version)",
                 default=parent.lsst_version,
             ),
             data_query=dict(
@@ -719,7 +754,7 @@ def create(dbi: DbInterface) -> CMFlask:
                 default="",
             ),
             pipeline_yaml=dict(
-                label="Pipeline Yaml",
+                label="Pipeline Yaml (can be used to overide step-level pipeline yaml)",
                 default=parent.pipeline_yaml,
             ),
         )
@@ -727,6 +762,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/insert_rescue/<int:parent_id>", methods=["GET", "POST"])
     def insert_rescue(parent_id: int) -> str:
+        """Interface to add a rescue workflow to the database"""
         parent_dbid = dbi.dbi_id_from_level_and_element(LevelEnum.group, parent_id)
         parent = dbi.get_entry(LevelEnum.group, parent_dbid)
         if request.method == "POST":
@@ -746,19 +782,19 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level="group", element_id=parent_id))
         field_dict = dict(
             config_block=dict(
-                label="Config Block",
+                label="Config Block (must match a tag in campaign configuration)",
                 default="rescue_workflow",
             ),
             lsst_version=dict(
-                label="LSST Software stack Version",
+                label="LSST Software stack Version (can be used to overide higher level stack version)",
                 default=parent.lsst_version,
             ),
             data_query=dict(
-                label="Data Query",
+                label="Data Query (can be used to overide group-level data query)",
                 default="",
             ),
             pipeline_yaml=dict(
-                label="Pipeline Yaml",
+                label="Pipeline Yaml (can be used to overide higher level pipeline yaml)",
                 default=parent.pipeline_yaml,
             ),
         )
@@ -766,6 +802,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/table_filtered/<level>/<int:element_id>/<status>")
     def table_filtered(level: str, element_id: int, status: str) -> str:
+        """Render a table of the children of an element filtered by status"""
         levelEnum = LevelEnum[level]
         dbid = dbi.dbi_id_from_level_and_element(levelEnum, element_id)
         element = dbi.get_entry(levelEnum, dbid)
@@ -783,6 +820,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/details/<level>/<int:element_id>")
     def details(level: str, element_id: int) -> str:
+        """Render and possibly update the details of an element"""
         levelEnum = LevelEnum[level]
         dbid = dbi.dbi_id_from_level_and_element(levelEnum, element_id)
         element = dbi.get_entry(levelEnum, dbid)
@@ -841,10 +879,12 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/script/<int:script_id>")
     def script(script_id: int) -> str:
+        """Render information about a given script"""
         script = dbi.get_script(script_id).scalar()
         return render_template("script.html", script=script)
 
     def _sort_errors(jobs):
+        """Utility function to get sort errors associated to a set of jobs"""
         error_count = {}
         error_dict = {}
         error_list = []
@@ -861,6 +901,7 @@ def create(dbi: DbInterface) -> CMFlask:
         return error_count, error_dict, error_list
 
     def _list_errors(jobs, error_type=None):
+        """Utility function to get a list of errors for a set of jobs"""
         error_list = []
         for job_ in jobs:
             for error_ in job_.errors_:
@@ -870,6 +911,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/job_errors/<int:element_id>")
     def job_errors(element_id: int):
+        """Render a summary of all the errors for a particular job"""
         job = dbi.get_job(element_id).scalar()
         error_count, error_dict, error_list = _sort_errors([job])
         return render_template(
@@ -883,6 +925,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/error_summary/<level>/<int:element_id>")
     def error_summary(level: str, element_id: int) -> str:
+        """Render a summary of all the errors for a particular element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -897,6 +940,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/error_list/<level>/<int:element_id>")
     def error_list(level: str, element_id: int) -> str:
+        """Render a list of all the errors for a particular element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -910,6 +954,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/filted_error_list/<level>/<int:element_id>/<int:error_type>")
     def filtered_error_list(level: str, element_id: int, error_type: int) -> str:
+        """Render a list of all the errors of a given type for an element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -923,6 +968,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/filted_job_error_list/<int:job_id>/<int:error_type>")
     def filtered_job_error_list(job_id: int, error_type: int) -> str:
+        """Render a list of all the errors of a given type for a job"""
         job = dbi.get_job(job_id).scalar()
         the_errors = _list_errors([job], error_type=error_type)
         return render_template(
@@ -935,6 +981,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/update_values/<level>/<int:element_id>/<field>", methods=("GET", "POST"))
     def update_values(level: str, element_id: int, field: str):
+        """Iterface to update the value of a field of a given element"""
         levelEnum = LevelEnum[level]
         dbid = dbi.dbi_id_from_level_and_element(levelEnum, element_id)
         element = dbi.get_entry(levelEnum, dbid)
@@ -959,6 +1006,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/update_error_type/<int:error_id>/<field>", methods=("GET", "POST"))
     def update_error_type(error_id: int, field: str):
+        """Iterface to update the value of a field of a given error type"""
         error_type = dbi.get_error_type(error_id).scalar()
         current_value = getattr(error_type, field)
         if request.method == "POST":
@@ -979,13 +1027,31 @@ def create(dbi: DbInterface) -> CMFlask:
             "update_values.html", field=field, element_fullname=error_type.error_name, field_dict=field_dict
         )
 
-    @app.route("/attention")
+    @app.route("/attention", methods=["GET", "POST"])
     def attention():
         elements, jobs, scripts = dbi.requires_attention()
+        if request.method == "POST":
+            for id, action in request.form.items():
+                print(action, id)
+                if action == "requeue":
+                    to_requeue = int(id)
+                    job = dbi.get_job(to_requeue).scalar()
+                    dbid = job.w_.db_id
+                    dbi.requeue_jobs(LevelEnum.workflow, dbid)
+                elif action in ["accept", "reject", "rescuable"]:
+                    wid = int(id)
+                    dbid = dbi.dbi_id_from_level_and_element(LevelEnum.workflow, wid)
+                    if action == "accept":
+                        dbi.accept(LevelEnum.workflow, dbid)
+                    elif action == "rescuable":
+                        dbi.accept(LevelEnum.workflow, dbid, True)
+                    elif action == "reject":
+                        dbi.reject(LevelEnum.workflow, dbid)
         return render_template("attention.html", elements=elements, jobs=jobs, scripts=scripts)
 
     @app.route("/launch_campaign", methods=["GET", "POST"])
     def launch_campaign():
+        """Launch a new campaign"""
         template_file = dbi.db_url.replace(".db", "_template.yaml").replace("sqlite:///", "")
         with open(template_file) as fin:
             c_template = yaml.safe_load(fin)
@@ -1015,25 +1081,25 @@ def create(dbi: DbInterface) -> CMFlask:
             return redirect(url_for("table", level="production", element_id=prod.id))
 
         field_dict = dict(
-            p_name=dict(label="Production Name", default=c_template["production_name"]),
+            p_name=dict(label="Production Name (Arbitrary)", default=c_template["production_name"]),
             c_name=dict(
-                label="Campaign Name",
+                label="Campaign Name (Arbitrary)",
                 default=c_template["campaign_name"],
             ),
             config_yaml=dict(
-                label="Config Yaml",
+                label="Config Yaml (path to yaml file with campaign configuration)",
                 default=c_template["config_yaml"],
             ),
             error_yaml=dict(
-                label="Error Yaml",
+                label="Error Yaml (path to yaml file with known error types)",
                 default=c_template["error_yaml"],
             ),
             config_name=dict(
-                label="Config Name",
+                label="Config Name (Arbitrary)",
                 default=c_template["config_name"],
             ),
             config_block=dict(
-                label="Config Block",
+                label="Config Block (Must match a tag in the config yaml file)",
                 default=c_template["config_block"],
             ),
             butler_repo=dict(
@@ -1041,15 +1107,15 @@ def create(dbi: DbInterface) -> CMFlask:
                 default=c_template["butler_repo"],
             ),
             root_coll=dict(
-                label="Root collection",
+                label="Root output collection in Butler",
                 default=c_template["root_coll"],
             ),
             lsst_version=dict(
-                label="LSST hsc_weeklySoftware stack Version",
+                label="LSST Software stack Version",
                 default=c_template["lsst_version"],
             ),
             prod_base_url=dict(
-                label="Production Area",
+                label="Production Area (for scripts and log files)",
                 default=c_template["prod_base_url"],
             ),
         )
@@ -1058,6 +1124,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/production_file")
     def production_file():
+        """Render a local file, such as a log file or script"""
         path = request.args.get("path")
         abspath = os.path.abspath(os.path.expandvars(path))
         with open(abspath) as fin:

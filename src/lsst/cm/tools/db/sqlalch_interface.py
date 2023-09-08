@@ -823,13 +823,13 @@ class SQLAlchemyInterface(DbInterface):
         )
         for error_ in error_instances:
             if level == LevelEnum.campaign:
-                key = error_[0].job_.c_.fullname
+                key = (error_[0].job_.c_.fullname, error_[0].job_.c_.id)
             elif level == LevelEnum.step:
-                key = error_[0].job_.s_.fullname
+                key = (error_[0].job_.s_.fullname, error_[0].job_.s_.id)
             elif level == LevelEnum.group:
-                key = error_[0].job_.g_.fullname
+                key = (error_[0].job_.g_.fullname, error_[0].job_.g_.id)
             elif level == LevelEnum.workflow:
-                key = error_[0].job_.w_.fullname
+                key = (error_[0].job_.w_.fullname, error_[0].job_.w_.id)
             if key in out_dict:
                 out_dict[key] += 1
             else:

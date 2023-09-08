@@ -52,6 +52,8 @@
     <td>
       <a href="{{ url_for('error_summary', level=element.level.name, element_id=element.id) }}">{{ count_errors(element) }} </a>
     </td>
+    <td>
+    </td>
   </tr>
 </div>
 {% endmacro %}
@@ -76,6 +78,15 @@
     <td>
       <a href="{{ url_for('error_summary', level=workflow.level.name, element_id=workflow.id) }}">{{ count_errors(workflow) }} </a>
     </td>
+    <td>
+	{% if workflow.status.is_reviewable and not workflow.superseded %}
+	<form method="post">
+	<input type="submit" value="accept" name={{ workflow.id }}>
+	<input type="submit" value="reject" name={{ workflow.id }}>
+	<input type="submit" value="rescuable" name={{ workflow.id }}>
+	</form>
+	{% endif %}
+    </td>
   </tr>
 </div>
 {% endmacro %}
@@ -90,11 +101,16 @@
       </tr>
     </thead>
     <tbody>
-      {%- for attr in attr_list %}
+      {%- for attr, mutable in attr_list %}
       <tr>
 	<td>
-	  <a href="{{ url_for('update_error_type', error_id=error.id, field=attr)
-	  }}">{{ attr }}</a>
+	  {%- if mutable %}
+	  <a href="{{ url_for('update_error_type', error_id=error.id,
+	  field=attr)}}">
+	  {{ attr }}</a>
+	  {%- else %}
+	  {{ attr }}
+	  {% endif %}
 	</td>
 	<td>{{ get_attribute(error, attr) }}</td>
       </tr>

@@ -1,10 +1,10 @@
 {%- extends 'base.html' %}
 {%- block function_bar %}
-    <h3>Fragments for {{ config.name }}</h3>
+    <h3>Configuration fragments for {{ config.name }}</h3>
     <table class="table table-striped">
         <thead>
             <th>ID</th>
-	    <th>Fullname</th>
+	    <th>Yaml Tag</th>
 	    <th>Handler</th>
 	    <th>Data</th>
         </thead>
@@ -12,7 +12,7 @@
             {%- for fragment in fragments %}
             <tr>
                 <td>{{ fragment.id }}</td>
-		<td>{{ fragment.fullname }}</td>
+		<td>{{ fragment.tag }}</td>
                 <td>{{ fragment.handler }}</td>
                 <td>{{ fragment.data }}</td>
             </tr>
