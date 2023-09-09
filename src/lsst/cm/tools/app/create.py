@@ -547,6 +547,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/table/<level>/<int:element_id>", methods=["GET", "POST"])
     def table(level: str, element_id: int) -> str:
+        """Render a table showing the status of an element and its children"""
         levelEnum = LevelEnum[level]
         dbid = dbi.dbi_id_from_level_and_element(levelEnum, element_id)
         element = dbi.get_entry(levelEnum, dbid)
@@ -829,6 +830,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/jobs/<level>/<int:element_id>", methods=["GET", "POST"])
     def jobs(level: str, element_id: int) -> str:
+        """Render a table showing the jobs for an element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -839,6 +841,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/jobs_filtered/<level>/<int:element_id>/<status>", methods=["GET", "POST"])
     def jobs_filtered(level: str, element_id: int, status: str) -> str:
+        """Render a table showing the jobs of a given status for an element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -853,11 +856,13 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/job/<int:job_id>")
     def job(job_id: int) -> str:
+        """Render and possibly update the details of an job"""
         job = dbi.get_job(job_id).scalar()
         return render_template("job.html", job=job)
 
     @app.route("/scripts/<level>/<int:element_id>", methods=["GET", "POST"])
     def scripts(level: str, element_id: int) -> str:
+        """Render a table showing the sripts for an element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -868,6 +873,7 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/scripts_filtered/<level>/<int:element_id>/<status>")
     def scripts_filtered(level: str, element_id: int, status: str) -> str:
+        """Render a table showing scripts of a given status for an element"""
         the_level = LevelEnum[level]
         db_id = dbi.dbi_id_from_level_and_element(the_level, element_id)
         element = dbi.get_entry(the_level, db_id)
@@ -1029,10 +1035,10 @@ def create(dbi: DbInterface) -> CMFlask:
 
     @app.route("/attention", methods=["GET", "POST"])
     def attention():
+        """Render a table showing jobs and workflows that require attention"""
         elements, jobs, scripts = dbi.requires_attention()
         if request.method == "POST":
             for id, action in request.form.items():
-                print(action, id)
                 if action == "requeue":
                     to_requeue = int(id)
                     job = dbi.get_job(to_requeue).scalar()
@@ -1048,6 +1054,15 @@ def create(dbi: DbInterface) -> CMFlask:
                     elif action == "reject":
                         dbi.reject(LevelEnum.workflow, dbid)
         return render_template("attention.html", elements=elements, jobs=jobs, scripts=scripts)
+
+    @app.route("/processing", methods=["GET", "POST"])
+    def processing():
+        """Render a table showing jobs and workflows that require attention"""
+        elements, jobs, scripts = dbi.processing()
+        if request.method == "POST":
+            for id, action in request.form.items():
+                pass
+        return render_template("processing.html", elements=elements, jobs=jobs, scripts=scripts)
 
     @app.route("/launch_campaign", methods=["GET", "POST"])
     def launch_campaign():

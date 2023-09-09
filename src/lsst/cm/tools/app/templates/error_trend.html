@@ -10,8 +10,8 @@
             {%- for (key, id), val in trend_dict.items() %}
             <tr>
 	      <td>{{ key }}</td>
-	      <td><a href="{{ url_for('filted_error_list',
-		level=level, element_id=id, error_type_id=error_type_id) }}">{{ val }}</a></td>
+	      <td><a href="{{ url_for('filtered_error_list',
+		level=level, element_id=id, error_type=error_type_id) }}">{{ val }}</a></td>
             </tr>
             {%- endfor %}
         </tbody>

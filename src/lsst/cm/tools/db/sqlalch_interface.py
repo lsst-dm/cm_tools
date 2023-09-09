@@ -698,7 +698,7 @@ class SQLAlchemyInterface(DbInterface):
 
     def rematch_errors(self) -> Any:
         conn = self.connection()
-        unmatched_errors = conn.execute(select(ErrorInstance))
+        unmatched_errors = conn.execute(select(ErrorInstance).where(ErrorInstance.error_type_id.is_(None)))
         for unmatched_error_ in unmatched_errors:
             error_type = self.match_error_type(
                 unmatched_error_[0].panda_err_code,
@@ -859,6 +859,29 @@ class SQLAlchemyInterface(DbInterface):
             script_[0]
             for script_ in scripts_sel
             if (script_[0].status.is_bad or script_[0].status.is_reviewable) and (not script_[0].superseded)
+        ]
+        return elements, jobs, scripts
+
+    def processing(self) -> Any:
+        elements = []
+        conn = self.connection()
+        workflows_sel = self.get_table(TableEnum.workflow)
+        workflows = [
+            workflow_[0]
+            for workflow_ in workflows_sel
+            if (workflow_[0].status.is_now_processing and not workflow_[0].superseded)
+        ]
+        elements += workflows
+
+        jobs_sel = conn.execute(select(Job))
+        jobs = [
+            job_[0] for job_ in jobs_sel if (job_[0].status.is_now_processing_job and not job_[0].superseded)
+        ]
+        scripts_sel = conn.execute(select(Script).where(Script.superseded is False))
+        scripts = [
+            script_[0]
+            for script_ in scripts_sel
+            if (script_[0].status.is_now_processing_script and not script_[0].superseded)
         ]
         return elements, jobs, scripts
 

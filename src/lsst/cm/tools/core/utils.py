@@ -129,7 +129,18 @@ class StatusEnum(enum.Enum):
     @property
     def is_now_processing_script(self) -> bool:
         """Collect all the states before running"""
-        return self in [StatusEnum.running]
+        return self in [StatusEnum.ready, StatusEnum.preparing, StatusEnum.prepared, StatusEnum.running]
+
+    @property
+    def is_now_processing_job(self) -> bool:
+        """Collect the status between running and validating"""
+        return self in [
+            StatusEnum.waiting,
+            StatusEnum.ready,
+            StatusEnum.preparing,
+            StatusEnum.prepared,
+            StatusEnum.running,
+        ]
 
     @property
     def is_now_processing(self) -> bool:

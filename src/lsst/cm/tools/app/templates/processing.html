@@ -1,0 +1,34 @@
+{% import 'element_macro.html' as element_macro %}
+{% import 'status_macro.html' as status_macro %}
+{% import 'script_macro.html' as script_macro %}
+{%- extends 'base.html' %}
+
+{%- block function_bar %}
+<img src="/static/Processing.png" height="100px">
+{%- endblock %}
+
+{%- block content %}
+    <h5>Elements</h5>
+    <table class="table table-striped">
+        <thead>
+            <th>ID</th>
+	    <th>Fullnanme</th>
+	    <th>Status</th>
+	    <th>Jobs</th>
+	    <th>Scipts</th>
+	    <th>Errors</th>
+	    <th>Actions</th>
+        </thead>
+	  <tbody>
+	  {%- for element in elements %}
+	  {{ element_macro.render_workflow(element) }}
+	  {%- endfor %}
+	  </tbody>
+    </table>
+    <hr>
+    <h5>Jobs</h5>
+    {{ element_macro.render_jobs(jobs) }}
+    <hr>
+    <h5>Scripts</h5>
+    {{ script_macro.render_scripts(None, scripts) }}
+{%- endblock %}
