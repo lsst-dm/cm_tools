@@ -155,7 +155,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
 
     # now we need to parse all the error codes for failed PandaIDs
     error_dicts = []
-
+    jobs_list = [job for job in jobs_list if job is not None]
     failed_jobs = [job for job in jobs_list if job.jobStatus == "failed"]
     if len(failed_jobs) == 0:
         return error_dicts
@@ -426,7 +426,7 @@ def get_panda_errors(
 ) -> tuple[Any]:  # pragma: no cover
     """Get panda errors for a given reqID."""
     conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=90)
+    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=180)
     errors_aggregate = dict()
     has_merging = False
     for task in tasks:
@@ -471,7 +471,10 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
 
     def check_url(self, dbi: DbInterface, job: JobBase) -> dict[str, Any]:
         update_vals: dict[str, Any] = {}
-        if job.status not in [StatusEnum.populating, StatusEnum.running]:
+        if job.status not in [
+            StatusEnum.populating,
+            StatusEnum.running,
+        ]:
             return update_vals
         panda_url = job.panda_url
         if panda_url is None:
