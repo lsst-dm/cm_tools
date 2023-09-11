@@ -57,7 +57,8 @@ class Script(common.Base, common.SQLScriptMixin, ScriptBase):
         else:
             supersede_string = ""
         return (
-            f"Script {self.id}: {self.db_id} {self.name} {self.frag_} {self.status.name} {supersede_string}"
+            f"Script {self.id}: {self.db_id} {self.parent().fullname}:{self.name} "
+            + f"{self.frag_} {self.status.name} {supersede_string}"
         )
 
     def parent(self) -> Any:
