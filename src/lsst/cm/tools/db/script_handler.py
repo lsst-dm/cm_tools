@@ -1,3 +1,4 @@
+import os
 import subprocess
 from typing import Any
 
@@ -198,10 +199,24 @@ class CollectStepScriptHandler(ScriptHandler):
 class ValidateScriptHandler(ScriptHandler):
     """Script handler for scripts that run validate on output collections"""
 
+    config_block = "validate"
+
     script_type: ScriptType = ScriptType.validate
 
     def write_script_hook(self, dbi: DbInterface, parent: Any, script: ScriptBase, **kwargs: Any) -> None:
-        command = make_validate_command(parent.butler_repo, parent.coll_validate, parent.coll_out)
+        try:
+            script_template = os.path.expandvars(self.config["script_template"])
+            with open(script_template, "r") as fin:
+                prepend = fin.read().replace("{lsst_version}", parent.c_.lsst_version)
+        except KeyError:
+            prepend = ""
+        kwargs.update(prepend=prepend)
+        command = make_validate_command(
+            parent.butler_repo,
+            parent.coll_validate,
+            parent.coll_out,
+            self.config["validate_yaml"],
+        )
         write_command_script(script, command, **kwargs)
 
     def get_coll_out_name(self, parent: Any, **kwargs: Any) -> str:

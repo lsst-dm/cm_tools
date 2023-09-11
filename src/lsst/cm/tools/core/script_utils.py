@@ -148,7 +148,7 @@ def make_butler_remove_run_command(butler_repo: str, coll_out: str) -> str:
     return command
 
 
-def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -> str:
+def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str, validate_yaml: str) -> str:
     """Build and return command to run validation
 
     Parameters
@@ -162,12 +162,15 @@ def make_validate_command(butler_repo: str, coll_validate: str, coll_out: str) -
     coll_out : str
         The collection being validated
 
+    validate_yaml: str
+        The pipeline yaml for the validtation analysis
+
     Returns
     -------
     command : str
         Requested command
     """
-    command = f"validate {butler_repo} --output {coll_validate} {coll_out}"
+    command = f"pipetask run -b {butler_repo} -i {coll_out} -o {coll_validate} -p {validate_yaml}"
     return command
 
 
