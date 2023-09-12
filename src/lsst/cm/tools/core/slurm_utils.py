@@ -94,7 +94,7 @@ class SlurmChecker(Checker):  # pragma: no cover
         new_values: dict[str, Any] = {}
         if script.stamp_url is None:
             return new_values
-        slurm_status = check_job_status(script.stamp_url)
+        slurm_status = check_job_status(script.stamp_url).split(" ")[0]
         if slurm_status != script.batch_status:
             new_values["batch_status"] = slurm_status
         status = self.slurm_status_map[slurm_status]
