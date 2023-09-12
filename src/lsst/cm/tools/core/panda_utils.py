@@ -1,7 +1,8 @@
 from typing import Any, TextIO
 
+import idds.common.utils as idds_utils
+import pandaclient.idds_api
 import yaml
-from pandaclient import Client, panda_api
 
 from lsst.cm.tools.core.db_interface import DbInterface, JobBase
 from lsst.cm.tools.core.slurm_utils import SlurmChecker
@@ -44,32 +45,6 @@ def parse_bps_stdout(url: str) -> dict[str, str]:
     return out_dict
 
 
-def get_jeditaskid_from_reqid(reqid: int, username: str) -> list[int]:  # pragma: no cover
-    """Return the jeditaskids associated with a reqid.
-
-    Parameters
-    ----------
-    reqid: int
-        PanDA reqid as reported to bps submit
-
-    username: str
-        Username of original submitter
-
-    Returns
-    -------
-    jeditaskids: list[int]
-        A list of all jeditaskIDs associated with the
-        submitted reqid
-    """
-    # TODO: try to find a way to do this with Client to avoid the
-    # requirement on username storage
-    conn = panda_api.get_api()
-    reqid_pull = conn.get_tasks(int(reqid), username=username)
-    jeditaskids = [reqid["jeditaskid"] for reqid in reqid_pull]
-
-    return jeditaskids
-
-
 # dict to map trans diagnostic codes to an associated useful message,
 # placeholder until more is handled externally.
 trans_diag_map = dict(
@@ -109,7 +84,7 @@ trans_diag_map = dict(
 )
 
 
-def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no cover
+def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditaskid: int):  # pragma: no cover
     """Return the errors associated with a jeditaskid as
     a dictionary for each job.
 
@@ -117,6 +92,13 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
     ----------
     dbi: DbInterface
         Used to look up the error types
+
+    conn: IddsApiInteface
+        A connection to IDDS.
+
+    panda_reqid: int
+        A pandaID that is shared by jeditaskids in the
+        same workflow.
 
     jeditaskid: int
         A jeditaskid, which will have some number of
@@ -128,89 +110,65 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
         A list of dictionaries containing everything
         we want to update the error instance db with
     """
-    conn_status, task_status = Client.getJediTaskDetails({"jediTaskID": jeditaskid}, True, True)
+    ret = conn.get_contents_output_ext(request_id=panda_reqid, workload_id=jeditaskid)
     print(f"Checking {jeditaskid}")
+    conn_status = ret[0]
+    wmskey = list(ret[1][1].keys())[0]
+    tasks = ret[1][1][wmskey]
 
-    # grab all the PanDA IDs
-    if conn_status == 0:
-        job_ids = list(task_status["PandaID"])
-        jobs_list = []
-        if len(job_ids) > 1:
-            chunksize = 2000  # max number of allowed connections to PanDA
-            chunks = [job_ids[i : i + chunksize] for i in range(0, len(job_ids), chunksize)]
-            for chunk in chunks:
-                conn_status, ret_jobs = Client.getFullJobStatus(ids=chunk, verbose=False)
-                if conn_status == 0:
-                    jobs_list.extend(ret_jobs)
-        elif len(job_ids) == 1:
-            conn_status, ret_jobs = Client.getFullJobStatus(ids=job_ids, verbose=False)
-            if conn_status == 0:
-                jobs_list = ret_jobs
-        else:
-            return []
-            # TODO: properly address this break condition,
-            # because something went wrong
-    else:
+    if conn_status != 0:
         raise ValueError(f"Connection to Panda Failed with status {conn_status}")
 
-    # now we need to parse all the error codes for failed PandaIDs
     error_dicts = []
-    jobs_list = [job for job in jobs_list if job is not None]
-    failed_jobs = [job for job in jobs_list if job.jobStatus == "failed"]
+
+    failed_jobs = [job for job in tasks if job["trans_exit_code"] != 0]
     if len(failed_jobs) == 0:
         return error_dicts
     else:
         for job in failed_jobs:
             error_dict = dict()
-            # TODO: store the hecking pandaIDs so people can look things up
-            if int(job.transExitCode) != 0 and int(job.transExitCode) != 1:
-                error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
+            if job["trans_exit_code"] != 1:
+                error_dict["panda_err_code"] = "trans, " + str(job["trans_exit_code"])
                 try:
-                    trans_diag = trans_diag_map["t" + str(job.transExitCode)]
+                    trans_diag = trans_diag_map["t" + str(job["trans_exit_code"])]
                 except KeyError:
                     trans_diag = "Stack error: check logging and report!"
                 error_dict["diagnostic_message"] = trans_diag
-            # brokerageErrorCode/Diag
-            elif job.brokerageErrorCode != 0:
-                error_dict["panda_err_code"] = "brokerage, " + str(job.brokerageErrorCode)
-                error_dict["diagnostic_message"] = job.brokerageErrorDiag
-            # ddmErrorCode/Diag
-            elif job.ddmErrorCode != 0:
-                error_dict["panda_err_code"] = "ddm, " + str(job.ddmErrorCode)
-                error_dict["diagnostic_message"] = job.ddmErrorDiag
-            # exeErrorCode/Diag
-            elif job.exeErrorCode != 0:
-                error_dict["panda_err_code"] = "exe, " + str(job.exeErrorCode)
-                error_dict["diagnostic_message"] = job.exeErrorDiag
-            # jobDispatcherErrorCode/Diag
-            elif job.jobDispatcherErrorCode != 0:
-                error_dict["panda_err_code"] = "jobDispatcher, " + str(job.jobDispatcherErrorCode)
-                error_dict["diagnostic_message"] = job.jobDispatcherErrorDiag
-            # pilotErrorCode/Diag
-            elif job.pilotErrorCode != 0:
-                error_dict["panda_err_code"] = "pilot, " + str(job.pilotErrorCode)
-                error_dict["diagnostic_message"] = job.pilotErrorDiag
-            # supErrorCode/Diag
-            elif job.supErrorCode != 0:
-                error_dict["panda_err_code"] = "sup, " + str(job.supErrorCode)
-                error_dict["diagnostic_message"] = job.supErrorDiag
-            # taskBufferErrorCode/Diag
-            elif job.taskBufferErrorCode != 0:
-                error_dict["panda_err_code"] = "taskBuffer, " + str(job.taskBufferErrorCode)
-                error_dict["diagnostic_message"] = job.taskBufferErrorDiag
-            # transExitCode (no Diag)
-            elif int(job.transExitCode) == 1:
-                error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
-                error_dict["diagnostic_message"] = trans_diag_map["t" + str(job.transExitCode)]
+            # pilot error
+            elif job["trans_exit_code"] == 1:
+                if job["pilot_error_code"] != 0:
+                    error_dict["panda_err_code"] = "pilot, " + str(job["pilot_error_code"])
+                    error_dict["diagnostic_message"] = job["pilot_error_diag"]
+                elif job["brokerage_error_code"] != 0:
+                    error_dict["panda_err_code"] = "brokerage, " + str(job["brokerage_error_code"])
+                    error_dict["diagnostic_message"] = job["brokerage_error_diag"]
+                elif job["ddm_error_code"] != 0:
+                    error_dict["panda_err_code"] = "ddm, " + str(job["ddm_error_code"])
+                    error_dict["diagnostic_message"] = job["ddm_error_diag"]
+                elif job["exe_error_code"] != 0:
+                    error_dict["panda_err_code"] = "exe, " + str(job["exe_error_code"])
+                    error_dict["diagnostic_message"] = job["exe_error_diag"]
+                elif job["job_dispatcher_error_code"] != 0:
+                    error_dict["panda_err_code"] = "jobdispatcher, " + str(job["job_dispatcher_error_code"])
+                    error_dict["diagnostic_message"] = job["job_dispatcher_error_diag"]
+                elif job["sup_error_code"] != 0:
+                    error_dict["panda_err_code"] = "sup, " + str(job["sup_error_code"])
+                    error_dict["diagnostic_message"] = job["sup_error_diag"]
+                elif job["task_buffer_error_code"] != 0:
+                    error_dict["panda_err_code"] = "taskbuffer, " + str(job["task_buffer_error_code"])
+                    error_dict["diagnostic_message"] = job["task_buffer_error_diag"]
+                else:
+                    error_dict["panda_err_code"] = "unknown"
+                    error_dict["diagnostic_message"] = "check the logs"
             else:
                 raise RuntimeError("Not sure what kinda error we got")
-            jobname_words = [word for word in job.jobName.split("_") if word.isdigit() is False]
-            error_dict["pipetask"] = jobname_words[-2]
-            error_dict["log_file_url"] = job.pilotID.split("|")[0]
+            jobname_words = [word for word in job["job_name"].split("_") if word.isdigit() is False]
+            error_dict["pipetask"] = jobname_words[-1]
+            error_dict["log_file_url"] = job["pilot_id"].split("|")[0]
             # TODO: currently not found in PanDA job object
             # providing nearest substitute, the
             # quantum graph
-            error_dict["data_id"] = (job.Files[0]).lfn
+            error_dict["data_id"] = job["name"]
             error_dict["error_type"] = dbi.match_error_type(
                 error_dict["panda_err_code"], error_dict["diagnostic_message"]
             )
@@ -425,19 +383,24 @@ def get_panda_errors(
     dbi: DbInterface, panda_reqid: int, panda_username=None
 ) -> tuple[Any]:  # pragma: no cover
     """Get panda errors for a given reqID."""
-    conn = panda_api.get_api()
-    tasks = conn.get_tasks(int(panda_reqid), username=panda_username, days=180)
+    conn = pandaclient.idds_api.get_api(idds_utils.json_dumps, idds_host=None, compress=True, manager=True)
+    ret = conn.get_requests(request_id=int(panda_reqid), with_detail=True)
     errors_aggregate = dict()
     has_merging = False
+    tasks = ret[1][1]
     for task in tasks:
-        if task["taskname"].find("finalJob") >= 0 or task["taskname"].find("xecutionButler") >= 0:
+        if task["transform_name"].find("finalJob") >= 0 or task["transform_name"].find("xecutionButler") >= 0:
             has_merging = True
     if not has_merging:
         return {}, tasks, False
 
-    jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    jtids = [
+        task["transform_workload_id"]
+        for task in tasks
+        if task["transform_status"]["attributes"]["_name_"] != "Finished"
+    ]
     for jtid in jtids:
-        errors_dict = get_errors_from_jeditaskid(dbi, jtid)
+        errors_dict = get_errors_from_jeditaskid(dbi, conn, int(panda_reqid), jtid)
         errors_aggregate[jtid] = errors_dict
     return errors_aggregate, tasks, True
 
