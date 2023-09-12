@@ -25,8 +25,6 @@ class Fragment(common.Base):
     assocs_: Iterable = relationship("ConfigAssociation", back_populates="frag_")
 
     def __repr__(self) -> str:
-        for key, val in self.data.items():
-            print(f"  {key}:{val}")
         return f"Fragment {self.id}: {self.name} {self.tag} {self.handler}"
 
     def get_handler(self) -> Handler:
