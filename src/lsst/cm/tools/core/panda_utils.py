@@ -204,7 +204,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
                 error_dict["diagnostic_message"] = trans_diag_map["t" + str(job.transExitCode)]
             else:
                 raise RuntimeError("Not sure what kinda error we got")
-            jobname_words = [word for word in job.jobName.split("_") if word.isalnum() is True]
+            jobname_words = [word for word in job.jobName.split("_") if word.isdigit() is False]
             error_dict["pipetask"] = jobname_words[-1]
             error_dict["log_file_url"] = job.pilotID.split("|")[0]
             # TODO: currently not found in PanDA job object
