@@ -3,7 +3,7 @@ from functools import partial, wraps
 from typing import Any, Callable, Type, TypeVar, cast
 
 import click
-from click.decorators import F
+from click.decorators import _AnyCallable
 
 from ..core.db_interface import DbInterface
 from ..core.handler import Handler
@@ -335,10 +335,10 @@ yaml_output = PartialOption(
 )
 
 
-def dbi(create: bool = False) -> Callable[[F], F]:
+def dbi(create: bool = False) -> Callable[[_AnyCallable], _AnyCallable]:
     """Set up interface to underlying databases."""
 
-    def decorator(f: F) -> F:
+    def decorator(f: _AnyCallable) -> _AnyCallable:
         @db(expose_value=False, callback=record_meta)
         @plugin_dir(expose_value=False, callback=record_meta)
         @config_dir(expose_value=False, callback=record_meta)
@@ -348,7 +348,7 @@ def dbi(create: bool = False) -> Callable[[F], F]:
         def wrapper(*args, **kwargs):  # type: ignore
             return f(*args, **kwargs)
 
-        return cast(F, wrapper)
+        return cast(_AnyCallable, wrapper)
 
     def record_meta(ctx: click.Context, param: click.Parameter, value: Any) -> None:
         if value and param.name:
