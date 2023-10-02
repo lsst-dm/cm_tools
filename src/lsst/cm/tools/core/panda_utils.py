@@ -113,9 +113,14 @@ def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditas
     ret = conn.get_contents_output_ext(request_id=panda_reqid, workload_id=jeditaskid)
     print(f"Checking {jeditaskid}")
     conn_status = ret[0]
-    wmskey = list(ret[1][1].keys())[0]
-    tasks = ret[1][1][wmskey]
-
+    if len(ret[1][1]) == 1:
+        wmskey = list(ret[1][1].keys())[0]
+        tasks = ret[1][1][wmskey]
+    else:
+        # temporary test
+        print(f"failed on {jeditaskid}")
+        error_dicts = []
+        return error_dicts
     if conn_status != 0:
         raise ValueError(f"Connection to Panda Failed with status {conn_status}")
 
@@ -256,31 +261,26 @@ def determine_error_handling(dbi: DbInterface, errors_agg: dict, max_pct_failed:
 
 # map to take the many statuses and map them to end results
 jtid_status_map = dict(
-    topreprocess="running",
-    registered="running",
-    tobroken="failed",
-    broken="failed",
-    preprocessing="running",
-    defined="running",
-    pending="running",
-    ready="running",
-    assigning="running",
-    paused="running",
-    aborting="failed",
-    aborted="failed",
-    running="running",
-    throttled="running",
-    scouting="running",
-    scouted="running",
-    finishing="running",
-    passed="running",
-    exhausted="failed",
-    finished="finished",
-    done="done",
-    toretry="running",
-    failed="failed",
-    toincexec="running",
-    closed="failed",
+    New="running",
+    Ready="running",
+    Transforming="running",
+    Finished="done",
+    SubFinished="finished",
+    Failed="failed",
+    Extend="running",
+    ToCancel="failed",
+    Cancelling="failed",
+    Cancelled="failed",
+    ToSuspend="running",
+    Suspending="running",
+    Suspended="running",
+    ToResume="running",
+    Resuming="running",
+    ToExpire="failed",
+    Expiring="failed",
+    Expired="failed",
+    ToFinish="running",
+    ToForceFinish="failed",
 )
 
 
@@ -361,17 +361,23 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     if not merging:
         return "running", {}
 
-    statuses = [task["status"] for task in tasks]
-
+    statuses = [task["transform_status"]["attributes"]["_name_"] for task in tasks]
     # then pull all the errors for the tasks
     max_pct_failed = dict()
-    jtids = [task["jeditaskid"] for task in tasks if task["status"] != "done"]
+    jtids = [
+        task["transform_workload_id"]
+        for task in tasks
+        if task["transform_status"]["attributes"]["_name_"] != "Finished"
+    ]
     pct_files_failed = [
-        task["nfilesfailed"] / max(task["nfiles"], 1) for task in tasks if task["status"] != "done"
+        task["output_failed_files"] / (task["output_failed_files"] + task["output_processed_files"])
+        for task in tasks
+        if task["transform_status"]["attributes"]["_name_"] != "Finished"
     ]
     # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
         max_pct_failed[jtid] = pctfailed
+    max_pct_failed = 0
 
     # now determine a final answer based on statuses for the entire reqid
     panda_status = decide_panda_status(dbi, statuses, errors_aggregate, max_pct_failed)
