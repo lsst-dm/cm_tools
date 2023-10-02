@@ -126,7 +126,8 @@ def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditas
 
     error_dicts = []
 
-    failed_jobs = [job for job in tasks if job["trans_exit_code"] != 0]
+    # acquire information for any failed jobs that did run.
+    failed_jobs = [job for job in tasks if job["trans_exit_code"] != 0 and job["trans_exit_code"] is not None]
     if len(failed_jobs) == 0:
         return error_dicts
     else:
