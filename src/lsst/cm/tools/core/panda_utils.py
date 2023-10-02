@@ -163,7 +163,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
         for job in failed_jobs:
             error_dict = dict()
             # TODO: store the hecking pandaIDs so people can look things up
-            if job.transExitCode != 0 and job.transExitCode != 1:
+            if int(job.transExitCode) != 0 and int(job.transExitCode) != 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
                 try:
                     trans_diag = trans_diag_map["t" + str(job.transExitCode)]
@@ -199,7 +199,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, jeditaskid: int):  # pragma: no
                 error_dict["panda_err_code"] = "taskBuffer, " + str(job.taskBufferErrorCode)
                 error_dict["diagnostic_message"] = job.taskBufferErrorDiag
             # transExitCode (no Diag)
-            elif job.transExitCode == 1:
+            elif int(job.transExitCode) == 1:
                 error_dict["panda_err_code"] = "trans, " + str(job.transExitCode)
                 error_dict["diagnostic_message"] = trans_diag_map["t" + str(job.transExitCode)]
             else:
