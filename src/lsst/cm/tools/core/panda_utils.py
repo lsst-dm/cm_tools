@@ -127,13 +127,15 @@ def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditas
     error_dicts = []
 
     # acquire information for any failed jobs that did run.
-    failed_jobs = [job for job in tasks if job["trans_exit_code"] != 0 and job["trans_exit_code"] is not None]
+    failed_jobs = [
+        job for job in tasks if int(job["trans_exit_code"]) != 0 and job["trans_exit_code"] is not None
+    ]
     if len(failed_jobs) == 0:
         return error_dicts
     else:
         for job in failed_jobs:
             error_dict = dict()
-            if job["trans_exit_code"] != 1:
+            if int(job["trans_exit_code"]) != 1:
                 error_dict["panda_err_code"] = "trans, " + str(job["trans_exit_code"])
                 try:
                     trans_diag = trans_diag_map["t" + str(job["trans_exit_code"])]
@@ -141,7 +143,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditas
                     trans_diag = "Stack error: check logging and report!"
                 error_dict["diagnostic_message"] = trans_diag
             # pilot error
-            elif job["trans_exit_code"] == 1:
+            elif int(job["trans_exit_code"]) == 1:
                 if job["pilot_error_code"] != 0:
                     error_dict["panda_err_code"] = "pilot, " + str(job["pilot_error_code"])
                     error_dict["diagnostic_message"] = job["pilot_error_diag"]
@@ -169,7 +171,7 @@ def get_errors_from_jeditaskid(dbi: DbInterface, conn, panda_reqid: int, jeditas
             else:
                 raise RuntimeError("Not sure what kinda error we got")
             jobname_words = [word for word in job["job_name"].split("_") if word.isdigit() is False]
-            error_dict["pipetask"] = jobname_words[-1]
+            error_dict["pipetask"] = jobname_words[-2]
             error_dict["log_file_url"] = job["pilot_id"].split("|")[0]
             # TODO: currently not found in PanDA job object
             # providing nearest substitute, the
@@ -378,7 +380,6 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
     # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
         max_pct_failed[jtid] = pctfailed
-    max_pct_failed = 0
 
     # now determine a final answer based on statuses for the entire reqid
     panda_status = decide_panda_status(dbi, statuses, errors_aggregate, max_pct_failed)
