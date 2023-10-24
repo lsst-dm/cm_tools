@@ -10,5 +10,6 @@ idds-common
 lsst-daf-butler
 panda-client
 psycopg2-binary
+pyyaml == 6.0.0
 sqlalchemy < 2.0
 sqlalchemy-utils
