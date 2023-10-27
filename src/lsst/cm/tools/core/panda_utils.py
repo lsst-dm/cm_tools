@@ -372,11 +372,14 @@ def check_panda_status(dbi: DbInterface, panda_reqid: int, panda_username=None) 
         for task in tasks
         if task["transform_status"]["attributes"]["_name_"] != "Finished"
     ]
-    pct_files_failed = [
-        task["output_failed_files"] / (task["output_failed_files"] + task["output_processed_files"])
-        for task in tasks
-        if task["transform_status"]["attributes"]["_name_"] != "Finished"
-    ]
+    pct_files_failed = []
+    for task in tasks:
+        if task["transform_status"]["attributes"]["_name_"] != "Finished":
+            total_files = task["output_failed_files"] + task["output_processed_files"]
+            if total_files != 0:
+                pct_files_failed.append(task["output_failed_files"] / total_files)
+            else:
+                pct_files_failed.append(0)
     # need to make a matching dict form
     for jtid, pctfailed in zip(jtids, pct_files_failed):
         max_pct_failed[jtid] = pctfailed
