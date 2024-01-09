@@ -132,6 +132,7 @@ class StepHandler(GenericEntryHandler):
             butler = Butler(
                 entry.butler_repo,
                 collections=[entry.coll_source],
+                without_datastore=True,
             )
             if Handler.script_method.value > 0:
                 data_queries = build_data_queries(butler, **split_args)

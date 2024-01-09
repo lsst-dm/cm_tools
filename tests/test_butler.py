@@ -20,12 +20,12 @@ def test_print_dataset_summary() -> None:
 
 
 def test_build_queries() -> None:
-    butler = Butler(butler_main, collections=[butler_input_coll])
+    butler = Butler(butler_main, collections=[butler_input_coll], without_datastore=True)
     queries = butler_utils.build_data_queries(butler, "raw", "exposure", min_queries=3)
     assert len(queries) >= 3
 
 
 def test_clean_collection_set() -> None:
-    butler = Butler(butler_main, collections=[butler_input_coll])
+    butler = Butler(butler_main, collections=[butler_input_coll], without_datastore=True)
     clean_colls = butler_utils.clean_collection_set(butler, [[butler_input_coll, butler_bad_coll]])
     assert len(clean_colls) == 1

@@ -12,7 +12,7 @@ def get_sorted_array(itr: Iterable, field: str) -> np.ndarray:
 
 def print_dataset_summary(stream, butler_url: str, collections: list[str]) -> None:
     """Print a summary of the butler dataset."""
-    butler = Butler(butler_url, collections=collections)
+    butler = Butler(butler_url, collections=collections, without_datastore=True)
 
     summary_dict = {}
     config_dict = {}
@@ -126,7 +126,7 @@ def butler_associate_kludge(
     """Fix Butler associates for later inputs."""
     assert input_colls
 
-    butler = Butler(butler_repo, writeable=True)
+    butler = Butler(butler_repo, writeable=True, without_datastore=True)
     input_colls = clean_collection_set(butler, input_colls)
     first_colls = input_colls[0]
     output_coll = output_coll + "_test"
