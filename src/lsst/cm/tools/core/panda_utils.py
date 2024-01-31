@@ -395,7 +395,12 @@ def get_panda_errors(
 ) -> tuple[Any]:  # pragma: no cover
     """Get panda errors for a given reqID."""
     conn = pandaclient.idds_api.get_api(idds_utils.json_dumps, idds_host=None, compress=True, manager=True)
+
     ret = conn.get_requests(request_id=int(panda_reqid), with_detail=True)
+
+    conn_status = ret[0]
+    if conn_status != 0:
+        raise ValueError(f"Connection to Panda Failed with status {conn_status}")
     errors_aggregate = dict()
     has_merging = False
     tasks = ret[1][1]
