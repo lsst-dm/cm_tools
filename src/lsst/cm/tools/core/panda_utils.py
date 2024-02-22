@@ -405,6 +405,10 @@ def get_panda_errors(
     has_merging = False
     tasks = ret[1][1]
     for task in tasks:
+        if task is None:
+            print(panda_reqid, "; task is None")
+        if task["transform_name"] is None:
+            print(panda_reqid, "; task[transform_name] is None")
         if task["transform_name"].find("finalJob") >= 0 or task["transform_name"].find("xecutionButler") >= 0:
             has_merging = True
     if not has_merging:
@@ -470,9 +474,15 @@ class PandaChecker(SlurmChecker):  # pragma: no cover
             elif slurm_dict.get("status") == StatusEnum.failed:
                 update_vals["status"] = StatusEnum.failed
                 return update_vals
+        print(panda_url)
         if panda_url is None:
             return update_vals
-        panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.generic_username)
+        try:
+            panda_status, errors_aggregate = check_panda_status(dbi, int(panda_url), self.generic_username)
+        except (ValueError, AttributeError, TypeError) as e:
+            print(e)
+            print("Returning update_vals without updating them")
+            return update_vals
         if panda_status != job.panda_status:
             update_vals["panda_status"] = panda_status
 
